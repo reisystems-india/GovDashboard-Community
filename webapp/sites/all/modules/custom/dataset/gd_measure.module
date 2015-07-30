@@ -1,0 +1,122 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+define('NODE_TYPE_MEASURE', 'measure');
+
+function gd_measure_get_measures_4_dataset($dataset_nids, $loadNodes = LOAD_ENTITY_ID_ONLY, $publishedOnly = PUBLISHED_ONLY) {
+    $query = prepare_entity_query_4_node_type(NODE_TYPE_MEASURE, $publishedOnly);
+    $query->fieldCondition('field_measure_dataset', 'nid', $dataset_nids);
+    $entities = $query->execute();
+
+    return process_entity_query_result($entities, $loadNodes);
+}
+
+/**
+ * Implementation of hook_entity_delete
+ *
+ * @param $entity
+ * @param $type
+ * @return void
+ */
+function gd_measure_entity_delete ( $entity, $type ) {
+    if ( $type == 'node' ) {
+        if ( $entity->type == 'dataset' ) {
+            // remove measures
+            $measure_nids = gd_measure_get_measures_4_dataset($entity->nid, LOAD_ENTITY_ID_ONLY, INCLUDE_UNPUBLISHED);
+            node_delete_multiple($measure_nids);
+        }
+    }
+}
+
+/**
+ * Implementation of hook_node_view
+ *
+ * @param $node
+ * @param $view_mode
+ * @param $langcode
+ */
+function gd_measure_node_view ( $node, $view_mode, $langcode ) {
+
+    if ( $node->type == NODE_TYPE_DATASET ) {
+
+        $measures = gd_measure_get_measures_4_dataset($node->nid, LOAD_ENTITY);
+
+        $markup = '<div class="field field-name-field-dataset-measures field-type-node-reference field-label-above">
+        	       <div class="field-label">Measures:&nbsp;</div>
+        	       <div class="field-items">';
+
+        $i = 1;
+        foreach ( $measures as $m ) {
+            $parity = ($i % 2) ? "odd" : "even";
+            $markup .= '<div class="field-item '.$parity.'"><a href="/node/'.$m->nid.'">'.$m->title.'</a></div>';
+            $i++;
+        }
+        $markup .= '
+        	</div>
+        </div>';
+
+        $node->content['column_measures'] = array(
+            '#markup' => $markup,
+            '#weight' => 22
+        );
+    }
+}
+
+/**
+ * @param $column
+ * @param $dataset
+ * @return StdClass
+ */
+function gd_measure_create ( $column, $dataset ) {
+    $column = (array)$column;
+
+    $node = new StdClass();
+    $node->type = NODE_TYPE_MEASURE;
+    $node->language = LANGUAGE_NONE;
+    node_object_prepare($node);
+
+    $node->title = $column['publicName'];
+
+    if ( isset($column['description']) ) {
+        $node->field_measure_desc[$node->language][0]['value'] = $column['description'];
+    }
+
+    if ( isset($column['name']) ) {
+        $node->field_measure_sysname[$node->language][0]['value'] = $column['name'];
+    }
+
+    if ( isset($column['function']) ) {
+        $node->field_measure_function[$node->language][0]['value'] = $column['function'];
+    }
+
+    if ( isset($dataset) ) {
+      $node->field_measure_dataset[$node->language][0]['nid'] = $dataset;
+    }
+
+    if ( isset($status) ) {
+        $node->status = $column['used'];
+    }
+
+    node_save($node);
+
+    return $node;
+}
+

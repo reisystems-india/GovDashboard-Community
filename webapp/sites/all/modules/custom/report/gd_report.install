@@ -1,0 +1,376 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+/**
+ * Populating UUID field
+ */
+function gd_report_update_7104() {
+    // checking that new fields exist. Checking just one of them
+    if (field_info_field('field_report_uuid') == NULL) {
+        throw new DrupalUpdateException(t("'Report' content type configuration had not been deployed successfully"));
+    }
+
+    require_once drupal_get_path('module', 'gd').'/lib/GD/Utility/Uuid.php';
+
+    $report_nids = db_select('node', 'n')
+      ->fields('n', array('nid'))
+      ->condition('type', NODE_TYPE_REPORT)
+      ->orderBy('nid', 'ASC')
+      ->execute();
+
+    $nids = array();
+    foreach ($report_nids as $report_nid) {
+        $nids[] = $report_nid->nid;
+    }
+
+    $nid_count = count($nids);
+    $i = 0;
+    $batch_size = 10;
+    $batch = array();
+    while ( $i < $nid_count ) {
+        $batch[] = $nids[$i];
+        if ( $i % $batch_size == 0 ) {
+            $nodes = node_load_multiple($batch);
+            foreach ($nodes as $node) {
+                $uuid = get_node_field_value($node, 'field_report_uuid');
+                if ( empty($uuid) ) {
+                    $node->field_report_uuid[$node->language][0]['value'] = \GD\Utility\Uuid::generate();
+                    node_save($node);
+                }
+            }
+            $batch = array();
+        }
+        $i++;
+    }
+
+    if ( !empty($batch) ) {
+        $nodes = node_load_multiple($batch);
+        foreach ($nodes as $node) {
+            $uuid = get_node_field_value($node, 'field_report_uuid');
+            if ( empty($uuid) ) {
+                $node->field_report_uuid[$node->language][0]['value'] = \GD\Utility\Uuid::generate();
+                node_save($node);
+            }
+        }
+    }
+}
+
+/**
+ * Populating data source field
+ */
+function gd_report_update_7105() {
+    // checking that new fields exist. Checking just one of them
+    if (field_info_field('field_report_datasource') == NULL) {
+        throw new DrupalUpdateException(t("'Report' content type configuration had not been deployed successfully"));
+    }
+
+    $EnvironmentMetaModel = data_controller_get_environment_metamodel();
+
+    $report_nids = db_select('node', 'n')
+                   ->fields('n', array('nid'))
+                   ->condition('type', NODE_TYPE_REPORT)
+                   ->orderBy('nid', 'ASC')
+                   ->execute();
+
+    $nids = array();
+    foreach ($report_nids as $report_nid) {
+        $nids[] = $report_nid->nid;
+    }
+
+    $nodes = node_load_multiple($nids);
+    foreach ($nodes as $node) {
+        $datamart_id = $node->field_report_datamart[$node->language][0]['nid'];
+        foreach ( $EnvironmentMetaModel->getDataSources() as $datasource ) {
+            if ( isset($datasource->nid) && $datasource->nid == $datamart_id ) {
+                $node->field_report_datasource[$node->language][0]['value'] = $datasource->name;
+            }
+        }
+        node_save($node);
+    }
+}
+
+/**
+ * New structure for admin config
+ */
+function gd_report_update_7106() {
+    $config = variable_get('gd_report_config', array('export' => 0, 'print' => 0));
+
+    $config = array(
+        'export' => $config['export'],
+        'csv' => 0,
+        'csv_raw' => 0,
+        'excel' => 0,
+        'excel_raw' => 0,
+        'pdf' => 0,
+        'print' => $config['print']
+    );
+
+    variable_set('gd_report_config',$config);
+}
+
+/**
+ *  Flip exposed property for Report Filters
+ */
+function gd_report_update_7107() {
+    $report_nids = db_select('node', 'n')
+          ->fields('n', array('nid'))
+          ->condition('type', NODE_TYPE_REPORT)
+          ->orderBy('nid', 'ASC')
+          ->execute();
+
+    foreach ($report_nids as $report_nid) {
+        $node = node_load($report_nid->nid);
+        $config = json_decode($node->field_report_conf[$node->language][0]['value']);
+        foreach ($config->model->filters as $f) {
+            $f->exposed = !$f->exposed;
+        }
+        $node->field_report_conf[$node->language][0]['value'] = json_encode($config);
+        node_save($node);
+    }
+}
+
+/**
+ * New structure for admin config
+ */
+function gd_report_update_7108() {
+    $config = variable_get('gd_report_config', array('export' => 0, 'print' => 0, 'csv' => 0, 'csv_raw' => 0, 'excel' => 0, 'excel_raw' => 0, 'pdf' => 0));
+
+    $config = array(
+        'export' => $config['export'],
+        'csv' => $config['csv'],
+        'csv_raw' => $config['csv_raw'],
+        'xls' => $config['excel'],
+        'xls_raw' => $config['excel_raw'],
+        'pdf' => $config['pdf'],
+        'print' => $config['print']
+    );
+
+    variable_set('gd_report_config',$config);
+}
+
+/**
+ *  Convert dynamic text config properties to new format
+ */
+function gd_report_update_7110() {
+    $report_nids = db_select('node', 'n')
+        ->fields('n', array('nid'))
+        ->condition('type', NODE_TYPE_REPORT)
+        ->orderBy('nid', 'ASC')
+        ->execute();
+
+    $propertySuffixes = array('_displayTitle','_showInlineTitle','_dynamicTextSize','_dynamicTextColor','_dynamicTextFont','_title');
+    $newProperties = array('dynamicTextShowTitle','dynamicTextShowTitleInline','dynamicTextSize','dynamicTextColor','dynamicTextFont','dynamicTextTitle');
+
+    foreach ($report_nids as $report_nid) {
+        $node = node_load($report_nid->nid);
+        $config = json_decode($node->field_report_conf[$node->language][0]['value']);
+
+        if ( !isset($config->visual) ) {
+          continue;
+        }
+
+        $configChanged = false;
+        $selectedColumnNames = $config->model->columns;
+
+        // convert column names
+        $newVisualProperties = array();
+        foreach ( $config->visual as $key => $value ) {
+
+            if ( strpos($key,'column:') !== false ) {
+                $newKey = str_replace('column:','attr:',$key);
+                if ( in_array(str_replace($propertySuffixes,'',$newKey),$selectedColumnNames) ) {
+                    $newVisualProperties[$newKey] = $value;
+                    unset($config->visual->{$key});
+                }
+            } else if ( strpos($key,'attr:') !== false ) {
+                $parts = explode('.',$key);
+                $newColumnName = null;
+                foreach ( $selectedColumnNames as $columnName ) {
+                    if ( strpos($columnName,$parts[0]) !== false ) {
+                        $newColumnName = $columnName;
+                    }
+                }
+                if ( $newColumnName ) {
+                    foreach ( $propertySuffixes as $suffix ) {
+                        if ( strpos($key,$suffix) !== false ) {
+                            $newKey = $newColumnName.$suffix;
+                            $newVisualProperties[$newKey] = $value;
+                            unset($config->visual->{$key});
+                        }
+                    }
+                }
+            } else if ( strpos($key,'measure:') !== false ) {
+                $newColumnName = null;
+                foreach ( $selectedColumnNames as $columnName ) {
+                    if ( strpos($columnName,'measure:') !== false ) {
+                        $newColumnName = $columnName;
+                    }
+                }
+                if ( $newColumnName ) {
+                    foreach ( $propertySuffixes as $suffix ) {
+                        if ( strpos($key,$suffix) !== false ) {
+                            $newKey = $newColumnName.$suffix;
+                            $newVisualProperties[$newKey] = $value;
+                            unset($config->visual->{$key});
+                        }
+                    }
+                }
+            }
+        }
+
+        if ( !empty($newVisualProperties) ) {
+            $configChanged = true;
+            foreach ( $newVisualProperties as $key => $value ) {
+                $config->visual->{$key} = $value;
+            }
+        }
+
+        // move and rename dynamic text properties
+        if ( !isset($config->visual->series) ) {
+            $configChanged = true;
+            $config->visual->series = new stdClass();
+        } else if ( 'object' !== gettype($config->visual->series) ) {
+            $configChanged = true;
+            $config->visual->series = (object) $config->visual->series;
+        }
+
+        foreach ( $selectedColumnNames as $columnName ) {
+            $dynamicTextConfig = array();
+            foreach ( $propertySuffixes as $key => $suffix ) {
+                if ( isset($config->visual->{$columnName.$suffix}) ) {
+                    $dynamicTextConfig[$newProperties[$key]] = $config->visual->{$columnName.$suffix};
+                    unset($config->visual->{$columnName.$suffix});
+                }
+
+                if ( isset($config->visual->series) && isset($config->visual->series->{$columnName}) ) {
+                    if ( isset($config->visual->series->{$columnName}->{$columnName.$suffix}) ) {
+                        $dynamicTextConfig[$newProperties[$key]] = $config->visual->series->{$columnName}->{$columnName.$suffix};
+                        unset($config->visual->series->{$columnName}->{$columnName.$suffix});
+                    }
+                }
+            }
+
+            if ( !empty($dynamicTextConfig) ) {
+                $configChanged = true;
+                if ( !isset($config->visual->series->{$columnName}) ) {
+                    $config->visual->series->{$columnName} = new stdClass();
+                }
+                foreach ( $dynamicTextConfig as $key => $value ) {
+                    $config->visual->series->{$columnName}->{$key} = $value;
+                }
+            }
+        }
+
+        if ( $configChanged ) {
+            $node->field_report_conf[$node->language][0]['value'] = json_encode($config);
+            node_save($node);
+        }
+    }
+}
+
+/**
+ * Populate 'report_changed' field for report nodes
+ */
+function gd_report_update_7114() {
+    log_info(t("Populating 'report_changed' field for report nodes"));
+
+    $reports = db_select('node', 'n')
+        ->fields('n', array('nid'))
+        ->condition('type', NODE_TYPE_REPORT)
+        ->orderBy('nid', 'ASC')
+        ->execute();
+
+    $nids = array();
+    foreach ($reports as $column) {
+        $nids[] = $column->nid;
+    }
+    $count = count($nids);
+
+    if ($count > 0) {
+        $nodes = node_load_multiple($nids);
+        foreach ($nodes as $node) {
+            $node->field_report_changed[$node->language][0]['value'] = $node->changed;
+            node_save($node);
+        }
+    }
+
+    log_info(t("Populated 'report_changed' field for report nodes. Updated @count node(s)", array('@count' => $count)));
+}
+
+
+/**
+ * Correcting exposed flag for Report filters
+ */
+function gd_report_update_7115() {
+    log_info(t("Correcting exposed flag for broken Report filters"));
+
+    $reports = db_select('node', 'n')
+        ->fields('n', array('nid'))
+        ->condition('type', NODE_TYPE_REPORT)
+        ->orderBy('nid', 'ASC')
+        ->execute();
+
+    $nids = array();
+    foreach ($reports as $column) {
+        $nids[] = $column->nid;
+    }
+    $count = count($nids);
+
+    if ($count > 0) {
+        $nodes = node_load_multiple($nids);
+        foreach ($nodes as $node) {
+            $config = json_decode($node->field_report_conf[$node->language][0]['value']);
+            foreach ($config->model->filters as $f) {
+                $invalid = false;
+                //  Filter is broken IF filter is not exposed and no operator is set OR filter is exposed and operator is set
+                if ((!$f->exposed && !isset($f->operator)) || ($f->exposed && isset($f->operator))) {
+                    $invalid = true;
+                }
+
+                //  If filter is broken, flip the exposed flag to correct it
+                if ($invalid) {
+                    $f->exposed = !$f->exposed;
+                    $node->field_report_conf[$node->language][0]['value'] = json_encode($config);
+                    node_save($node);
+                }
+            }
+        }
+    }
+
+    log_info(t("Corrected exposed flag for broken Report filters. Updated @count node(s)", array('@count' => $count)));
+}
+
+
+/**
+ * Add default value for geocode URL
+ */
+function gd_report_update_7116() {
+    log_info(t("Adding default value for geocode URL"));
+
+    $config = variable_get('gd_report_config');
+
+    $config["geocode_url"] = "54.164.132.179";
+
+    variable_set('gd_report_config',$config);
+
+    log_info(t("Added default value for geocode URL"));
+}
+

@@ -1,0 +1,110 @@
+{
+    "datasets": {
+        "ref_leaves": {
+            "source": "ref_leaves",
+            "columns": [
+                {
+                    "name": "leaf_id",
+                    "type": {
+                        "applicationType": "integer"},
+                    "key": true},
+                {
+                    "name": "alias",
+                    "type": {
+                        "applicationType": "string"}},
+                {
+                    "name": "name",
+                    "type": {
+                        "applicationType": "string"}},
+                {
+                    "name": "level",
+                    "type": {
+                        "applicationType": "integer"}}
+            ],
+            "access": "protected",
+            "complete": true},
+
+        "ref_branches": {
+            "source": "ref_branches",
+            "columns": [
+                {
+                    "name": "branch_id",
+                    "type": {
+                        "applicationType": "integer"},
+                    "key": true},
+                {
+                    "name": "name",
+                    "type": {
+                        "applicationType": "string"}},
+                {
+                    "name": "a_leaf_id",
+                    "type": {
+                        "applicationType": "leaf_id@test:default:ref_leaves"}},
+                {
+                    "name": "b_leaf_id",
+                    "type": {
+                        "applicationType": "leaf_id@test:default:ref_leaves"}}
+            ],
+            "access": "protected",
+            "complete": true},
+
+        "all_data_types": {
+            "source": "all_data_types",
+            "columns": [
+                {
+                    "name": "test_case_name",
+                    "type": {
+                        "applicationType": "string"}},
+                {
+                    "name": "name",
+                    "type": {
+                        "applicationType": "string"}},
+                {
+                    "name": "uri",
+                    "type": {
+                        "applicationType": "URI"}},
+                {
+                    "name": "fiscal_year",
+                    "type": {
+                        "applicationType": "date2:year"}},
+                {
+                    "name": "report_date",
+                    "type": {
+                        "applicationType": "date2"}},
+                {
+                    "name": "submitted_on",
+                    "type": {
+                        "applicationType": "datetime"}},
+                {
+                    "name": "amount_a",
+                    "type": {
+                        "applicationType": "currency"}},
+                {
+                    "name": "amount_b",
+                    "type": {
+                        "applicationType": "currency"}},
+                {
+                    "name": "percent",
+                    "type": {
+                        "applicationType": "percent"}},
+                {
+                    "name": "quantity",
+                    "type": {
+                        "applicationType": "integer"}},
+                {
+                    "name": "ratio",
+                    "type": {
+                        "applicationType": "number"}},
+                {
+                    "name": "branch_id",
+                    "type": {
+                        "applicationType": "branch_id@test:default:ref_branches"}},
+                {
+                    "name": "leaf_id",
+                    "type": {
+                        "applicationType": "leaf_id@test:default:ref_leaves"}}
+            ],
+            "access": "protected",
+            "complete": true}
+    }
+}

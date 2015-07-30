@@ -1,0 +1,197 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+/**
+ * Implements hook_menu()
+ *
+ * @return array
+ */
+function gd_dataset_admin_menu () {
+
+    $items = array();
+
+    $items['cp/dataset'] = array(
+        'page callback' => 'gd_dataset_admin_page_index',
+        'access callback' => 'gd_admin_permissions',
+        'type' => MENU_CALLBACK
+    );
+
+    $items['cp/dataset/new'] = array(
+        'page callback' => 'gd_dataset_admin_page_new',
+        'access callback' => 'gd_admin_permissions',
+        'type' => MENU_CALLBACK
+    );
+
+    $items['cp/dataset/new/%'] = array(
+        'page callback' => 'gd_dataset_admin_page_new_widget',
+        'access callback' => 'gd_admin_permissions',
+        'type' => MENU_CALLBACK
+    );
+
+    $items['cp/dataset/%'] = array(
+        'page callback' => 'gd_dataset_admin_page_edit',
+        'page arguments' => array(2),
+        'access callback' => 'gd_admin_permissions',
+        'type' => MENU_CALLBACK
+    );
+
+    return $items;
+}
+
+/**
+ * Implements hook_gd_admin_sections()
+ *
+ * @return array
+ */
+function gd_dataset_admin_gd_admin_sections () {
+
+    $items['dataset'] =  array(
+        'name' => 'dataset',
+        'title' => 'Datasets',
+        'class' => 'DatasetSection',
+        'weight' => -10,
+        'widgets' => gd_dataset_admin_get_widgets()
+    );
+
+    return $items;
+}
+
+// Implements hook_library()
+function gd_dataset_admin_library() {
+
+    $libraries['GD_Admin_DatasetSection'] = array(
+        'title'   => 'GD Admin - Dataset Section',
+        'version' => '',
+        'js' => array(
+            drupal_get_path('module','gd_dataset_admin').'/js/DatasetSection.js' => array(),
+            drupal_get_path('module','gd_dataset_admin').'/js/logging/DatasetLogging.js' => array(),
+            drupal_get_path('module','gd_dataset_admin').'/js/DatafileFactory.js' => array(),
+            drupal_get_path('module','gd_dataset_admin').'/js/Datafile.js' => array(),
+            drupal_get_path('module','gd_dataset_admin').'/js/DatasetFactory.js' => array(),
+            drupal_get_path('module','gd_dataset_admin').'/js/Dataset.js' => array(),
+            drupal_get_path('module','gd_dataset_admin').'/js/list/DatasetWidgetView.js' => array()
+        ),
+        'css' => array (
+            drupal_get_path('module','gd_dataset_admin').'/css/DatasetSection.css' => array('weight'=>1,'group'=>CSS_THEME)
+        ),
+        'dependencies' => array(
+            array('gd_admin', 'GD_Admin')
+        )
+    );
+
+    $libraries['GD_Admin_DatasetSection_Index'] = array(
+        'title'   => 'GD Admin - Dataset Section - Index',
+        'version' => '',
+        'js' => array(
+            drupal_get_path('module','gd_dataset_admin').'/js/list/DatasetListView.js' => array()
+        ),
+        'css' => array (),
+        'dependencies' => array(
+            array('gd_dataset_admin', 'GD_Admin_DatasetSection')
+        )
+    );
+
+    $libraries['GD_Admin_DatasetSection_Builder'] = array(
+        'title'   => 'GD Admin - Dataset Section - Builder',
+        'version' => '',
+        'js' => array(
+            drupal_get_path('module','gd_dataset_admin').'/js/DatasetModification.js' => array(),
+            drupal_get_path('module','gd_dataset_admin').'/js/edit/DatasetActionView.js' => array(),
+            drupal_get_path('module','gd_dataset_admin').'/js/edit/DatasetEditView.js' => array(),
+            drupal_get_path('module','gd_dataset_admin').'/js/edit/DatasetInfoView.js' => array(),
+            drupal_get_path('module','gd_dataset_admin').'/js/edit/DatasetStatsView.js' => array(),
+            drupal_get_path('module','gd_dataset_admin').'/js/edit/DatasetCalculatedColumnsView.js' => array(),
+            drupal_get_path('module','gd_dataset_admin').'/js/edit/DatasetColumnsView.js' => array(),
+            drupal_get_path('module','gd_dataset_admin').'/js/edit/column/Column.js' => array(),
+            drupal_get_path('module','gd_dataset_admin').'/js/edit/column/ColumnView.js' => array(),
+            drupal_get_path('module','gd_dataset_admin').'/js/edit/column/CalculatedColumnView.js' => array(),
+            drupal_get_path('module','gd_dataset_admin').'/js/edit/column/tree/TypeTreeView.js' => array(),
+            drupal_get_path('module','gd_dataset_admin').'/js/edit/column/tree/TreeView.js' => array(),
+            drupal_get_path('module','gd_dataset_admin').'/js/edit/column/tree/TreeItemView.js' => array(),
+            drupal_get_path('module','gd_dataset_admin').'/js/edit/column/tree/TreeFolderView.js' => array(),
+            drupal_get_path('module','gd_dataset_admin').'/js/edit/DatasetDataView.js' => array()
+        ),
+        'css' => array (),
+        'dependencies' => array(
+            array('gd_dataset_admin', 'GD_Admin_DatasetSection'),
+            array('gd_admin', 'GD_Admin_Builder'),
+            array('gd','jqueryFileUploader')
+        )
+    );
+
+    return $libraries;
+}
+
+/**
+ * @param bool $refresh
+ * @return array
+ */
+function gd_dataset_admin_get_widgets ($refresh = false) {
+    static $gd_dataset_admin_widgets;
+    if ( !isset($gd_dataset_admin_widgets) || $refresh ) {
+        $gd_dataset_admin_widgets = module_invoke_all('gd_dataset_admin_widgets');
+    }
+    return $gd_dataset_admin_widgets;
+}
+
+/**
+ * @return array
+ */
+function gd_dataset_admin_page_default () {
+    drupal_add_library('gd_dataset_admin','GD_Admin_DatasetSection_Builder');
+    return gd_admin_page_default();
+}
+
+function gd_dataset_admin_page_index () {
+    drupal_add_library('gd_dataset_admin','GD_Admin_DatasetSection_Index');
+    return gd_dataset_admin_page_default();
+}
+
+function gd_dataset_admin_page_new () {
+    drupal_add_library('gd_dataset_admin','GD_Admin_DatasetSection_Builder');
+    return gd_dataset_admin_page_default();
+}
+
+function gd_dataset_admin_page_new_widget () {
+    return gd_dataset_admin_page_new();
+}
+
+function gd_dataset_admin_page_edit ( $datasetName ) {
+    $dataset = NULL;
+
+    $datasourceName = gd_dataset_find_datasource_name($datasetName);
+    if (isset($datasourceName)) {
+        gd_datasource_set_active($datasourceName);
+
+        $metamodel = data_controller_get_metamodel();
+
+        $dataset = $metamodel->findDataset($datasetName);
+    }
+
+    if (isset($dataset)) {
+        drupal_add_library('gd_dataset_admin','GD_Admin_DatasetSection_Builder');
+        return gd_dataset_admin_page_default();
+    }
+    else {
+        drupal_access_denied();
+        return null;
+    }
+}

@@ -1,0 +1,177 @@
+/**
+ * @file
+ * Print styling
+ *
+ * We provide some sane print styling for Drupal using Zen's layout method.
+ */
+
+@page{
+    size: auto;
+    margin: 1cm 0.2cm 1cm 0.2cm;
+}
+
+body{
+    overflow: visible;
+}
+
+/* Header Section */
+#header-inside.container, #header {
+        background-color: #000 !important;
+        background: #000 !important;    
+        width:100% !important;   
+}
+
+#header-inside-left {
+ padding: 25px 0 0 0  !important; 
+ margin: 0 !important; 
+}
+
+#header-inside-right,#footer-bottom-left {
+    visibility: hidden;
+}
+
+#footer {
+background: #EEECED !important;
+ padding: 25px 0 0 0  !important; 
+
+}
+#footer .container{
+    width:100% !important;   
+}
+#footer-bottom-right{
+   margin: 0 !important; 
+}
+
+/* Footer Section */
+
+#footer-bottom-right a[href]:after{
+    content: " ";
+}
+
+div#footer-bottom-right a{
+    display: block !important;
+    float: none;
+}
+
+.print-element.clearfix {
+    display: block;
+}
+
+
+/* main Section */
+
+div#main{
+    float: none;
+    width: 100% !important;
+}
+
+.gd-report-menu-container, .gd-navbar, .filter-overlay{
+    display: none
+}
+
+#content-inside {
+    display: block;
+    overflow: visible  !important; /* TODO: Hack for ie9*/
+
+}
+
+#dashboard-view .row .col-md-6{
+    display: none;
+}
+
+#dashboard-view .row .col-md-6:first-child{
+    display: block;
+}
+
+
+#content.container{margin: 0;}
+
+#footer .container{ margin-right: 0; }
+
+.print-element {
+    display: block;
+}
+
+div#gd-breadcrumb-container  a[href]:after {
+    content: none !important;
+}
+/*dynamic text fix start*/
+div.dynamic-report{
+    overflow-x: visible!important;
+    -moz-hyphens: auto;
+    height:auto!important;
+}
+
+#gd-filter-container .btn.btn-default.flt-btn{
+    display: none;
+}
+
+a.gd-view.gd-view-breadcrumb{
+    color: #428bca !important;
+}
+
+div[id*="report-"]:not(.report-custom):not(.report-container){
+    height: auto!important;
+}
+#dash_viewer{
+    height:100%!important;
+}
+.pvtRendererArea {
+    page-break-inside: auto!important;
+}
+
+@media print {
+    #dash_viewer {
+        height: 100% !important;
+        width: 100% !important;
+    }
+
+    #content,
+    body {
+        background: white !important;
+    }
+
+    #content-inside {
+        background-color: transparent !important;
+        border: none;
+    }
+
+    td.pvtRendererArea > div {
+        max-width: initial !important;
+        max-height: initial !important;
+    }
+
+    div.dashboard-report-container:first-child {
+        margin-top: 10px;
+        page-break-before: avoid !important;
+    }
+
+    div.table-content {
+        height:initial !important;
+    }
+
+    div.report:not(.report-custom) {
+        height: initial !important;
+        width: initial !important;
+    }
+
+    table.GD_datatable {
+        width: 100% !important;
+    }
+
+    #appendix {
+        page-break-before: always !important;
+    }
+
+    #footer {
+        display: none;
+    }
+
+    /* Remove once WKHTMLTOPDF fixes overlapping issue with repeating table headers on multiple pages */
+    thead {
+        display: table-row-group !important;
+    }
+
+    /* Hide HREFs on print */
+    a, a:after { content: normal !important; }
+}

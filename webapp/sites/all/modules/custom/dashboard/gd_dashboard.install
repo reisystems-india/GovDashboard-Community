@@ -1,0 +1,183 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/**
+ * Populating UUID field
+ */
+function gd_dashboard_update_7102() {
+    // checking that new fields exist. Checking just one of them
+    if (field_info_field('field_dashboard_uuid') == NULL) {
+        throw new DrupalUpdateException(t("'Dashboard' content type configuration had not been deployed successfully"));
+    }
+
+    require_once drupal_get_path('module', 'gd').'/lib/GD/Utility/Uuid.php';
+
+    $dashboard_nids = db_select('node', 'n')
+      ->fields('n', array('nid'))
+      ->condition('type', NODE_TYPE_DASHBOARD)
+      ->orderBy('nid', 'ASC')
+      ->execute();
+
+    $nids = array();
+    foreach ($dashboard_nids as $dashboard_nid) {
+        $nids[] = $dashboard_nid->nid;
+    }
+
+    $nid_count = count($nids);
+    $i = 0;
+    $batch_size = 10;
+    $batch = array();
+    while ( $i < $nid_count ) {
+        $batch[] = $nids[$i];
+        if ( $i % $batch_size == 0 ) {
+            $nodes = node_load_multiple($batch);
+            foreach ($nodes as $node) {
+                $uuid = get_node_field_value($node, 'field_dashboard_uuid');
+                if ( empty($uuid) ) {
+                    $node->field_dashboard_uuid[$node->language][0]['value'] = \GD\Utility\Uuid::generate();
+                    node_save($node);
+                }
+            }
+            $batch = array();
+        }
+        $i++;
+    }
+
+    if ( !empty($batch) ) {
+        $nodes = node_load_multiple($batch);
+        foreach ($nodes as $node) {
+            $uuid = get_node_field_value($node, 'field_dashboard_uuid');
+            if ( empty($uuid) ) {
+                $node->field_dashboard_uuid[$node->language][0]['value'] = \GD\Utility\Uuid::generate();
+                node_save($node);
+            }
+        }
+    }
+}
+
+
+/**
+ * Populating data source field
+ */
+function gd_dashboard_update_7103 () {
+    // checking that new fields exist. Checking just one of them
+    if (field_info_field('field_dashboard_datasource') == NULL) {
+        throw new DrupalUpdateException(t("'Dashboard' content type configuration had not been deployed successfully"));
+    }
+
+    $EnvironmentMetaModel = data_controller_get_environment_metamodel();
+
+    $dashboard_nids = db_select('node', 'n')
+                   ->fields('n', array('nid'))
+                   ->condition('type', NODE_TYPE_DASHBOARD)
+                   ->orderBy('nid', 'ASC')
+                   ->execute();
+
+    $nids = array();
+    foreach ($dashboard_nids as $dashboard_nid) {
+        $nids[] = $dashboard_nid->nid;
+    }
+
+    $nodes = node_load_multiple($nids);
+    foreach ($nodes as $node) {
+        $datamart_id = $node->field_dashboard_datamart[$node->language][0]['nid'];
+        foreach ( $EnvironmentMetaModel->getDataSources() as $datasource ) {
+            if ( isset($datasource->nid) && $datasource->nid == $datamart_id ) {
+                $node->field_dashboard_datasource[$node->language][0]['value'] = $datasource->name;
+            }
+        }
+        node_save($node);
+    }
+}
+
+/**
+ * Populate 'dashboard_changed' field for dashboard nodes
+ */
+function gd_dashboard_update_7107() {
+    log_info(t("Populating 'dashboard_changed' field for dashboard nodes"));
+
+    $dashboards = db_select('node', 'n')
+        ->fields('n', array('nid'))
+        ->condition('type', NODE_TYPE_DASHBOARD)
+        ->orderBy('nid', 'ASC')
+        ->execute();
+
+    $nids = array();
+    foreach ($dashboards as $column) {
+        $nids[] = $column->nid;
+    }
+    $count = count($nids);
+
+    if ($count > 0) {
+        $nodes = node_load_multiple($nids);
+        foreach ($nodes as $node) {
+            $node->field_dashboard_changed[$node->language][0]['value'] = $node->changed;
+            node_save($node);
+        }
+    }
+
+    log_info(t("Populated 'dashboard_changed' field for dashboard nodes. Updated @count node(s)", array('@count' => $count)));
+}
+
+/**
+ * Update image widget content format for dashboard nodes
+ */
+function gd_dashboard_update_7108() {
+    log_info(t("Updating image widget content format for dashboard nodes"));
+
+    $result = db_select('node', 'n')
+        ->fields('n', array('nid'))
+        ->condition('type', NODE_TYPE_DASHBOARD)
+        ->orderBy('nid', 'ASC')
+        ->execute();
+
+    $nids = array();
+    foreach ($result as $item) {
+        $nids[] = $item->nid;
+    }
+    $count = 0;
+
+    if (count($nids) > 0) {
+        $nodes = node_load_multiple($nids);
+        foreach ($nodes as $node) {
+            $config = get_node_field_value($node, 'field_dashboard_config');
+            if ( !empty($config) ) {
+                $config = json_decode($config);
+                $touched = false;
+                foreach ( $config->items as $key => $value ) {
+                    if ($value->type == 'image' && !is_object($value->content)) {
+                        $content = new stdClass();
+                        $content->src = $value->content;
+                        $content->alt = '';
+                        $config->items[$key]->content = $content;
+                        $touched = true;
+                    }
+                }
+                if ( $touched ) {
+                    $node->field_dashboard_config[$node->language][0]['value'] = json_encode($config);
+                    node_save($node);
+                    $count++;
+                }
+            }
+        }
+    }
+
+    log_info(t("Updated dashboard image widget content format. Updated @count node(s)", array('@count' => $count)));
+}

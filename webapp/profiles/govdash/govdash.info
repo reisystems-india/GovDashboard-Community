@@ -1,0 +1,287 @@
+; Copyright 2014 REI Systems, Inc.
+; 
+; This file is part of GovDashboard.
+; 
+; GovDashboard is free software: you can redistribute it and/or modify
+; it under the terms of the GNU General Public License as published by
+; the Free Software Foundation, either version 3 of the License, or
+; (at your option) any later version.
+; 
+; GovDashboard is distributed in the hope that it will be useful,
+; but WITHOUT ANY WARRANTY; without even the implied warranty of
+; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+; GNU General Public License for more details.
+; 
+; You should have received a copy of the GNU General Public License
+; along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+
+name = GovDash
+description = Installs a GovDash Instance properly configured and ready to go.
+version = VERSION
+core = 7.x
+
+;drupal core
+dependencies[] = block
+dependencies[] = image
+dependencies[] = list
+dependencies[] = menu
+dependencies[] = number
+dependencies[] = options
+dependencies[] = taxonomy
+dependencies[] = dblog
+dependencies[] = field_ui
+dependencies[] = file
+dependencies[] = field
+dependencies[] = field_sql_storage
+dependencies[] = filter
+dependencies[] = node
+dependencies[] = system
+dependencies[] = text
+dependencies[] = user
+
+;contrib
+dependencies[] = content_access
+dependencies[] = ctools
+dependencies[] = features
+dependencies[] = filefield_sources
+dependencies[] = node_reference
+dependencies[] = references
+dependencies[] = user_reference
+dependencies[] = oauth_common
+dependencies[] = oauth_common_providerui
+dependencies[] = entity
+dependencies[] = entitycache
+dependencies[] = log
+dependencies[] = jquery_update
+dependencies[] = libraries
+dependencies[] = services
+dependencies[] = services_oauth
+dependencies[] = rest_server
+dependencies[] = jquery_update
+dependencies[] = xautoload
+
+; Dashboard Platform
+dependencies[] = data_controller
+dependencies[] = data_controller_ddl
+dependencies[] = data_controller_dml
+dependencies[] = join_controller
+dependencies[] = data_controller_contrib_rest_server
+dependencies[] = data_controller_sql
+dependencies[] = data_controller_sql_ddl
+dependencies[] = data_controller_sql_dml
+dependencies[] = data_controller_sql_engine_v1
+dependencies[] = data_controller_nosql
+dependencies[] = data_controller_script
+dependencies[] = data_controller_python
+dependencies[] = data_controller_mysql
+dependencies[] = data_controller_mysql_ddl
+dependencies[] = data_controller_mysql_dml
+dependencies[] = data_controller_metamodel_drupal_database
+dependencies[] = data_controller_metamodel_settings_php
+dependencies[] = data_controller_metamodel_file
+dependencies[] = data_controller_metamodel_star_schema
+dependencies[] = data_controller_log
+dependencies[] = data_controller_log4drupal
+dependencies[] = data_controller_cache
+dependencies[] = data_controller_apc
+dependencies[] = data_controller_dimension_date_core
+dependencies[] = data_controller_dimension_date_function
+dependencies[] = data_controller_dimension_primitive
+dependencies[] = data_controller_dimension_reference
+dependencies[] = data_controller_dimension_string
+dependencies[] = data_uploader
+dependencies[] = dataset_uploader
+dependencies[] = cube_uploader
+
+; Dashboard Platform (GobDashboard extensions)
+dependencies[] = gd_dashboard_platform_initialization
+dependencies[] = gd_data_controller
+;dependencies[] = gd_data_controller_datasource
+dependencies[] = gd_data_controller_ddl
+dependencies[] = gd_data_controller_log
+;dependencies[] = gd_data_controller_script
+;dependencies[] = gd_data_controller_python
+dependencies[] = gd_data_controller_metamodel
+dependencies[] = gd_data_controller_ui_metadata
+dependencies[] = gd_dataset_uploader
+
+;custom
+dependencies[] = gd_content_types
+dependencies[] = gd
+dependencies[] = gd_notification
+dependencies[] = gd_user
+dependencies[] = gd_password
+dependencies[] = gd_password_policy
+dependencies[] = gd_account
+dependencies[] = gd_account_group
+dependencies[] = gd_account_user
+dependencies[] = gd_timeout
+dependencies[] = gd_admin_ui
+dependencies[] = gd_external_ui
+dependencies[] = gd_column
+dependencies[] = gd_measure
+dependencies[] = gd_report
+dependencies[] = gd_dashboard
+dependencies[] = gd_datatype
+dependencies[] = gd_datafile
+dependencies[] = gd_datamart
+dependencies[] = gd_datasource
+dependencies[] = gd_dataset
+dependencies[] = gd_reference
+dependencies[] = gd_sync
+dependencies[] = gd_services_endpoint
+dependencies[] = gd_login
+dependencies[] = gd_security
+
+dependencies[] = gd_admin
+dependencies[] = gd_dataset_admin
+dependencies[] = gd_dataset_admin_widget_file
+dependencies[] = gd_report_admin
+dependencies[] = gd_dashboard_admin
+dependencies[] = gd_account_admin
+dependencies[] = gd_health_monitoring
+
+files[] = govdash.profile
+
+; Permissions for rid=3 Instance Admin (basically all)
+permissions_rid_3[] = access administration pages
+permissions_rid_3[] = access all views
+permissions_rid_3[] = access content
+permissions_rid_3[] = access content overview
+permissions_rid_3[] = access site in maintenance mode
+permissions_rid_3[] = access site reports
+permissions_rid_3[] = access user profile
+permissions_rid_3[] = access user profiles
+permissions_rid_3[] = administer actions
+permissions_rid_3[] = administer blocks
+permissions_rid_3[] = administer consumers
+permissions_rid_3[] = administer content types
+permissions_rid_3[] = administer features
+permissions_rid_3[] = administer filters
+permissions_rid_3[] = administer image styles
+permissions_rid_3[] = administer menu
+permissions_rid_3[] = administer modules
+permissions_rid_3[] = administer nodes
+permissions_rid_3[] = administer oauth
+permissions_rid_3[] = administer permissions
+permissions_rid_3[] = administer rules
+permissions_rid_3[] = administer search
+permissions_rid_3[] = administer services
+permissions_rid_3[] = administer shortcuts
+permissions_rid_3[] = administer site configuration
+permissions_rid_3[] = administer software updates
+permissions_rid_3[] = administer taxonomy
+permissions_rid_3[] = administer themes
+permissions_rid_3[] = administer url aliases
+permissions_rid_3[] = administer users
+permissions_rid_3[] = administer views
+permissions_rid_3[] = block IP addresses
+permissions_rid_3[] = bypass node access
+permissions_rid_3[] = bypass rules access
+permissions_rid_3[] = cancel account
+permissions_rid_3[] = change own username
+permissions_rid_3[] = create account content
+permissions_rid_3[] = create attribute content
+permissions_rid_3[] = create dashboard content
+permissions_rid_3[] = create datafile content
+permissions_rid_3[] = create datamart content
+permissions_rid_3[] = create dataset content
+permissions_rid_3[] = create fact content
+permissions_rid_3[] = create measure content
+permissions_rid_3[] = create package content
+permissions_rid_3[] = create page content
+permissions_rid_3[] = create reference content
+permissions_rid_3[] = create reference_point content
+permissions_rid_3[] = create report content
+permissions_rid_3[] = create url aliases
+permissions_rid_3[] = customize shortcut links
+permissions_rid_3[] = delete any account content
+permissions_rid_3[] = delete any attribute content
+permissions_rid_3[] = delete any dashboard content
+permissions_rid_3[] = delete any datafile content
+permissions_rid_3[] = delete any datamart content
+permissions_rid_3[] = delete any dataset content
+permissions_rid_3[] = delete any fact content
+permissions_rid_3[] = delete any measure content
+permissions_rid_3[] = delete any package content
+permissions_rid_3[] = delete any page content
+permissions_rid_3[] = delete any reference content
+permissions_rid_3[] = delete any reference_point content
+permissions_rid_3[] = delete any report content
+permissions_rid_3[] = delete own account content
+permissions_rid_3[] = delete own attribute content
+permissions_rid_3[] = delete own dashboard content
+permissions_rid_3[] = delete own datafile content
+permissions_rid_3[] = delete own datamart content
+permissions_rid_3[] = delete own dataset content
+permissions_rid_3[] = delete own fact content
+permissions_rid_3[] = delete own measure content
+permissions_rid_3[] = delete own package content
+permissions_rid_3[] = delete own page content
+permissions_rid_3[] = delete own reference content
+permissions_rid_3[] = delete own reference_point content
+permissions_rid_3[] = delete own report content
+permissions_rid_3[] = delete revisions
+permissions_rid_3[] = edit any account content
+permissions_rid_3[] = edit any attribute content
+permissions_rid_3[] = edit any dashboard content
+permissions_rid_3[] = edit any datafile content
+permissions_rid_3[] = edit any datamart content
+permissions_rid_3[] = edit any dataset content
+permissions_rid_3[] = edit any fact content
+permissions_rid_3[] = edit any measure content
+permissions_rid_3[] = edit any package content
+permissions_rid_3[] = edit any page content
+permissions_rid_3[] = edit any reference content
+permissions_rid_3[] = edit any reference_point content
+permissions_rid_3[] = edit any report content
+permissions_rid_3[] = edit own account content
+permissions_rid_3[] = edit own attribute content
+permissions_rid_3[] = edit own dashboard content
+permissions_rid_3[] = edit own datafile content
+permissions_rid_3[] = edit own datamart content
+permissions_rid_3[] = edit own dataset content
+permissions_rid_3[] = edit own fact content
+permissions_rid_3[] = edit own measure content
+permissions_rid_3[] = edit own package content
+permissions_rid_3[] = edit own page content
+permissions_rid_3[] = edit own reference content
+permissions_rid_3[] = edit own reference_point content
+permissions_rid_3[] = edit own report content
+permissions_rid_3[] = get a system variable
+permissions_rid_3[] = get any binary files
+permissions_rid_3[] = get own binary files
+permissions_rid_3[] = grant content access
+permissions_rid_3[] = grant own content access
+permissions_rid_3[] = manage features
+permissions_rid_3[] = oauth authorize any consumers
+permissions_rid_3[] = oauth authorize consumers in push_api
+permissions_rid_3[] = oauth register any consumers
+permissions_rid_3[] = oauth register consumers in push_api
+permissions_rid_3[] = revert revisions
+permissions_rid_3[] = save file information
+permissions_rid_3[] = search content
+permissions_rid_3[] = select account cancellation method
+permissions_rid_3[] = set a system variable
+permissions_rid_3[] = switch shortcut sets
+permissions_rid_3[] = use advanced search
+permissions_rid_3[] = use bulk exporter
+permissions_rid_3[] = use text format filtered_html
+permissions_rid_3[] = use text format full_html
+permissions_rid_3[] = view own unpublished content
+permissions_rid_3[] = view revisions
+permissions_rid_3[] = view the administration theme
+
+; Permissions for rid=4 Govdash SiteAdmin
+permissions_rid_4[] = access content
+permissions_rid_4[] = create dashboard content
+permissions_rid_4[] = create datamart content
+permissions_rid_4[] = delete any dashboard content
+permissions_rid_4[] = delete any datamart content
+permissions_rid_4[] = delete own dashboard content
+permissions_rid_4[] = delete own datamart content
+permissions_rid_4[] = edit any dashboard content
+permissions_rid_4[] = edit any datamart content
+permissions_rid_4[] = edit own dashboard content
+permissions_rid_4[] = edit own datamart content
+permissions_rid_4[] = use text format filtered_html

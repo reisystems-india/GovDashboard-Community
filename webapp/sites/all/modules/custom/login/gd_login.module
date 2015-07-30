@@ -1,0 +1,249 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+// Implements hook_menu
+function gd_login_menu () {
+    $items = array();
+
+    $items['user/changeInfo'] = array(
+        'title' => 'Change Personal Information',
+        'page callback' => 'gd_login_change_user_info',
+        'access arguments' => array('access user profile')
+    );
+
+    return $items;
+}
+
+// implementation hook_permission.
+function gd_login_permission () {
+    return array(
+        'access user profile' => array(
+            'title' => t('Access user profile'),
+            'description' => t('Allow users to access their own profile page'))
+    );
+}
+
+/**
+ * Implements hook_user_login: redirects user after successful login
+ *
+ * @param $edit
+ * @param $account
+ */
+function gd_login_user_login ( &$edit, $account ) {
+    // $edit is empty when user logs in with one time login link. In that case don't redirect user to CP or dashboards.
+    if ( !empty($edit) ) {
+
+        $datasource = gd_account_user_find_default_datasource($account);
+        if ( $datasource ) {
+            gd_datasource_set_active($datasource->name);
+        }
+
+        // $edit['redirect'] = array(gd_login_user_redirect($account)); // troubles with urlencoding of /cp#Account
+        // A destination in $_GET always overrides the $edit['redirect'] argument.
+        // just redefine $_GET['destination'] for first time user.
+        if ( !empty($account->data['first_time']) ) {
+            $_GET['destination'] = gd_login_user_redirect($account); // must return string
+        }
+    }
+}
+
+// Function will route FIRST TIME user to correct url based on user roles.
+// must return STRING for $_GET['destination']
+function gd_login_user_redirect ( $account ) {
+
+    $destination = 'dashboards';
+
+    if ( count($account->roles) > 1 ) {
+
+        if ( !empty($account->data['first_time']) ) {
+            unset($account->data['first_time']);
+            user_save($account);
+        }
+
+        // Site Admin
+        if ( gd_account_user_is_admin($account) ) {
+            $destination = 'user/welcome-admin';
+            // Datamart Admin
+        } else if ( gd_account_user_is_any_datasource_admin($account) ) {
+            $destination = 'user/welcome-user';
+        }
+    }
+
+    return $destination;
+}
+
+/**
+ * Implements hook_form_alter
+ *
+ * @param $form
+ * @param $form_state
+ */
+function gd_login_form_user_profile_form_alter ( &$form, &$form_state ) {
+    if ( $form['#user_category'] == 'account' ) {
+        if ( isset($form['overlay_control']) ) {
+            unset($form['overlay_control']);
+        }
+    }
+}
+
+//TODO:Following function does not work with form_user_profile_form_alter hook.
+//http://drupal.org/node/765860. Should work after the patch is accepted and we update the core
+function gd_login_module_implements_alter ( &$implementations, $hook ) {
+    if ( $hook == 'form_user_profile_form_alter' ) {
+        // Move gd_login to the end of the list. module_implements()
+        // iterates through $implementations with a foreach loop which PHP iterates
+        // in the order that the items were added, so to move an item to the end of
+        // the array, we remove it and then add it.
+        $group = $implementations['gd_login'];
+        unset($implementations['gd_login']);
+        $implementations['gd_login'] = $group;
+    }
+}
+
+// Implementation of hook_form_alter.
+//Change the "Change Password" form for 1st time user
+function gd_login_form_alter ( &$form, &$form_state, $form_id ) {
+    switch ( $form_id ) {
+        case 'user_login':
+            drupal_add_library('gd', 'bootstrap');
+            $form['name']['#attributes'] = array('tabindex' => 3000);
+            $form['pass']['#attributes'] = array('tabindex' => 3000);
+            $form['actions']['submit']['#attributes'] = array('tabindex' => 3000,'class'=>array('btn','btn-primary'));
+            $form['actions']['cancel'] = array('#markup' => l(t(' Forgot Password'), 'user/password', array('attributes' => array('tabindex' => 3000))));
+            break;
+        case 'user_profile_form':
+            drupal_add_library('gd', 'bootstrap');
+            $account = $form['#user'];
+            $pass_reset = isset($_GET['pass-reset-token']);
+
+            if ( $pass_reset ) {
+                //first time user dont have to enter their current password.
+                $protected_values = array();
+                $current_pass_description = '';
+                if ( isset($form['account']['current_pass']) ) {
+                    $form['account']['current_pass'] = array(
+                        '#type' => 'password',
+                        '#title' => t('Current password'),
+                        '#size' => 25,
+                        '#access' => !empty($protected_values),
+                        '#description' => $current_pass_description,
+                        '#weight' => -5,
+                    );
+                }
+                if ( isset($form['account']['current_pass_required_values']) ) {
+                    $form['account']['current_pass_required_values'] = array(
+                        '#type' => 'value',
+                        '#value' => $protected_values,
+                    );
+                }
+                $form['account']['name']['#type'] = "hidden";
+                $form['account']['mail']['#type'] = "hidden";
+                $form['account']['status']['#type'] = "hidden";
+                unset($form['account']['roles']);
+                $form['field_gd_user_first_name']['#type'] = "hidden";
+                $form['field_gd_user_last_name']['#type'] = "hidden";
+                $form['field_gd_user_default_datasource']['#type'] = "hidden";
+                $form['field_gd_user_department']['#type'] = "hidden";
+                $form['field_gd_user_default_datamart']['#type'] = "hidden";
+                $form['actions']['cancel']['#type'] = "hidden";
+                $form['actions']['submit']['#value'] = "Continue";
+                $form['#submit'][] = "gd_login_user_profile_submit";
+            } else if (!gd_account_user_is_admin()) {
+                drupal_goto('user/profile');
+            }
+            break;
+    }
+}
+
+// Add redirect here.
+function gd_login_user_profile_submit ( $form, &$form_state ) {
+    global $user;
+    $form_state['redirect'] = array(gd_login_user_redirect(user_load($user->uid)));
+}
+
+// Implement custom Change User info form
+function gd_login_change_user_info () {
+    $output = drupal_get_form('gd_login_personal_info_form');
+    drupal_add_library('gd', 'bootstrap');
+    return $output;
+}
+
+function gd_login_personal_info_form () {
+    global $user;
+    $user_fields = user_load($user->uid);
+    drupal_add_library('gd', 'bootstrap');
+    $form['first_name'] = array(
+        '#title' => t('First Name'),
+        '#type' => 'textfield',
+        '#required' => true,
+        '#attributes' => array('tabindex' => 3000),
+        '#default_value' => isset($user_fields->field_gd_user_first_name[LANGUAGE_NONE][0]['value']) ?
+                $user_fields->field_gd_user_first_name[LANGUAGE_NONE][0]['value'] : "",
+        '#description' => t('Please enter your first name.'),
+    );
+
+    $form['last_name'] = array(
+        '#title' => t('Last Name'),
+        '#type' => 'textfield',
+        '#required' => true,
+        '#attributes' => array('tabindex' => 3000),
+        '#default_value' => isset($user_fields->field_gd_user_last_name[LANGUAGE_NONE][0]['value']) ?
+                $user_fields->field_gd_user_last_name[LANGUAGE_NONE][0]['value'] : "",
+        '#description' => t('Please enter your last name.'),
+    );
+
+    $form['actions'] = array('#type' => 'actions');
+    $form['actions']['cancel'] = array('#markup' => l(t('Cancel'), 'user/profile', array('attributes' => array('id' => 'edit-clear', 'tabindex' => 3000))));
+
+    $form['actions']['submit'] = array(
+        '#type' => 'submit',
+        '#value' => t('Submit'),
+        '#attributes' => array('tabindex' => 3000)
+    );
+
+    return $form;
+}
+
+// Validate the form personal information form.
+function gd_login_personal_info_form_validate ( $form, &$form_state ) {
+
+}
+
+// Implements hoof_form_submit
+function gd_login_personal_info_form_submit ( $form, &$form_state ) {
+    global $user;
+    $account = user_load($user->uid);
+
+    $edit = array();
+    $edit['field_gd_user_first_name'][LANGUAGE_NONE][0]['value'] = check_plain($form_state['values']['first_name']);
+    $edit['field_gd_user_last_name'][LANGUAGE_NONE][0]['value'] = check_plain($form_state['values']['last_name']);
+
+    user_save($account, $edit);
+    $updated_user = user_load($user->uid);
+
+    if ( !$updated_user ) {
+        $form_state['rebuild'] = true;
+        drupal_set_message(t('Error updating information'));
+    } else {
+        $form_state['redirect'] = 'user/profile';
+        drupal_set_message(t('Successfully updated the personal information'));
+    }
+}

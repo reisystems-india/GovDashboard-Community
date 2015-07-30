@@ -1,0 +1,116 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+require_once(realpath(drupal_get_path('module', 'data_controller')) . '/common/pattern/AbstractObject.php');
+require_once(realpath(drupal_get_path('module', 'data_controller')) . '/common/pattern/factory/AbstractFactory.php');
+require_once(realpath(drupal_get_path('module', 'data_controller')) . '/common/pattern/singleton/AbstractSingleton.php');
+require_once(realpath(drupal_get_path('module', 'data_controller')) . '/metamodel/AbstractEnvironment.php');
+require_once(realpath(drupal_get_path('module', 'data_controller')) . '/metamodel/Environment.php');
+require_once(realpath(drupal_get_path('module', 'data_controller')) . '/metamodel/datatype/DataTypeHandler.php');
+require_once(realpath(drupal_get_path('module', 'data_controller')) . '/metamodel/datatype/handler/AbstractDataTypeHandler.php');
+require_once(realpath(drupal_get_path('module', 'data_controller')) . '/metamodel/datatype/handler/BooleanDataTypeHandler.php');
+require_once(realpath(drupal_get_path('module', 'data_controller')) . '/metamodel/datatype/handler/DateDataTypeHandler.php');
+require_once(realpath(drupal_get_path('module', 'data_controller')) . '/controller/Sequence.php');
+require_once(realpath(drupal_get_path('module', 'data_controller_cache')) . '/cache/CacheHandler.php');
+require_once(realpath(drupal_get_path('module', 'data_controller_cache')) . '/cache/handler/AbstractCacheHandler.php');
+require_once(realpath(drupal_get_path('module', 'data_controller_cache')) . '/cache/handler/AbstractSharedCacheHandler.php');
+require_once(realpath(drupal_get_path('module', 'data_controller_sql')) . '/controller/operator/SQLOperatorHandler.php');
+require_once(realpath(drupal_get_path('module', 'data_controller_sql')) . '/controller/operator/handler/SQL_AbstractOperatorHandler.php');
+require_once(realpath(drupal_get_path('module', 'data_controller_sql')) . '/controller/operator/handler/SQL_AbstractWildcardOperatorHandler.php');
+require_once(realpath(drupal_get_path('module', 'data_controller_sql')) . '/controller/operator/handler/SQL_WildcardOperatorHandler.php');
+require_once(realpath(drupal_get_path('module', 'data_controller_metamodel_drupal_database')) . '/metamodel/loader/handler/DrupalDatabaseEnvironmentMetaModelGenerator.php');
+require_once(realpath(drupal_get_path('module', 'data_controller_dimension_date_core')) . '/metamodel/FiscalYearConfiguration.php');
+require_once(realpath(drupal_get_path('module', 'data_uploader')) . '/submitter/AbstractControllerDataSubmitter.php');
+
+function gd_dashboard_platform_initialization_init() {
+    // data formatters
+    DateDataTypeHandler::$FORMAT_CUSTOM = GD_DATE_FORMAT_API;
+    TimeDataTypeHandler::$FORMAT_CUSTOM = GD_TIME_FORMAT_API;
+    DateTimeDataTypeHandler::$FORMAT_CUSTOM = GD_DATETIME_FORMAT_API;
+    // support different value sets for Boolean type
+    BooleanDataTypeHandler::$SUPPORTED_VALUE_SET__0_1 = TRUE;
+    BooleanDataTypeHandler::$SUPPORTED_VALUE_SET__N_Y = TRUE;
+    BooleanDataTypeHandler::$SUPPORTED_VALUE_SET__NO_YES = TRUE;
+    BooleanDataTypeHandler::$SUPPORTED_VALUE_SET__OFF_ON = TRUE;
+
+    // operators
+    SQL_WildcardOperatorHandler::$CUSTOM_MATCH_PATTERN__SINGLE_CHARACTER = '?';
+    SQL_WildcardOperatorHandler::$CUSTOM_MATCH_PATTERN__ANY_NUMBER_OF_CHARACTERS = '*';
+
+    // sequence
+    Sequence::registerDataSource(DrupalDatabaseEnvironmentMetaModelGenerator::$DATASOURCE_NAME__DEFAULT);
+
+    // 'date' dimension
+    FiscalYearConfiguration::$FIRST_MONTH = variable_get('curFiscalStartMonth', 1);
+
+    // file upload
+    $batchSize = variable_get('gd_file_upload_batch_size', NULL);
+    if (isset($batchSize)) {
+        AbstractControllerDataSubmitter::$BATCH_SIZE = $batchSize;
+    }
+
+    // cache lock
+    $cacheConfig = Environment::getInstance()->getConfigurationSection('Cache');
+    if (isset($cacheConfig['Lock']['Limit'])) {
+        AbstractSharedCacheHandler::$LOCK_LIMIT_PER_THREAD = $cacheConfig['Lock']['Limit'];
+    }
+    if (isset($cacheConfig['Lock']['Wait Time'])) {
+        AbstractSharedCacheHandler::$LOCK_WAIT_TIME = $cacheConfig['Lock']['Wait Time'];
+    }
+}
+
+function gd_dashboard_platform_initialization_install() {
+    gd_dashboard_platform_initialization_init();
+}
+
+function gd_dashboard_platform_initialization_dp_metamodel_loader_filter() {
+    $items = NULL;
+
+    $datasourceName = gd_datasource_find_active();
+    if (isset($datasourceName)) {
+        $environment_metamodel = data_controller_get_environment_metamodel();
+        $datasource = $environment_metamodel->getDataSource($datasourceName);
+
+        // adding current data mart and all parent data sources
+        while (isset($datasource)) {
+            $items['DatasetMetaData']['datasourceName'][] = $datasource->name;
+
+            if (isset($datasource->parentName)) {
+                $datasource = $environment_metamodel->getDataSource($datasource->parentName);
+            }
+            else {
+                $datasource = NULL;
+            }
+        }
+    }
+
+    return $items;
+}
+
+function gd_dashboard_platform_initialization_gd_set_active_datasource($datasourceName) {
+    // releasing local cache when active data source changes
+    MetaModelFactory::getInstance()->releaseFromLocalCache();
+}
+
+function gd_dashboard_platform_initialization_gd_fiscal_start_month_updated($fiscalStartMonth) {
+    // releasing cache when fiscal start month changes
+    CacheFactory::getInstance()->flush();
+}

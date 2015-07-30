@@ -1,0 +1,88 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/**
+ * Install file to create role info module.
+ */
+
+/**
+ * Implementation of hook_schema
+ */
+function gd_account_group_schema() {
+    $schema['role_info'] = array(
+        'description'     => 'table to store group/role information',
+        'fields'          => array(
+            'rid' => array(
+                'description' => 'role id',
+                'type'        => 'int',
+                'length'      => 10,
+                'not null'    => TRUE
+            ),
+            'role_name' => array(
+                'description' => 'name of a role',
+                'type'        => 'varchar',
+                'length'      => 64,
+                'not null'    => TRUE
+            ),
+            'role_description' => array(
+                'description' => 'description of a role',
+                'type'        => 'varchar',
+                'length'      => 255,
+                'not null'    => TRUE
+            ),
+            'role_changed'  => array(
+                'description' => 'TODO',
+                'type'  => 'int',
+                'not null'    => TRUE,
+                'default' => 0
+            )
+        ),
+        'primary key' => array('rid'),
+    );
+
+    return $schema;
+}
+
+/**
+ * Altering group table changed column
+ */
+function gd_account_group_update_7101() {
+
+    // get all data
+    $roles = db_query('SELECT rid, role_name, role_description, role_changed FROM {role_info}');
+
+    // truncate table
+    db_query('TRUNCATE TABLE role_info');
+
+    // alter
+    db_query('ALTER TABLE role_info CHANGE COLUMN role_changed role_changed INT NOT NULL DEFAULT 0');
+
+    // repopulate data w/ converted column
+    if ( $roles ) {
+        foreach ($roles as $role) {
+            db_insert('role_info')->fields(array(
+                'rid' => $role->rid,
+                'role_name' => $role->role_name,
+                'role_description' => $role->role_description,
+                'role_changed' => REQUEST_TIME
+            ))->execute();
+        }
+    }
+}

@@ -1,0 +1,209 @@
+; Copyright 2014 REI Systems, Inc.
+; 
+; This file is part of GovDashboard.
+; 
+; GovDashboard is free software: you can redistribute it and/or modify
+; it under the terms of the GNU General Public License as published by
+; the Free Software Foundation, either version 3 of the License, or
+; (at your option) any later version.
+; 
+; GovDashboard is distributed in the hope that it will be useful,
+; but WITHOUT ANY WARRANTY; without even the implied warranty of
+; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+; GNU General Public License for more details.
+; 
+; You should have received a copy of the GNU General Public License
+; along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+
+name = "Data Controller"
+description = "Generic functionality to retrieve data from various data sources"
+package = REI Dashboard Platform (Core)
+version = 7.x-2.x
+core = 7.x
+
+dependencies[] = data_controller_log
+
+files[] = common/comparator/Comparator.php
+files[] = common/comparator/MathHelper.php
+files[] = common/comparator/handler/AbstractComparator.php
+files[] = common/comparator/handler/AbstractValueComparator.php
+files[] = common/comparator/handler/DefaultColumnBasedComparator.php
+files[] = common/comparator/handler/ColumnBasedComparator.php
+files[] = common/converter/DataConverter.php
+files[] = common/converter/handler/AbstractDataConverter.php
+files[] = common/converter/handler/AbstractJson2PHP.php
+files[] = common/converter/handler/CommentStripper.php
+files[] = common/converter/handler/Json2PHP.php
+files[] = common/converter/handler/WhiteCharacterStripper.php
+files[] = common/lib/curl/CURLProxy.php
+files[] = common/namespace/NameSpaceHelper.php
+files[] = common/namespace/ReferencePathHelper.php
+files[] = common/object/exception/IllegalArgumentException.php
+files[] = common/object/exception/IllegalStateException.php
+files[] = common/object/exception/TestException.php
+files[] = common/object/exception/UnsupportedOperationException.php
+files[] = common/object/exception/ExceptionHelper.php
+files[] = common/object/manipulation/ArrayHelper.php
+files[] = common/object/manipulation/ObjectHelper.php
+files[] = common/object/manipulation/StringHelper.php
+files[] = common/parameter/ArgumentHelper.php
+files[] = common/parser/ConfigurationParser.php
+files[] = common/parser/handler/AbstractConfigurationParser.php
+files[] = common/parser/handler/DefaultConfigurationParser.php
+files[] = common/pattern/AbstractObject.php
+files[] = common/pattern/callcontext/AbstractCallContext.php
+files[] = common/pattern/callcontext/DefaultCallContext.php
+files[] = common/pattern/factory/AbstractFactory.php
+files[] = common/pattern/singleton/AbstractSingleton.php
+
+files[] = controller/DataController.php
+files[] = controller/DataQueryController.php
+files[] = controller/DataQueryControllerProxy.php
+files[] = controller/Sequence.php
+files[] = controller/common/pattern/callcontext/DataControllerCallContext.php
+files[] = controller/common/parameter/ParameterNameHelper.php
+files[] = controller/factory/AbstractDataControllerProxy.php
+files[] = controller/handler/AbstractDataController.php
+files[] = controller/handler/AbstractDataQueryController.php
+files[] = controller/handler/DefaultDataQueryController.php
+files[] = controller/handler/ReferenceLink.php
+files[] = controller/handler/ReferenceLinkBuilder.php
+files[] = controller/handler/ReferenceLinkView.php
+files[] = controller/handler/request/chain/RequestChainFactory.php
+files[] = controller/handler/request/chain/RequestLinkHandler.php
+files[] = controller/handler/request/chain/factory/DefaultRequestChainFactory.php
+files[] = controller/handler/request/chain/handler/AbstractRequestLinkHandler.php
+files[] = controller/handler/request/chain/handler/DefaultRequestLinkHandler.php
+files[] = controller/handler/request/chain/handler/total/TotalInFormulaExpressionRequestLinkHandler.php
+files[] = controller/handler/request/chain/handler/total/AbstractTotalInFormulaExpressionRequestProcessor.php
+files[] = controller/handler/request/chain/handler/total/TotalInFormulaExpressionDatasetRequestProcessor.php
+files[] = controller/handler/request/chain/handler/total/TotalInFormulaExpressionCubeRequestProcessor.php
+files[] = controller/handler/request/cleaner/DataQueryControllerRequestCleaner.php
+files[] = controller/handler/request/preparer/AbstractDataSourceQueryRequestPreparer.php
+files[] = controller/handler/request/preparer/DataSourceCubeQueryRequestPreparer.php
+files[] = controller/handler/request/preparer/DataSourceDatasetQueryRequestPreparer.php
+files[] = controller/handler/response/cache/DataQueryControllerCacheProxy.php
+files[] = controller/formatter/ResultFormatter.php
+files[] = controller/formatter/handler/AbstractResultFormatter.php
+files[] = controller/formatter/handler/ColumnMappingResultFormatter.php
+files[] = controller/formatter/handler/QueryKeyResultFormatter.php
+files[] = controller/formatter/handler/RowFlattenerResultFormatter.php
+files[] = controller/formatter/handler/SingleColumnResultFormatter.php
+files[] = controller/formatter/handler/TableResultFormatter.php
+files[] = controller/formatter/handler/MemberRankResultFormatter.php
+files[] = controller/formatter/handler/SpecialCharacterResultFormatter.php
+files[] = controller/formula/language/FormulaExpressionLanguageFactory.php
+files[] = controller/formula/language/FormulaExpressionHandler.php
+files[] = controller/formula/language/factory/DefaultFormulaExpressionLanguageFactory.php
+files[] = controller/formula/language/handler/AbstractFormulaExpressionHandler.php
+files[] = controller/operator/OperatorFactory.php
+files[] = controller/operator/OperatorHandler.php
+files[] = controller/operator/factory/DefaultOperatorFactory.php
+files[] = controller/operator/handler/AbstractOperatorHandler.php
+files[] = controller/operator/handler/AbstractBoundaryOperatorHandler.php
+files[] = controller/operator/handler/AbstractLatestOperatorHandler.php
+files[] = controller/operator/handler/AbstractOldestOperatorHandler.php
+files[] = controller/operator/handler/AbstractPreviousOperatorHandler.php
+files[] = controller/operator/handler/LatestOperatorHandler.php
+files[] = controller/operator/handler/OldestOperatorHandler.php
+files[] = controller/operator/handler/PreviousOperatorHandler.php
+files[] = controller/operator/handler/AbstractRangeBasedOperatorHandler.php
+files[] = controller/operator/handler/AbstractValueBasedOperatorHandler.php
+files[] = controller/operator/handler/AbstractWildcardOperatorHandler.php
+files[] = controller/operator/handler/EmptyOperatorHandler.php
+files[] = controller/operator/handler/EqualOperatorHandler.php
+files[] = controller/operator/handler/GreaterOrEqualOperatorHandler.php
+files[] = controller/operator/handler/GreaterThanOperatorHandler.php
+files[] = controller/operator/handler/LessOrEqualOperatorHandler.php
+files[] = controller/operator/handler/LessThanOperatorHandler.php
+files[] = controller/operator/handler/NotEmptyOperatorHandler.php
+files[] = controller/operator/handler/NotEqualOperatorHandler.php
+files[] = controller/operator/handler/NotInRangeOperatorHandler.php
+files[] = controller/operator/handler/NotWildcardOperatorHandler.php
+files[] = controller/operator/handler/RangeOperatorHandler.php
+files[] = controller/operator/handler/AbstractRegularExpressionOperatorHandler.php
+files[] = controller/operator/handler/RegularExpressionOperatorHandler.php
+files[] = controller/operator/handler/NotRegularExpressionOperatorHandler.php
+files[] = controller/operator/handler/WildcardOperatorHandler.php
+files[] = controller/operator/handler/AbstractDynamicRangeOperatorHandler.php
+files[] = controller/operator/handler/DynamicRangeOperatorHandler.php
+files[] = controller/request/AbstractDataQueryControllerRequest.php
+files[] = controller/request/DataQueryControllerCubeRequest.php
+files[] = controller/request/DataQueryControllerDatasetRequest.php
+files[] = controller/request/DataQueryControllerRequestTree.php
+files[] = controller/request/ui/DataQueryControllerUIParameterNames.php
+files[] = controller/request/ui/DataQueryControllerUIRequestPreparer.php
+files[] = controller/request/ui/DataQueryControllerUIRequestParser.php
+files[] = controller/request/ui/DataQueryControllerUIRequestSerializer.php
+files[] = controller/transaction/TransactionManager.php
+
+files[] = datasource/DataSourceQueryFactory.php
+files[] = datasource/DataSourceHandler.php
+files[] = datasource/DataSourceQueryHandler.php
+files[] = datasource/common/column/DataSourceColumnNameHelper.php
+files[] = datasource/factory/AbstractDataSourceFactory.php
+files[] = datasource/factory/AbstractDataSourceQueryFactory.php
+files[] = datasource/handler/AbstractDataSourceHandler.php
+files[] = datasource/handler/impl/AbstractConcatenatedValuesImpl.php
+files[] = datasource/handler/impl/AbstractFormatDateValueImpl.php
+files[] = datasource/handler/impl/AbstractFormatWildcardValueImpl.php
+files[] = datasource/handler/impl/AbstractMaximumEntityNameLengthImpl.php
+files[] = datasource/handler/impl/AbstractFormatRegularExpressionValueImpl.php
+files[] = datasource/handler/impl/default/UnlimitedEntityNameLengthImpl.php
+files[] = datasource/request/AbstractRequest.php
+files[] = datasource/request/AbstractQueryRequest.php
+files[] = datasource/request/AbstractQueryUIRequestSerializer.php
+files[] = datasource/request/cube/AbstractCubeQueryRequest.php
+files[] = datasource/request/cube/CubeQueryRequest.php
+files[] = datasource/request/cube/CubeCountRequest.php
+files[] = datasource/request/cube/CubeQueryUIRequestSerializer.php
+files[] = datasource/request/dataset/AbstractDatasetQueryRequest.php
+files[] = datasource/request/dataset/DatasetCountRequest.php
+files[] = datasource/request/dataset/DatasetQueryRequest.php
+files[] = datasource/request/dataset/AbstractDatasetQueryUIRequestSerializer.php
+files[] = datasource/request/dataset/DatasetQueryUIRequestSerializer.php
+files[] = datasource/request/dataset/DatasetCountUIRequestSerializer.php
+files[] = datasource/request/sequence/SequenceRequest.php
+
+files[] = metamodel/AbstractEnvironment.php
+files[] = metamodel/Environment.php
+files[] = metamodel/EnvironmentConfigurationParser.php
+files[] = metamodel/EnvironmentMetaModel.php
+files[] = metamodel/EnvironmentMetaModelFactory.php
+files[] = metamodel/MetaModel.php
+files[] = metamodel/MetaModelFactory.php
+files[] = metamodel/datatype/DataTypeFactory.php
+files[] = metamodel/datatype/DataTypeHandler.php
+files[] = metamodel/datatype/factory/DefaultDataTypeFactory.php
+files[] = metamodel/datatype/handler/AbstractDataTypeHandler.php
+files[] = metamodel/datatype/handler/AbstractStringDataTypeHandler.php
+files[] = metamodel/datatype/handler/BooleanDataTypeHandler.php
+files[] = metamodel/datatype/handler/DateDataTypeHandler.php
+files[] = metamodel/datatype/handler/NumberDataTypeHandler.php
+files[] = metamodel/datatype/handler/StringDataTypeHandler.php
+files[] = metamodel/datatype/handler/URIDataTypeHandler.php
+files[] = metamodel/datatype/handler/ArrayDataTypeHandler.php
+files[] = metamodel/datatype/handler/ObjectDataTypeHandler.php
+files[] = metamodel/datatype/handler/PasswordDataTypeHandler.php
+files[] = metamodel/definition/MeasureAdditivity.php
+files[] = metamodel/definition/DatasetSystemColumnNames.php
+files[] = metamodel/factory/AbstractMetaModelFactory.php
+files[] = metamodel/handler/AbstractMetaModel.php
+files[] = metamodel/loader/MetaModelLoader.php
+files[] = metamodel/loader/ReferenceMetaModelLoader.php
+files[] = metamodel/loader/handler/AbstractMetaModelLoader.php
+files[] = metamodel/loader/handler/ReferenceMetaModelLoaderHelper.php
+files[] = metamodel/metadata/AbstractMetaData.php
+files[] = metamodel/metadata/ColumnMetaData.php
+files[] = metamodel/metadata/FormulaExpressionAssembler.php
+files[] = metamodel/metadata/FormulaMetaData.php
+files[] = metamodel/metadata/ColumnMetaDataGenerator.php
+files[] = metamodel/metadata/ColumnType.php
+files[] = metamodel/metadata/CubeMetaData.php
+files[] = metamodel/metadata/DatasetMetaData.php
+files[] = metamodel/metadata/DatasetReference.php
+files[] = metamodel/metadata/DataSourceMetaData.php
+files[] = metamodel/metadata/DimensionMetaData.php
+files[] = metamodel/metadata/MeasureMetaData.php
+files[] = metamodel/metadata/RecordMetaData.php
+files[] = metamodel/metadata/RecordsHolder.php

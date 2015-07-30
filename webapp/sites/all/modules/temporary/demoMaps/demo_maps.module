@@ -1,0 +1,101 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+function demo_maps_menu() {
+    $items = array();
+
+    $items['demo/lease'] = array(
+        'page callback' => 'demo_maps_get_lease_data',
+        'access callback' => 'demo_maps_permissions',
+        'type' => MENU_CALLBACK
+    );
+
+    $items['demo/workforce'] = array(
+        'page callback' => 'demo_maps_get_workforce_data',
+        'access callback' => 'demo_maps_permissions',
+        'type' => MENU_CALLBACK
+    );
+
+    return $items;
+}
+
+function demo_maps_permissions() {
+    global $user;
+    $user = user_load($user->uid);
+
+    $dashboard = gd_dashboard_load(26593);
+
+    // is public
+    if ( !empty($dashboard->field_dashboard_public) && $dashboard->field_dashboard_public[$dashboard->language][0]['value'] == 1 ) {
+        return true;
+    }
+
+    // check if user is datamart admin of dashboard
+    if ( gd_account_user_is_datasource_admin($user,get_node_field_value($dashboard,'field_dashboard_datasource')) ) {
+        return true;
+    }
+
+    // check if user has view privileges for dashboard
+    return gd_account_user_is_dashboard_viewer($user,$dashboard->nid);
+}
+
+function demo_maps_get_lease_data() {
+    gd_datasource_set_active("dm53556c7f240f8");
+
+    $columns = array(
+        'attr:c_address_street_name.value',
+        'attr:c_city_code.value',
+        'column:c_contractor_count',
+        'attr:c_country_code.value',
+        'column:c_fte_count',
+        'attr:c_grant_end_date_lease_expiration_date',
+        'column:c_latitude',
+        'column:c_lease_annual_o_and_m_cost',
+        'column:c_longitude',
+        'column:c_rpa_annual_operating_cost_amount',
+        'attr:c_rpa_name_asset_name.value',
+        'attr:c_rpa_total_unit_of_measure_code.value',
+        'column:c_rpa_total_unit_of_measure_quantity',
+        'attr:c_rpa_type_code.value',
+        'attr:c_state_abbreviation.value'
+    );
+
+    $startWith = 0;
+
+    $result = gd_data_controller_query_data_by_ui_metadata('LeaseExpiration', $columns, NULL, NULL, $startWith);
+    drupal_json_output($result);
+}
+
+function demo_maps_get_workforce_data() {
+    gd_datasource_set_active("dm53556c7f240f8");
+    $dataController = data_controller_get_instance();
+    $workforceRequest = new DataQueryControllerCubeRequest();
+    $workforceRequest->datasetName = StarSchemaNamingConvention::getFactsRelatedName('Workforce');
+    $operatorFactory = OperatorFactory::getInstance();
+    $nonUSCondition = $operatorFactory->initiateHandler(NotEqualOperatorHandler::OPERATOR__NAME,'Y');
+    $workforceRequest->parameters = array('c_non_us.value' => $nonUSCondition);
+    $workforceRequest->columns = array(
+        'c_state_country.value',
+        'c_count_of_dty_city__sum'
+    );
+    $result = $dataController->query($workforceRequest);
+    drupal_json_output($result);
+}

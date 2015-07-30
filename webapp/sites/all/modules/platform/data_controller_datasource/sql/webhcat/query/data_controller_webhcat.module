@@ -1,0 +1,84 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+function data_controller_webhcat_dp_datasource_option_definitions() {
+    $items[WebHCatDataSource::TYPE] = array(
+        'protocol' => array(
+            'publicName' => 'Protocol',
+            'required' => TRUE,
+            'dictionary' => array('http', 'https')),
+        'host' => array('publicName' => 'Host', 'required' => TRUE),
+        'database' => array('publicName' => 'Database', 'required' => TRUE),
+        'username' => array('publicName' => 'User Name', 'required' => TRUE),
+        'metadata' => array(
+            'publicName' => 'Meta Data',
+            'required' => TRUE,
+            'dictionary' => array('automatic' => 'Generate using WebHCat', 'none' => 'None'),
+            'default' => 'automatic'),
+        'services' => array(
+            'publicName' => 'Services',
+            'items' => array(
+                'WebHCat' => array(
+                    'publicName' => 'WebHCat',
+                    'items' => array(
+                        'port' => array('publicName' => 'Port', 'datatype' => IntegerDataTypeHandler::DATA_TYPE, 'required' => TRUE, 'default' => 50111))),
+                'WebHDFS' => array(
+                    'publicName' => 'WebHDFS',
+                    'items' => array(
+                        'port' => array('publicName' => 'Port', 'datatype' => IntegerDataTypeHandler::DATA_TYPE, 'required' => TRUE, 'default' => 50070))))));
+
+    return $items;
+}
+
+function data_controller_webhcat_dp_datasource() {
+    $items[WebHCatDataSource::TYPE] = array(
+        'extensions' => array(
+            'maximumEntityNameLength' => 'UnlimitedEntityNameLengthImpl',
+
+            'concatenateValues' => 'FunctionConcatenatedValuesImpl',
+            'formatWildcardValue' => 'DefaultFormatWildcardValueImpl',
+            'formatDateValue' => 'NoFormatDateValueImpl',
+            'formatRegularExpression' => 'DefaultFormatRegularExpressionValueImpl',
+            'formatNotRegularExpression' => 'DefaultFormatNotRegularExpressionValueImpl',
+
+            'initializeConnection' => 'NoInitializeConnectionImpl',
+            'executeQueryStatement' => 'HiveExecuteQueryStatementImpl',
+            'executeQueryStatement_callback' => 'HiveQueryStatementExecutionCallback',
+
+            'startTransaction' => 'NoStartTransactionStatementImpl',
+            'commitTransaction' => 'NoCommitTransactionStatementImpl',
+            'rollbackTransaction' => 'NoRollbackTransactionStatementImpl',
+
+            'datasourceOwner' => 'DatabaseDataSourceOwnerImpl'));
+
+    return $items;
+}
+
+function data_controller_webhcat_dp_datasource_query() {
+    $items[WebHCatDataSource::TYPE] = array(
+        'classname' => 'DefaultSQLDataSourceQueryHandler',
+        'extensions' => array(
+            'adjustRequest' => 'NoQueryRequestAdjusterImpl',
+
+            'applyPagination' => 'HiveApplyPaginationImpl'));
+
+    return $items;
+}

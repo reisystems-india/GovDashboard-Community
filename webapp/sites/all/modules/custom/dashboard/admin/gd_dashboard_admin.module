@@ -1,0 +1,166 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+/**
+ * Implements hook_menu()
+ *
+ * @return array
+ */
+function gd_dashboard_admin_menu () {
+
+    $items = array();
+
+    $items['cp/dashboard'] = array(
+        'page callback' => 'gd_dashboard_admin_page_index',
+        'access callback' => 'gd_admin_permissions',
+        'type' => MENU_CALLBACK,
+        'file' => 'gd_dashboard_admin.pages.php'
+    );
+
+    $items['cp/dashboard/%'] = array(
+        'page callback' => 'gd_dashboard_admin_page_edit',
+        'page arguments' => array(2),
+        'access callback' => 'gd_admin_permissions',
+        'type' => MENU_CALLBACK,
+        'file' => 'gd_dashboard_admin.pages.php'
+    );
+
+    $items['cp/dashboard/create'] = array(
+        'page callback' => 'gd_dashboard_admin_page_new',
+        'access callback' => 'gd_admin_permissions',
+        'type' => MENU_CALLBACK,
+        'file' => 'gd_dashboard_admin.pages.php'
+    );
+
+    return $items;
+}
+
+/**
+ * Implements hook_gd_admin_sections()
+ *
+ * @return array
+ */
+function gd_dashboard_admin_gd_admin_sections () {
+
+    $items['dashboard'] =  array(
+        'name' => 'dashboard',
+        'title' => 'Dashboards',
+        'class' => 'DashboardSection',
+        'weight' => 2
+    );
+
+    return $items;
+}
+
+// Implements hook_library()
+function gd_dashboard_admin_library() {
+
+    $libraries['GD_Admin_DashboardSection'] = array(
+        'title'   => 'GD Admin - Dashboard Section',
+        'version' => '',
+        'js' => array(
+            drupal_get_path('module','gd_dashboard_admin').'/js/DashboardSection.js'  => array('weight' => 0),
+            drupal_get_path('module','gd_dashboard_admin').'/js/Dashboard.js'  => array('weight' => 0),
+            drupal_get_path('module','gd_dashboard_admin').'/js/DashboardFactory.js' => array('weight' => 0)
+        ),
+        'css' => array (
+            drupal_get_path('module','gd_dashboard_admin').'/css/DashboardSection.css' => array('weight'=>1,'group'=>CSS_THEME)
+        ),
+        'dependencies' => array(
+            array('gd_admin', 'GD_Admin')
+        )
+    );
+
+    $libraries['GD_Admin_DashboardSection_Index'] = array(
+        'title'   => 'GD Admin - Dashboard Section - Index',
+        'version' => '',
+        'js' => array(
+            drupal_get_path('module','gd_dashboard_admin').'/js/list/DashboardListView.js' => array('weight' => 0),
+        ),
+        'css' => array (),
+        'dependencies' => array(
+            array('gd_dashboard_admin', 'GD_Admin_DashboardSection')
+        )
+    );
+
+    $libraries['GD_Admin_DashboardSection_Builder'] = array(
+        'title'   => 'GD Admin - Dashboard Section - Builder',
+        'version' => '',
+        'js' => array(
+            drupal_get_path('module','gd_dashboard_admin').'/js/builder/ext/DashboardLookupFilterForm.js'  => array('weight' => 0),
+            drupal_get_path('module','gd_dashboard_admin').'/js/builder/DashboardBuilder.js'  => array('weight' => 0),
+
+            drupal_get_path('module','gd_dashboard_admin').'/js/builder/misc/Link.js'  => array('weight' => 0),
+
+            drupal_get_path('module','gd_dashboard_admin').'/js/builder/button/config/DashboardConfigButton.js'  => array('weight' => 0),
+            drupal_get_path('module','gd_dashboard_admin').'/js/builder/button/config/DashboardReportsButton.js'  => array('weight' => 0),
+            drupal_get_path('module','gd_dashboard_admin').'/js/builder/button/config/DashboardFilterButton.js'  => array('weight' => 0),
+            drupal_get_path('module','gd_dashboard_admin').'/js/builder/button/config/DashboardLinkButton.js'  => array('weight' => 0),
+            drupal_get_path('module','gd_dashboard_admin').'/js/builder/button/config/DashboardDisplayButton.js'  => array('weight' => 0),
+            drupal_get_path('module','gd_dashboard_admin').'/js/builder/button/action/DashboardCancelButton.js'  => array('weight' => 0),
+            drupal_get_path('module','gd_dashboard_admin').'/js/builder/button/action/DashboardSaveButton.js'  => array('weight' => 0),
+            drupal_get_path('module','gd_dashboard_admin').'/js/builder/button/action/DashboardSaveAsButton.js'  => array('weight' => 0),
+            drupal_get_path('module','gd_dashboard_admin').'/js/builder/button/action/DashboardDeleteButton.js'  => array('weight' => 0),
+
+            drupal_get_path('module','gd_dashboard_admin').'/js/builder/form/DashboardReportSelectForm.js'  => array('weight' => 0),
+            drupal_get_path('module','gd_dashboard_admin').'/js/builder/form/DashboardListForm.js'  => array('weight' => 0),
+            drupal_get_path('module','gd_dashboard_admin').'/js/builder/form/DashboardReportListForm.js'  => array('weight' => 0),
+            drupal_get_path('module','gd_dashboard_admin').'/js/builder/form/DashboardFilterListForm.js'  => array('weight' => 0),
+            drupal_get_path('module','gd_dashboard_admin').'/js/builder/form/DashboardFilterCreateForm.js'  => array('weight' => 0),
+            drupal_get_path('module','gd_dashboard_admin').'/js/builder/form/DashboardFilterForm.js'  => array('weight' => 0),
+            drupal_get_path('module','gd_dashboard_admin').'/js/builder/form/DashboardLinkListForm.js'  => array('weight' => 0),
+            drupal_get_path('module','gd_dashboard_admin').'/js/builder/form/DashboardLinkForm.js'  => array('weight' => 0),
+            drupal_get_path('module','gd_dashboard_admin').'/js/builder/form/DashboardDisplayForm.js'  => array('weight' => 0),
+
+            drupal_get_path('module','gd_dashboard_admin').'/js/builder/widget/DashboardWidget.js'  => array('weight' => 0),
+            drupal_get_path('module','gd_dashboard_admin').'/js/builder/widget/DashboardWidgetText.js'  => array('weight' => 0),
+            drupal_get_path('module','gd_dashboard_admin').'/js/builder/widget/DashboardWidgetImage.js'  => array('weight' => 0),
+            drupal_get_path('module','gd_dashboard_admin').'/js/builder/widget/DashboardWidgetReport.js'  => array('weight' => 0),
+            drupal_get_path('module','gd_dashboard_admin').'/js/builder/widget/DashboardWidgetFactory.js'  => array('weight' => 0),
+            drupal_get_path('module','gd_dashboard_admin').'/js/builder/DashboardCanvas.js' => array('weight' => 0),
+        ),
+        'css' => array (
+            drupal_get_path('module','gd_dashboard_admin').'/css/DashboardBuilder.css' => array('weight'=>1,'group'=>CSS_THEME)
+        ),
+        'dependencies' => array(
+            array('gd_dashboard_admin', 'GD_Admin_DashboardSection'),
+            array('gd_admin', 'GD_Admin_Builder'),
+            array('gd','quill'),
+            array('gd','highcharts'),
+            array('gd','jQueryContext'),
+            array('gd','jsTree')
+        )
+    );
+
+    return $libraries;
+}
+
+function gd_dashboard_admin_theme ( $existing, $type, $theme, $path ) {
+    return array(
+        'gd_dashboard_admin_layout' => array(
+            'variables' => array(
+                'dashboard' => NULL
+            ),
+            'template' => 'layout',
+            'path' => drupal_get_path('module', 'gd_dashboard_admin').'/templates'
+        )
+    );
+}

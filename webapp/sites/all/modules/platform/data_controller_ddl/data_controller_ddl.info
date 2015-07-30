@@ -1,0 +1,53 @@
+; Copyright 2014 REI Systems, Inc.
+; 
+; This file is part of GovDashboard.
+; 
+; GovDashboard is free software: you can redistribute it and/or modify
+; it under the terms of the GNU General Public License as published by
+; the Free Software Foundation, either version 3 of the License, or
+; (at your option) any later version.
+; 
+; GovDashboard is distributed in the hope that it will be useful,
+; but WITHOUT ANY WARRANTY; without even the implied warranty of
+; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+; GNU General Public License for more details.
+; 
+; You should have received a copy of the GNU General Public License
+; along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+
+name = "Data Controller (DDL)"
+description = "Extension to Data Controller to manage data storage"
+package = REI Dashboard Platform (Core)
+version = 7.x-2.x
+core = 7.x
+
+dependencies[] = data_controller
+
+files[] = controller/DataStructureController.php
+files[] = controller/DataStructureControllerProxy.php
+files[] = controller/handler/AbstractDataStructureController.php
+files[] = controller/handler/DefaultDataStructureController.php
+files[] = controller/handler/impl/AbstractDatasetStorageImpl.php
+files[] = controller/handler/impl/AbstractCreateDatasetStorageImpl.php
+files[] = controller/handler/impl/CreateDatasetStorageImpl.php
+files[] = controller/handler/impl/ModifyDatasetStorageImpl.php
+files[] = controller/handler/impl/TruncateDatasetStorageImpl.php
+files[] = controller/handler/impl/DropDatasetStorageImpl.php
+files[] = controller/handler/impl/EnableDatasetImpl.php
+files[] = controller/handler/impl/DisableDatasetImpl.php
+files[] = controller/observer/AbstractDatasetStorageObserver.php
+files[] = controller/observer/FormulaExpressionObserver.php
+
+files[] = datasource/DataSourceStructureFactory.php
+files[] = datasource/DataSourceStructureHandler.php
+files[] = datasource/factory/AbstractDataSourceStructureFactory.php
+files[] = datasource/request/database/AbstractDatabaseRequest.php
+files[] = datasource/request/database/CreateDatabaseRequest.php
+files[] = datasource/request/database/DropDatabaseRequest.php
+files[] = datasource/request/dataset/AbstractDatasetStorageRequest.php
+files[] = datasource/request/dataset/DatasetStorageRequest.php
+files[] = datasource/request/dataset/AbstractColumnStorageRequest.php
+files[] = datasource/request/dataset/ColumnStorageRequest.php
+files[] = datasource/request/dataset/UpdateDatasetStorageRequest.php
+
+files[] = metamodel/ModifiedDatasetMetaModel.php

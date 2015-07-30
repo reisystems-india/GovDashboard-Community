@@ -1,0 +1,844 @@
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#reportButtons {
+    margin-top: 20px;
+}
+
+#reportName {
+    width: 285px;
+}
+
+#reportReportsActions {
+    margin-top: 10px;
+}
+
+div.govdb-cnvs-cntr {
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    font-size: 12px;
+}
+
+div.govdb-cnvs {
+    margin-top: 15px;
+    width: 100%;
+    box-shadow: 0 1px 5px #A29E93;
+    background: #F9F8F9;
+    padding: 9px;
+}
+
+div.govdb-cnvs div.govdb-grd > div.ui-resizable-handle {
+    border-bottom: 5px double #E17D20;
+}
+
+div.govdb-grd {
+    height: 600px;
+    background: url(/sites/all/themes/custom/govdash_core/smartclient/images/grid-thick.png) repeat;
+    position: relative;
+    overflow: hidden;
+}
+
+button.rpt-act-btn {
+    /*margin: 0 2.5px;*/
+    font-size: 14px;
+    line-height: 19px;
+    margin-left: 5px;
+}
+
+span.rpt-cnf-btn {
+    width: 74px;
+    height: 25px;
+    line-height: 25px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+div.rpt-frm {
+    padding: 8px;
+    width:265px;
+    display: none;
+    border: 1px solid rgba(0,0,0,.15);
+    border-radius: 4px;
+    margin: 2px 0 0;
+    background-color: #fff;
+    box-shadow: 0 6px 12px rgba(0,0,0,.175);
+    z-index: 1000;
+}
+
+#reportColumnForm {
+    height: 500px;
+    width: 750px;
+}
+
+div.report-form-footer {
+    padding: 15px;
+    text-align: right;
+    border-top: 1px solid #e5e5e5;
+}
+
+div.report-column-divider {
+    height:425px;
+    width: 2px;
+    background-color: #e5e5e5;
+}
+
+div.report-column-selected {
+    height:425px;
+    width: 265px;
+}
+
+div.report-column-selected-container {
+    overflow: auto;
+    height: 370px;
+}
+
+div.report-selected-column {
+    height:425px;
+    width: 465px;
+    padding: 10px;
+}
+
+button.report-formula-form-button {
+    margin-top: 10px;
+}
+
+span.report-formula-link {
+    font-style: italic;
+    cursor: pointer;
+    margin-left: 30px;
+}
+
+div.report-formula-form-function,
+div.report-formula-form-column,
+div.report-formula-form-template,
+select.report-formula-form-language {
+    margin-top: 10px;
+    display: inline;
+}
+
+select.report-formula-form-language {
+    width: 30%;
+}
+
+div.report-formula-form-template {
+    float: left;
+}
+
+div.report-formula-form-column {
+    float: left;
+    margin-left: 17px;
+}
+
+div.report-formula-form-function {
+    float: right;
+}
+
+ul.column-list {
+    overflow: auto;
+    max-height: 200px;
+}
+
+div.report-formula-form-editor-container {
+    margin-top: 10px;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+button.report-formula-form-cancel {
+    margin-right: 10px;
+}
+
+button.report-formula-form-delete {
+    margin-left: 10px;
+}
+
+div.report-formula-form-editor {
+    height: 200px;
+}
+
+input.report-formula-form-name {
+    width: 50%;
+    float: left;
+}
+
+select.report-formula-form-type {
+    width: 35%;
+    float: right;
+}
+
+span.report-column-item-text {
+    word-break: break-all;
+    width: 90%;
+}
+
+i.report-tree-icon {
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    text-align: center;
+    line-height: 24px;
+}
+
+#formulas .jstree-default .jstree-icon {
+    right: 48px;
+}
+
+#formulas .jstree-default .report-formula-edit-icon {
+    right: 24px;
+}
+
+#formulas .jstree-default .report-formula-remove-icon,
+#formulas .jstree-default .jstree-checkbox {
+    right: 0;
+}
+
+#reportConfigureForm,
+#reportVisualizeForm {
+    width: 300px;
+}
+
+h5.rpt-frm-hdr {
+    margin-top: 5px;
+    word-break: break-word;
+    margin-bottom:0;
+}
+
+div.rpt-act-btn-cntr {
+    margin-top: 10px;
+}
+
+div.rpt-flt-cstm-vals-cntr {
+    margin-top: 10px;
+}
+
+div.rpt-flt-cstm-vals-itm {
+    padding: 5px;
+}
+
+span.rpt-flt-cstm-vals-itm-txt {
+    margin-left: 5px;
+    word-wrap: break-word;
+}
+
+span.rpt-flt-cstm-vals-itm-rmv {
+    cursor: pointer;
+}
+
+input.bldr-flt-frm-slt-txt {
+    margin-top: 8px;
+}
+
+div.rpt-flt-frm-cntr {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+div.rpt-flt-cstm-cntr div.rpt-flt-cstm-vals-frm {
+    margin-left: 0;
+    margin-right: 0;
+    margin-bottom: 5px;
+}
+
+div.rpt-flt-cstm-vals-frm label.control-label {
+    margin-left: 5px;
+}
+
+ul.rpt-widget-context li span {
+    margin-right: 10px;
+}
+
+button.rpt-cnf-btn {
+    position:relative;
+}
+
+div.rpt-flt-act-cntr {
+    margin-top: 10px;
+}
+
+.enabled:after{
+    padding: 2px 10px;
+    
+    font: normal 11px Arial, Helvetica, sans-serif;
+    display:none;
+    position: absolute;
+    text-align: center;
+    z-index: 9999;
+    border: 1px solid #C0C0BF;
+    -moz-border-radius: 2px;
+    -webkit-border-radius: 2px;
+    -ms-border-radius: 2px;
+    border-radius: 2px;
+    background: #efefef;
+    background: -moz-linear-gradient(top, #efefef 0%, #c9c9c9 100%);
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#efefef), color-stop(100%,#c9c9c9));
+    background: -webkit-linear-gradient(top, #efefef 0%,#c9c9c9 100%);
+    background: -o-linear-gradient(top, #efefef 0%,#c9c9c9 100%);
+    background: -ms-linear-gradient(top, #efefef 0%,#c9c9c9 100%);
+    background: linear-gradient(to bottom, #efefef 0%,#c9c9c9 100%);
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#efefef', endColorstr='#c9c9c9',GradientType=0 );
+    opacity: 0.9;
+    -moz-box-shadow: 1px 1px 1px #000000;
+    -webkit-box-shadow: 1px 1px 1px #000000;
+    box-shadow: 1px 1px 1px #BEBEBE;
+    opacity: 0.7;
+}
+
+.enabled:hover:after{
+    display: block;
+    margin-top: -20px;
+}
+
+.disabled:hover{cursor: default; }
+
+.disabled:after{
+    padding: 2px 10px;
+   
+     font: normal 11px Arial, Helvetica, sans-serif;
+    display: none;
+    position: absolute;
+    z-index: 9999;  
+    text-align: center;
+    border: 1px solid #C0C0BF;
+    -moz-border-radius: 2px;
+    -webkit-border-radius: 2px;
+    -ms-border-radius: 2px;
+    border-radius: 2px;
+    background: #efefef;
+    background: -moz-linear-gradient(top, #efefef 0%, #c9c9c9 100%);
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#efefef), color-stop(100%,#c9c9c9));
+    background: -webkit-linear-gradient(top, #efefef 0%,#c9c9c9 100%);
+    background: -o-linear-gradient(top, #efefef 0%,#c9c9c9 100%);
+    background: -ms-linear-gradient(top, #efefef 0%,#c9c9c9 100%);
+    background: linear-gradient(to bottom, #efefef 0%,#c9c9c9 100%);
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#efefef', endColorstr='#c9c9c9',GradientType=0 );
+    opacity: 0.9;
+    -moz-box-shadow: 1px 1px 1px #000000;
+    -webkit-box-shadow: 1px 1px 1px #000000;
+    box-shadow: 1px 1px 1px #BEBEBE;
+    opacity: 0.7;
+}
+.disabled:hover:after{display: block;margin-top: -20px;}
+
+
+.chart-icon {
+    display: inline-block;
+    border: 1px solid #fff;
+    height: 41px;
+    width: 41px;
+    cursor: pointer;
+    background: transparent none no-repeat scroll 50% 50%;
+}
+
+.chart-icon.active {
+    background-color: #d9edf7;
+    border-color: #bce8f1;
+}
+
+.chart-icon-table.disabled,
+.chart-icon-pivot_table.disabled {
+    background-image: url('../images/Reports-Advanced-table_Disabled.png');
+}
+
+.chart-icon-table.enabled,
+.chart-icon-pivot_table.enabled {
+    background-image: url('../images/Reports-Advanced-table.png');
+}
+ 
+.chart-icon-pivot_table.enabled:after {
+    content: attr(data-chart-Enabled);
+    top: 66px;
+    right: -25px;
+}
+
+.chart-icon-pivot_table.disabled:after{
+   content: attr(data-chart-Disabled);   
+    top: 66px;
+    right: -25px;
+}
+
+.chart-icon-table.enabled:after {
+    content: attr(data-chart-Enabled);
+    top: 66px;
+    left: 52px;
+}
+
+.chart-icon-line {
+    background-image: url('../images/Reports-Line-Chart_Disabled.png');
+}
+.chart-icon-line.enabled {
+    background-image: url('../images/Reports-Line-Chart.png');
+}
+.chart-icon-line.enabled:after{
+    content: attr(data-chart-Enabled);
+    top: 66px;
+    left: 94px;
+}
+.chart-icon-line.disabled:after{
+   content: attr(data-chart-Disabled); 
+    top: 66px;
+    left: 94px;
+}
+
+.chart-icon-area {
+    background-image: url('../images/Reports-Area-Chart_Disabled.png');
+}
+.chart-icon-area.enabled {
+    background-image: url('../images/Reports-Area-Chart.png');
+}
+.chart-icon-area.enabled:after{
+    content: attr(data-chart-Enabled);
+    top: 66px;
+    left: 142px;
+}
+.chart-icon-area.disabled:after{
+    content: attr(data-chart-Disabled); 
+  top: 66px;
+    left: 142px;
+}
+
+
+.chart-icon-bar {
+    background-image: url('../images/Reports-Bar-Chart_Disabled.png');
+}
+.chart-icon-bar.enabled {
+    background-image: url('../images/Reports-Bar-Chart.png');
+}
+.chart-icon-bar.enabled:after{
+   content: attr(data-chart-Enabled);
+    top: 66px;
+    left: 187px;
+}
+.chart-icon-bar.disabled:after{
+    content: attr(data-chart-Disabled); 
+    top: 66px;
+    left: 187px;
+}
+
+.chart-icon-column {
+    background-image: url('../images/Reports-Column-Chart_Disabled.png');
+}
+.chart-icon-column.enabled {
+    background-image: url('../images/Reports-Column-Chart.png');
+}
+.chart-icon-column.enabled:after{
+    content: attr(data-chart-Enabled);
+    top: 66px;
+    left: 231px;
+}
+.chart-icon-column.disabled:after{
+    content: attr(data-chart-Disabled); 
+    top: 66px;
+    left: 231px;
+}
+
+.chart-icon-pie {
+    background-image: url('../images/Reports-Pie_Disabled.png');
+}
+.chart-icon-pie.enabled {
+    background-image: url('../images/Reports-Pie.png');
+}
+.chart-icon-pie.enabled:after{
+    content: attr(data-chart-Enabled);
+    top: 66px;
+    left: 278px;
+}
+.chart-icon-pie.disabled:after{
+   content: attr(data-chart-Disabled); 
+   top: 66px;
+   left: 278px;
+}
+
+.chart-icon-gauge {
+    background-image: url('../images/Reports-Gauge_Disabled.png');
+}
+.chart-icon-gauge.enabled {
+    background-image: url('../images/Reports-Gauge.png');
+}
+.chart-icon-gauge.enabled:after{
+    content: attr(data-chart-Enabled);
+    top: 66px;
+    right: 118px;
+}
+.chart-icon-gauge.disabled:after{
+    content: attr(data-chart-Disabled); 
+    top: 66px;
+    right: 105px;
+}
+
+
+.chart-icon-dynamic_text {
+    background-image: url('../images/Reports-Dynamic-Text_Disabled.png');
+}
+.chart-icon-dynamic_text.enabled {
+    background-image: url('../images/Reports-Dynamic-Text.png');
+}
+.chart-icon-dynamic_text.enabled:after{
+    content: attr(data-chart-Enabled);
+    top: 66px;
+    right: 73px;
+}
+
+.chart-icon-map {
+    background-image: url('../images/Reports-Map_Disabled.png');
+}
+.chart-icon-map.enabled {
+    background-image: url('../images/Reports-Map.png');
+}
+.chart-icon-map.enabled:after{
+    content: attr(data-chart-Enabled);
+    top: 66px;
+    right: 30px;
+}
+.chart-icon-map.disabled:after{
+    content: attr(data-chart-Disabled); 
+    top: 66px;
+    right: 10px;
+}
+
+
+.chart-icon-customview {
+    background-image: url('../images/Reports-Dynamic-Text_Disabled.png');
+}
+
+.chart-icon-customview.enabled {
+    background-image: url('../images/Reports-Dynamic-Text.png');
+}
+.chart-icon-customview.enabled:after{
+    content: attr(data-chart-Enabled);
+    top: 66px;
+    right: -15px;
+}
+
+
+#reportEditorContainer div.well {
+height: 250px;
+}
+
+#configurePanelGroup .panel-heading, #visualizePanelGroup .panel-heading {
+    padding: 4px 8px;
+}
+
+#configurePanelGroup .panel-title, #visualizePanelGroup .panel-title {
+    font-size: 14px;
+    font-weight: bold;
+}
+
+#configurePanelGroup .panel-body, #visualizePanelGroup .panel-body {
+    font-size: 12px;
+}
+
+#reportSelectedColumnsList {
+    border-top: 1px solid #ccc;
+    border-bottom: 1px solid #ccc;
+    margin: 10px 0 10px 0;
+    padding: 5px;
+}
+
+#reportSelectedColumnsList h5 {
+
+    margin: 10px 0 0 0;
+}
+
+#reportSelectedColumnsList li {
+    font-size: 80%;
+}
+
+.checkbox .form-control.input-sm {
+    margin: -5px 0 0 -18px;
+    padding: 0;
+    vertical-align: top;
+    width: 12px;
+    outline: 0!important;
+}
+
+.bottomButtons{
+    margin-top: 15px;
+    overflow: hidden;
+}
+
+.modal{
+    overflow:hidden;
+    outline: 0!important;
+}
+
+#reportConfigColumnOrderList a.list-group-item {
+cursor: move;
+}
+
+#reportConfigColumnOrderList .list-group-item span.glyphicon.glyphicon-move {
+margin-right: 5px;
+}
+
+.panel-heading .accordion-toggle{
+    text-decoration:none;
+    cursor:pointer;
+}
+.panel-heading .accordion-toggle:before {
+    /* symbol for "opening" panels */
+    font-family: 'FontAwesome';  /* essential for enabling glyphicon */
+    content: "\f107";    /* adjust as needed, taken from bootstrap.css */
+    color: grey;
+    width: 10px;
+    display: inline-block;
+}
+.panel-heading .accordion-toggle.collapsed:before {
+    /* symbol for "collapsed" panels */
+    content: "\f105";    /* adjust as needed, taken from bootstrap.css */
+}
+#reportTypeToolbarContainer{
+    float:right;
+}
+#reportColumnForm .bldr-clmn-tree .bldr-tree-vw-cntnr, #reportFilterForm .bldr-clmn-tree .bldr-tree-vw-cntnr{
+    max-height:300px;
+    overflow-y:auto;
+    overflow-x:hidden;
+}
+
+.reportDisplayTrafficLightImageOption{margin-left: 10px;}
+
+#reportColumnDisplayPanel input[type="text"], #byRangePercent input[type="text"]{
+line-height: 30px;
+padding: 0 5px;
+height: 30px;
+}
+
+#byRangePercent .col-sm-1 label, #byRangePercent .col-sm-2 label, #byRange label.col-sm-1  {
+margin-top: 5px;
+}
+
+#byRangePercent label, #byRange label{
+  /*  line-height: 28px;*/
+}
+
+/* #reportColumnDisplayPanel span.glyphicon.bldr-lst-itm-icn.glyphicon-trash.bldr-lst-itm-icn-trsh {
+    margin-left: -15px;
+} */
+
+select#datasets {
+padding: 5px 5px;
+line-height: 35px;
+height: 35px;
+width: 100% !important;
+font-size: 14px;
+}
+
+label .form-control{box-shadow: none !important; border: none !important}
+
+.groupColumnDisplayRangePercentLabel .col-sm-3 {
+white-space: nowrap;
+margin-left: -6px;
+}
+.groupColumnDisplayRangePercentLabel .col-sm-9{margin-left: -10px;}
+.groupColumnDisplayRangeNuericLabel, .groupColumnDisplayRangePercentLabel, .groupColumnDisplayRangeValueLabel {margin-bottom: 0;}
+.groupColumnDisplayRangeNuericLabel .col-sm-5{margin-left: 7px;}
+.groupColumnDisplayRangeNuericLabel .col-sm-7{margin-left: -7px;}
+
+.report-container dd {margin-bottom: 10px;}
+
+h3.gd_report_title {margin-bottom: 5px;}
+.reportDynamicCheck {margin-bottom: 10px !important;}
+
+#Dynamicothertitle label.col-sm-3 {padding-top: 8px; padding-right: 0;}
+
+label.imgposition {margin-left: -20px;}
+
+select#datasets{ padding: 5px 2px 5px 0   \0/IE9 !important ; }
+
+#byRangePercent label.control-label, #byRange  label.control-label{line-height: 18px;}
+
+div.columnDisplayActionButtons{
+    text-align: right;
+    margin: 35px 0 0 0;
+}
+
+.form-group.groupColorScheme0 {
+    margin-bottom: 5px;
+}
+
+.form-group.groupColorScheme0 label{
+    line-height: 18px !important;
+    margin-bottom: 0;}
+
+#byRangePercent .form-group .col-sm-8, #byRange .form-group .col-sm-8, #byValue .form-group .col-sm-8, #byColorall .col-sm-8,
+#byRangePercent .form-group .col-sm-4, #byRange .form-group .col-sm-4, #byValue .form-group .col-sm-4, #byColorall .col-sm-4{
+    margin-top: 10px !important;
+}
+
+.btn.btn-primary.report-formula-form-button.report-formula-form-save, .btn.btn-default.report-formula-form-button.report-formula-form-delete{
+    margin-right: 5px;
+}
+
+.btn.btn-default.report-formula-form-button.report-formula-form-cancel{margin-left: 0;}
+
+#reportTrafficLightPanel .panel-body, #reportColumnDisplayPanel .panel-body {
+padding: 8px;
+}
+
+#reportTrafficLightPanel .lst-itm-val, #reportColumnDisplayPanel .lst-itm-val{padding-left: 0;}
+
+#reportColumnDisplayPanel a.list-group-item, #reportFormatPanel a.list-group-item, #reportColumnOrderPanel a.list-group-item, 
+#reportColumnDisplayPanel label.col-sm-12, #reportSortPanel td.datacol, #reportFormatPanel h5, a.list-group-item, span.lst-itm-txt{
+word-break: break-all;
+}
+
+#reportTrafficLightPanel .lst-itm-val{padding-left: 0;}
+
+#reportFilterForm .rpt-flt-frm .lst-vw {
+overflow-x: hidden;
+overflow-y: auto;
+}
+
+#reportColumnDisplayPanel label.col-sm-5.control-label,
+#reportColumnDisplayPanel .form-horizontal .form-group .col-sm-9, 
+.groupColumnDisplayRangeNuericLabel .col-sm-5{
+padding-right: 0;
+padding-top: 7px;
+}
+#reportColumnDisplayPanel .col-md-5 {padding-right: 0;}
+
+#reportColumnDisplayPanel .panel-body {
+padding: 10px 15px;
+}
+
+#byRange label.col-sm-4.control-label, #byValue label.col-sm-5.control-label, #byRangePercent label.col-sm-4.control-label{
+margin-left: 0;
+padding-left: 20px;
+margin-top: 10px !important;
+}
+
+#byValue .form-group .col-sm-7{
+margin-top: 10px !important;
+}
+
+.panel-collapse.collapse.in {
+overflow-y: auto;
+overflow-x: hidden;
+max-height: 500px;
+min-height: 90px;
+}
+
+span.lst-itm-txt{display: inline-block \9\0;}
+
+div#reportFilterForm {
+    overflow: hidden;
+    max-height: 550px;
+}
+
+div#reportFilterForm div.lst-cntr {
+    overflow-x: hidden;
+    overflow-y: auto;
+    max-height: 493px;
+}
+
+.groupColumnDisplayString .col-md-5 label, #byValue label.col-sm-4.control-label{padding-top: 0 !important}
+
+.modalDynamicContent{
+    text-align: center;
+    font-weight: BOLD;
+    width: 590px;
+    padding: 0 5px;
+}
+
+#reportFooterPanel div.list-group {
+    max-height: 250px;
+    overflow: auto;
+}
+#othertitle label.col-sm-5.control-label,  #othertitle label.col-sm-4.control-label{
+text-align: left;
+}
+
+#reportColumnDisplayPanel label.col-sm-4.control-label, #reportColumnDisplayPanel .form-group .col-sm-8.radiogrp {
+padding-right: 0;
+}
+
+/* For Chrome & Firefox */
+#reportFilterForm{left: 214px !important}
+#reportConfigureForm{left: 308px !important}
+#reportVisualizeForm{left: 426px !important}
+
+
+/* For ie */
+#reportFilterForm{left: 213px \9\0 !important }
+#reportConfigureForm{left: 306px \9\0 !important }
+#reportVisualizeForm{left: 422px \9\0 !important }
+
+/* For ie 10 and ie 11 */
+@media all and (-ms-high-contrast:none)
+{
+    #reportFilterForm{left: 213px !important }
+    #reportConfigureForm{left: 305px  !important }
+    #reportVisualizeForm{left: 421px  !important }
+
+    *::-ms-backdrop, #reportFilterForm{left: 213px !important }  
+    *::-ms-backdrop, #reportConfigureForm{left: 305px !important }
+    *::-ms-backdrop,#reportVisualizeForm{left: 421px !important }
+}
+
+.usedInDashboardList {
+    margin-left: 65px;
+    font-weight: bold;
+}
+
+.form-horizontal .control-label{text-align:left;}
+
+#byColorall label.col-sm-4.control-label {
+    padding-left: 18px;
+}
+
+.groupColumnDisplayRangeNuericLabel .col-sm-5 {
+    padding-top: 0;
+}
+
+.groupColumnDisplayRangeNuericLabel, .groupColumnDisplayRangeNueric1, .groupColumnDisplayRangeNueric2, 
+.groupColumnDisplayRangeNueric3, .groupColumnDisplayRangeNueric4, .groupColumnDisplayRangeNueric5,
+.groupColumnDisplayRangePercent1, .groupColumnDisplayRangePercent2, .groupColumnDisplayRangePercent3,
+.groupColumnDisplayRangePercent4, .groupColumnDisplayRangePercent5, .groupColumnDisplayRangePercentLabel,
+.groupColumnDisplayRangeValueLabel, .groupColumnDisplayValue1, .groupColumnDisplayValue2, .groupColumnDisplayValue3, 
+.groupColumnDisplayValue4, .groupColumnDisplayValue5, .groupColumnDisplayRangeNueric1, .groupColumnDisplayRangeNueric2,
+.groupColumnDisplayRangeNueric3, .groupColumnDisplayRangeNueric4, .groupColumnDisplayRangeNueric5, .groupColorSchemeValue0, 
+.groupColorScheme5, .groupColorScheme4, .groupColorScheme3, .groupColorScheme2, .groupColorScheme1, .groupColorScheme0 {
+    margin: 0;
+    margin-bottom: 10px;
+    overflow: hidden;
+}
+
+#byValue .groupColumnDisplayRangeValueLabel  .col-sm-7 {
+    margin-top: 0px !important;
+}
+
+.groupColorSchemeValue0 .col-sm-7{
+    padding: 0 5px;
+}
+
+.groupColorScheme0 .col-sm-9{ padding: 0 5px;}
+.groupColorScheme0 .col-sm-3{ white-space: nowrap; padding: 0 2px;}
+
+#reportColumnDisplayPanel .row .col-md-5 label {
+padding-top: 8px;
+}
+
+#byValue .col-sm-7 {
+padding-left: 7px;
+}
+
+div.report-config {
+    display: inline;
+}

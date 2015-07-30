@@ -1,0 +1,318 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+/**
+ * Implementation of hook_services_resources().
+ */
+function gd_account_user_services_resources()
+{
+    module_load_include('inc', 'gd_account_user', 'resources/user_resource');
+    return _gd_account_user_resource_definition();
+}
+
+/**
+ * Implementation of hook_entity_load
+ * @param $entities
+ * @param $type
+ * @return void
+ */
+function gd_account_user_entity_load ( $entities, $type ) {
+    if ( $type == 'user' ) {
+        global $user;
+        foreach ( $entities as $entity ) {
+            gd_account_user_add_fields($user,$entity);
+        }
+    }
+}
+
+function get_user_field_value($user, $fieldName, $index = 0, $storageSuffixName = 'value', $required = FALSE) {
+    $value = NULL;
+    $user->language = LANGUAGE_NONE; // for some reason this doesn't get set like nodes
+    $fieldValue = isset($user->$fieldName) ? $user->$fieldName : NULL;
+    if (isset($fieldValue[$user->language])) {
+        $fieldLocalizedValues = $fieldValue[$user->language];
+        if (isset($index)) {
+            // accessing individual value
+            if (isset($fieldLocalizedValues[$index][$storageSuffixName])) {
+                $value = StringHelper::trim($fieldLocalizedValues[$index][$storageSuffixName]);
+            }
+        }
+        else {
+            // we need to return an array of values
+            foreach ($fieldLocalizedValues as $i => $fieldLocalizedValue) {
+                $v = isset($fieldLocalizedValue[$storageSuffixName]) ? $fieldLocalizedValue[$storageSuffixName] : NULL;
+                if (!isset($v)) {
+                    $v = StringHelper::trim($v);
+                }
+
+                $value[$i] = $v;
+            }
+        }
+    }
+
+    if ($required && !isset($value)) {
+        LogHelper::log_debug($user);
+        throw new IllegalArgumentException(t(
+            '@fieldName@index has not been set for the user: @userId',
+            array(
+                '@userId' => $user->uid,
+                '@fieldName' => $fieldName,
+                '@index' => ((!isset($index) || ($index == 0)) ? '' : t('[@index]', array('@index' => $index))))));
+    }
+
+    return $value;
+}
+
+/**
+ * @param $user
+ * @param null $entity
+ */
+function gd_account_user_add_fields ( &$user, $entity = null ) {
+
+    if ( !$entity ) {
+        $entity = user_load($user->uid,true);
+    }
+
+    // firstname
+    $entity->firstname = get_user_field_value($entity, 'field_gd_user_first_name');
+
+    // lastname
+    $entity->lastname = get_user_field_value($entity, 'field_gd_user_last_name');
+
+    // full name
+    if ( $entity->firstname && $entity->lastname ) {
+        $entity->fullname = $entity->firstname.' '.$entity->lastname;
+    } else {
+        $entity->firstname = $entity->name;
+        $entity->lastname = null;
+        $entity->fullname = $entity->name;
+    }
+
+    if ( $user->uid == $entity->uid ) {
+        $user->firstname = $entity->firstname;
+        $user->lastname = $entity->lastname;
+        $user->fullname = $entity->fullname;
+    }
+}
+
+/**
+ * Returns all Datasources for a user with admin privileges
+ *
+ * @param null $account
+ * @return array
+ */
+function gd_account_user_get_datasources ( $account = null ) {
+    if ( $account === null ) {
+        global $user;
+        $account = user_load($user->uid);
+    }
+
+    $datasources = gd_datasource_get_all();
+    if ( gd_account_user_is_admin($account) ) {
+        return $datasources;
+    } else {
+        $results = array();
+        foreach ( $datasources as $datasourceName => $DS ) {
+            if ( gd_security_is_allowed($account,new \GD\Security\Authorization\Entity\DrupalEntity($datasourceName,'datasource'),'admin') ) {
+                $results[$datasourceName] = $DS;
+            }
+        }
+        return $results;
+    }
+}
+
+/**
+ * Returns all Dashboards for a user with admin privileges for it's datasource or view privileges
+ *
+ * @param null $account
+ * @return array
+ */
+function gd_account_user_get_dashboards ( $account = null, $datasourceName = null ) {
+    if ( $account === null ) {
+        global $user;
+        $account = user_load($user->uid);
+    }
+
+    $dashboards = gd_dashboard_get_dashboards(LOAD_ENTITY,$datasourceName);
+
+    if ( gd_account_user_is_admin($account) ) {
+        return $dashboards;
+    } else {
+        $results = array();
+        foreach ( $dashboards as $nid => $dashboard ) {
+            if ( gd_security_is_allowed($account,new \GD\Security\Authorization\Entity\DrupalEntity(get_node_field_value($dashboard,'field_dashboard_datasource'),'datasource'),'admin') ) {
+                $results[$nid] = $dashboard;
+            } else if ( gd_security_is_allowed($account,new \GD\Security\Authorization\Entity\DrupalEntity($dashboard->nid,'dashboard'),'view') ) {
+                $results[$nid] = $dashboard;
+            } else {
+                if ( gd_datasource_is_property(get_node_field_value($dashboard,'field_dashboard_datasource'), 'personal') ) {
+                    if ( $dashboard->uid == $account->uid ) {
+                        $results[$nid] = $dashboard;
+                    }
+                }
+            }
+        }
+        return $results;
+    }
+}
+
+
+/**
+ * Implements hook_gd_set_active_datasource
+ */
+function gd_account_user_gd_set_active_datasource ( $datasourceName ) {
+    global $user;
+
+    // This saves datasource as users default datasource. This field is used to remember "last used Datasource".
+    if ( $user->uid ) {
+        $account = user_load($user->uid);
+        if ( $account ) {
+            gd_account_user_set_datasource($account, $datasourceName);
+        }
+    }
+}
+
+/**
+ * @param $account
+ * @param $datasourceName
+ */
+function gd_account_user_set_datasource ( $account, $datasourceName ) {
+    if ( $datasourceName !== null && get_node_field_value($account, 'field_gd_user_default_datasource') !== $datasourceName ) {
+        $account->field_gd_user_default_datasource[LANGUAGE_NONE][0]['value'] = $datasourceName;
+        user_save($account);
+    }
+}
+
+/**
+ * @param $account
+ * @return mixed
+ */
+function gd_account_user_get_datasource ( $account ) {
+    return gd_datasource_find(get_user_field_value($account, 'field_gd_user_default_datasource'));
+}
+
+/**
+ * @param $account
+ * @return mixed|null|stdClass
+ */
+function gd_account_user_find_default_datasource ( $account ) {
+
+    $datasource = gd_account_user_get_datasource($account);
+    if ( $datasource ) {
+        return $datasource;
+    }
+
+    if ( gd_account_user_is_admin($account) ) {
+        // just pick the first one available
+        $datasources = gd_datasource_get_all();
+        return (!empty($datasources)) ? $datasources[key($datasources)] : NULL;
+    }
+
+    if ( gd_account_user_is_any_datasource_admin($account) ) {
+        $datasources = gd_account_user_get_datasources($account);
+        return (!empty($datasources)) ? $datasources[key($datasources)] : NULL;
+    } else {
+        $dashboards = gd_account_user_get_dashboards($account);
+        if ( empty($dashboards) ) {
+            return null;
+        }
+        return gd_datasource_find(get_node_field_value($dashboards[key($dashboards)],'field_dashboard_datasource'));
+    }
+}
+
+/**
+ * Returns true if provided $user has admin role.
+ * If $user is not provided currently logged in user is used.
+ * @param $account
+ * @return bool
+ */
+function gd_account_user_is_admin ( $account = null ) {
+
+    if ( !$account ) {
+        global $user;
+        $account = $user;
+    }
+
+    if ( $account->uid == 1
+            || in_array(GOVDASHBOARD_INSTANCE_ADMIN_RID,array_keys($account->roles))
+            || in_array(GOVDASHBOARD_SITE_ADMIN_RID,array_keys($account->roles))) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+/**
+ * @param null $account
+ * @param null $datasourceName
+ * @return bool
+ * @throws IllegalArgumentException
+ */
+function gd_account_user_is_datasource_admin ( $account = null, $datasourceName ) {
+    if ( !$account ) {
+        global $user;
+        $account = $user;
+    }
+
+    if ( gd_account_user_is_admin($account) ) {
+        return true;
+    }
+
+    if ( !empty($datasourceName) ) {
+        return gd_security_is_allowed($account,new \GD\Security\Authorization\Entity\DrupalEntity($datasourceName,'datasource'),'admin');
+    }
+
+    return false;
+}
+
+function gd_account_user_is_any_datasource_admin ( $account = null ) {
+
+    if ( !$account ) {
+        global $user;
+        $account = $user;
+    }
+
+    if ( gd_account_user_is_admin($account) ) {
+        return true;
+    }
+
+    $datasources = array();
+    foreach ( gd_datasource_get_all() as $datasourceName => $DS ) {
+        if ( gd_security_is_allowed($account,new \GD\Security\Authorization\Entity\DrupalEntity($datasourceName,'datasource'),'admin') ) {
+            $datasources[$datasourceName] = $DS;
+        }
+    }
+    return (bool) count($datasources);
+}
+
+/**
+ * @param null $account
+ * @param $dashboardNid
+ * @return bool
+ */
+function gd_account_user_is_dashboard_viewer ( $account = null, $dashboardNid ) {
+    if ( !$account ) {
+        global $user;
+        $account = user_load($user->uid);
+    }
+
+    return gd_security_is_allowed($account,new \GD\Security\Authorization\Entity\DrupalEntity($dashboardNid,'dashboard'),'view');
+}

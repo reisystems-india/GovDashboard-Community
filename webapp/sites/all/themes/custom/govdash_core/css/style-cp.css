@@ -1,0 +1,211 @@
+/* these classes only apply to the iframe in Account Management */
+
+a {text-decoration: none;}
+
+body { font: 12px/18px "Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif; margin:0; padding:0; color: #333; outline:0 none; vertical-align:baseline; background:#FFF; }
+
+h1, h2, h3, h4, h5, h6 {
+    margin: 20px 0 15px 0;
+    line-height: 120%;
+    text-shadow: 1px 1px 1px #EAF1EA;
+    color: #E78A22;
+    font-family: "News Cycle", "Droid Sans", Helvetica, Arial, sans-serif;
+    padding-bottom: 10px;
+}
+
+h1 {
+    font-size: 32px;
+    margin: 20px 0;
+    color: #3F464C;
+    font-weight: normal;
+    background: url(../images/cp/icon-title.png) no-repeat 0 11px;
+    text-indent: 30px;
+    border-bottom: 7px solid #DEDEDE;
+    padding-bottom: 15px;
+}
+
+h2 {
+    margin: 10px 0;
+    border-bottom: 0;
+    color: #555;
+    font: normal 21px 'News Cycle', Arial, Helvetica, sans-serif;
+    padding: 0 0 2px;
+}
+
+h3 { font-size: 130%; }
+
+h4 { font-size: 110%; }
+
+
+/*
+* Messages
+*/
+div.messages.status {
+    background: #DC7420;
+    border: 1px solid #DC7420;
+    padding: 10px;
+    margin: 0 0 15px 0;
+    color: #ffffff;
+}
+
+div.messages.error {
+    background: #d30000;
+    border: 1px solid #b50000;
+    padding: 10px;
+    margin: 0 0 15px 0;
+    color: #ffffff;
+}
+
+div.messages.warning {
+    background: #dd6e0c;
+    border: 1px solid #d2ac7f;
+    padding: 10px;
+    margin: 0 0 15px 0;
+    color: #ffffff;
+}
+
+div.messages.status a, div.messages.error a, div.messages.warning a {
+    color: #ffffff;
+    text-decoration: underline;
+}
+
+
+/* Statistics page */
+
+.stats { /*height: 300px; width:400px; position: relative; background-color: #F6F6F6;*/}
+.hchart-stats {}
+
+/* Highcharts */
+
+.highcharts-container {}
+
+.highcharts-axis text{ font-size: 13px !important;}
+
+.highcharts-title {color: #3E576F; text-align: center}
+.highcharts-title a {color: #3E576F; text-decoration: underline}
+.highcharts-dial {width: auto; text-align: center; position: relative !important;}
+.highcharts-dial div {position: relative !important;} /*overrides the IE highchart absolute positioning in Account Statistics - do not delete*/
+.highcharts-dial text {
+    font-size:17px !important;
+    font-weight: bold;
+    font-family: "Calibri", "Lucida Grande" !important;
+
+}
+
+table.statistics {width: 100%; padding-left: 10px}
+table.statistics td {
+    overflow: visible;
+    vertical-align: top;}
+
+.separator {
+    background: url(../images/cp/shd-gr-up.png) no-repeat top center;
+    margin-top: 10px;
+    padding-bottom: 40px;}
+
+div#leftbar {}
+div#right-top-bar {display: block; float: left; }
+div#right-bottom-bar {display: block; float: right;}
+
+.ddown-left {
+    float: right;
+    padding-right: 10px;
+    font: bold 11px/19px Arial,Helvetica,sans-serif;
+    padding-bottom: 15px;
+}
+.ddown-right {float: right;}
+
+
+/* grey "new/back" button in cp */
+
+a.fancyCpButton {
+    background: #A9AEB6;
+    background: -moz-linear-gradient(center top, #A9AEB6, #7D8490) repeat scroll 0 0 transparent;
+    background: -moz-linear-gradient(top, #A9AEB6, #7D8490);
+    background: -webkit-gradient(linear, left top, left bottom, from(#A9AEB6), to(#7D8490));
+    background: -webkit-linear-gradient(#A9AEB6, #7D8490);
+    background: linear-gradient(#A9AEB6, #7D8490); /*future CSS3 browsers*/
+    background: -ms-linear-gradient(#A9AEB6, #7D8490); /*IE10*/
+
+    /* IE9 gradient bg */
+    -pie-background: linear-gradient(#A9AEB6, #7D8490); /*PIE*/
+    behavior: url(/sites/all/libraries/css/pie/PIE.htc);
+    /*filter: progid:DXImageTransform.Microsoft.gradient(startColorstr = '#A9AEB6', endColorstr = '#7D8490'); - not compatible with rounded corners in IE9 */
+
+    border-color: #CCCCCC #A0A6AF #677182;
+    border-radius: 5px 5px 5px 5px;
+    border-right: 2px solid #A0A6AF;
+    border-style: solid;
+    border-width: 2px;
+    /*box-shadow: 0 1px 2px #A29E93;*/
+    color: #FFFFFF;
+    cursor: pointer;
+    font-family: "Lucida Grande", "Lucida Sans Unicode", Segoe UI, Helvetica, Arial, sans-serif;
+    font-weight: bold;
+    padding: 7px 15px;
+    text-shadow: 0 1px 1px #535D70;
+    cursor: pointer !important;
+    white-space: nowrap;
+    text-align: center;
+    display: inline-block;
+
+    font-size: 12px;
+}
+
+label { font: bold 11px Arial, Helvetica, sans-serif }
+.formCell {font: bold 11px Arial, Helvetica, sans-serif; color: #000 }
+
+input,
+textarea{
+    margin-bottom: 3px !important;
+    margin-right: 5px;
+    margin-top: 0 !important;
+    border: 0;
+    background: white;
+    -moz-box-shadow: inset 0 0 3px #444;
+    -webkit-box-shadow: inset 0 0 3px #444;
+    box-shadow: 0 0 3px #444 inset;
+    padding: 5px;
+    background: #DCE0E8;
+}
+
+.formButtons input {
+    background: #E6AF2A;
+    color: white;
+    cursor: pointer;
+    font: 14px/16px Arial, Helvetica, sans-serif;
+    padding: 5px 15px;
+    text-align: center;
+    border: 0;
+    box-shadow: none;
+}
+
+.styled-select select {
+   background: #DCE0E8;
+   width: 140px;
+  /* padding: 5px 4px; */
+   height: 22px;
+   border: 1;
+   font: bold 11px Arial, Helvetica, sans-serif;
+}
+
+.styled-select {
+   width: 140px;
+   height: 22px;
+   overflow: hidden;
+   background: url(../smartclient/images/pickers/comboBoxPicker.png) no-repeat right #DCE0E8;
+   moz-box-shadow: inset 0 0 3px #444;
+   -webkit-box-shadow: inset 0 0 3px #444;
+   box-shadow: 0 0 3px #444 inset;
+}
+
+.formErrors {
+    width: 100%;
+    background: url(../smartclient/images/actions/error.png) no-repeat 20px 20px #FEF5F1;
+    color: #8C2E0B;
+    border: 1px solid #ED541D;
+    margin: 6px 0;
+    padding: 10px 10px 10px 30px;
+    font: normal 12px/15px Arial, Helvetica, sans-serif;
+}
+
+/* end CP specific styles */

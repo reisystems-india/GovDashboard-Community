@@ -1,0 +1,124 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+require_once('metamodel/environment_metamodel.module.inc');
+
+function gd_data_controller_metamodel_dp_metamodel_environment_loader() {
+    $items[] = array(
+        'classname' => 'GD_DataMartMetaModelLoader',
+        'priority' => 1000);
+
+    return $items;
+}
+
+function gd_data_controller_metamodel_dp_metamodel_loader_filter() {
+    $items['DatasetMetaData']['datasourceName'][] = DrupalDatabaseEnvironmentMetaModelGenerator::$DATASOURCE_NAME__DEFAULT;
+
+    return $items;
+}
+
+function gd_data_controller_metamodel_dp_metamodel_loader() {
+    $items[] = array(
+        'classname' => 'GD_DatasetMetaModelLoader',
+        'priority' => 1000);
+
+    return $items;
+}
+
+function gd_data_controller_metamodel_find_cube_by_dataset_name($datasetName) {
+    $metamodel = data_controller_get_metamodel();
+
+    // provided dataset name could be just an alias
+    $dataset = $metamodel->getDataset($datasetName);
+    // we need to work with actual dataset name
+    $adjustedDatasetName = $dataset->name;
+
+    $cube = $metamodel->findCubeByDatasetName($adjustedDatasetName);
+    if (!isset($cube)) {
+        $cubeName = $adjustedDatasetName;
+        $cube = $metamodel->findCube($cubeName);
+    }
+
+    return $cube;
+}
+
+function gd_data_controller_metamodel_adjust_dataset_name($datasetName) {
+    $metamodel = data_controller_get_metamodel();
+
+    // provided dataset name could be just an alias
+    $dataset = $metamodel->getDataset($datasetName);
+    // we need to work with actual dataset name
+    $adjustedDatasetName = $dataset->name;
+
+    $cube = $metamodel->findCubeByDatasetName($adjustedDatasetName);
+    if (!isset($cube)) {
+        $cubeName = $adjustedDatasetName;
+        $cube = $metamodel->findCube($cubeName);
+        if (isset($cube)) {
+            $adjustedDatasetName = $cube->factsDatasetName;
+        }
+    }
+
+    return array($adjustedDatasetName, isset($cube));
+}
+
+function gd_data_controller_metamodel_get_linkable_datasets($primaryDatasetName, array $possiblyLinkableDatasetNames) {
+    $timeStart = microtime(TRUE);
+
+    $view = new GD_ReferenceLinkView($primaryDatasetName);
+    $link = $view->generate($possiblyLinkableDatasetNames);
+
+    $referencedDatasetNames = $link->getConnectedDatasetNames(FALSE, FALSE);
+
+    $linkableDatasetNames = NULL;
+    if (isset($referencedDatasetNames)) {
+        $metamodel = data_controller_get_metamodel();
+
+        foreach ($referencedDatasetNames as $referencedDatasetName) {
+            $cube = $metamodel->findCubeByDatasetName($referencedDatasetName);
+            if (isset($cube)) {
+                $linkableDatasetName = $cube->name;
+
+                $linkableDatasetNames[] = $linkableDatasetName;
+            }
+        }
+    }
+
+    LogHelper::log_info(t(
+        "'@datasetName' connected datasets preparation time: !executionTime",
+        array('@datasetName' => $primaryDatasetName, '!executionTime' => LogHelper::formatExecutionTime($timeStart))));
+
+    return $linkableDatasetNames;
+}
+
+function gd_data_controller_metamodel_get_dataset_reference_graph($primaryDatasetName, $depth = NULL) {
+    $metamodel = data_controller_get_metamodel();
+
+    $possiblyLinkableDatasetNames = NULL;
+    foreach ($metamodel->datasets as $dataset) {
+        $possiblyLinkableDatasetNames[] = $dataset->name;
+    }
+
+    $view = new GD_ReferenceLinkView($primaryDatasetName);
+    $link = $view->generate($possiblyLinkableDatasetNames);
+
+    return $link;
+}

@@ -1,0 +1,7 @@
+branch_id,name,a_leaf_id,b_leaf_id
+
+0,USA,,
+1,Virginia,2,1
+2,Maryland,2,1
+3,Washington DC,1,
+4,California,7,2

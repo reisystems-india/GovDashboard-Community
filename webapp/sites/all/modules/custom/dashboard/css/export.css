@@ -1,0 +1,35 @@
+.print-element {
+    display: initial !important;
+}
+
+#header,#printButton {
+    display: none !important;
+}
+
+#footer {
+    display: none !important;
+}
+
+#content {
+    page-break-after: always !important;
+}
+
+#gd-navbar {
+    display: none !important;;
+}
+
+#editButton, #exportButton {
+    display: none !important;
+}
+
+#breadcrumbContainer, #filterContainer {
+    display: none !important;
+}
+
+.filter-overlay {
+    display: none !important;
+}
+
+.gd-report-menu-container {
+    display: none !important;
+}

@@ -1,0 +1,244 @@
+.gd-report-menu-container {
+    float: right;
+    height: 24px; /* should be same height as constant GD_REPORT_TITLE_HEIGHT from gd_report.module */
+}
+
+ul.gd-report-top-menu,ul.gd-report-top-menu ul{
+	margin: 0;
+	list-style: none;
+	padding: 0;
+    color: black;
+	}
+
+ul.gd-report-top-menu ul{
+	display: none;
+	position: absolute;
+    right: 0;
+	top: 100%;
+	background-color: #FFFFFF;
+	padding: 0;
+    color: black;
+	}
+
+/*ul.gd-report-top-menu li:hover>*{ *//* took out hover because it doesn't work in dash builder *//*
+	display: block;
+	}*/
+
+ul.gd-report-menu li:hover>*{
+    display: block;
+    }
+
+ul.gd-report-top-menu li{
+	position: relative;
+	display: block;
+	white-space: nowrap;
+	font-size: 0;
+	float: left;
+	}
+
+ul.gd-report-top-menu li:hover{
+	z-index: 1;
+	}
+
+ul.gd-report-top-menu ul ul{
+	position: absolute;
+	right: 100%;
+    top: 0;
+	padding: 0;
+	}
+
+ul.gd-report-top-menu{
+	font-size: 0;
+	z-index: 999;
+	position: relative;
+	display: inline-block;
+    border: 1px solid #C0CAD6;
+    background-color: #fff;
+    height: 20px; /* modifying this height can cause issues in the Report Builder (i.e. double scrollbars) */
+    line-height: 20px;
+	display: inline;
+	}
+
+* html ul.gd-report-top-menu li a{
+	display: inline-block;
+	}
+
+ul.gd-report-top-menu>li{
+	margin: 0;
+    height: 20px;
+    line-height: 20px;
+	}
+
+ul.gd-report-top-menu ul>li{
+	margin: 10px 0 0;
+	}
+
+ul.gd-report-top-menu a:active, ul.gd-report-top-menu a:focus{
+	/*outline-style: none;*/
+	}
+
+ul.gd-report-top-menu a{
+	display: block;
+	vertical-align: middle;
+	text-align: left;
+	text-decoration: none;
+    font: 13px Arial,sans-serif;
+	color: #8285A0;
+	cursor: pointer;
+	padding: 3px;
+	background-color: #FFFFFF;
+	background-repeat: repeat;
+	border-width: 0;
+	border-style: none;
+	}
+
+ul.gd-report-menu {
+    border-width: 0 1px 1px 1px;
+    border-style: solid;
+    border-color: #C0CAD6;
+    }
+
+ul.gd-report-menu ul {
+    border-width: 1px;
+    border-style: solid;
+    border-color: #C0CAD6;
+}
+
+ul.gd-report-top-menu ul li{
+	float: none;
+	margin: 0;
+	}
+
+ul.gd-report-top-menu ul a{
+	text-align: left;
+    padding: 4px;
+    padding-left: 24px;
+	background-color: #FFFFFF;
+	color: black; /* required to increase contrast for 508 compliance */
+	text-decoration: none;
+    cursor: pointer;
+	}
+
+ul.gd-report-top-menu li:hover>a,ul.gd-report-top-menu li a.pressed{
+	background-color: #FFFFFF;
+	border-style: none;
+	color: #C0C3E0;
+	text-decoration: none;
+	}
+
+ul.gd-report-top-menu img{
+	border: none;
+	vertical-align: middle;
+	margin-right: 3px;
+	}
+
+ul.gd-report-top-menu ul span{
+    background-image: url("/sites/all/modules/custom/gd/images/report_menu/subarrow.png");
+    background-position: right center;
+    background-repeat: no-repeat;
+	padding-right: 12px;
+	}
+
+ul.gd-report-top-menu ul li:hover > a span{
+	background-image: url("/sites/all/modules/custom/gd/images/report_menu/subarrow.png");
+	}
+
+ul.gd-report-top-menu ul li:hover>a,ul.gd-report-top-menu ul li a.pressed{
+	background-color: #D3D5E8;
+	border-style: solid;
+	border-color: #FFFFFF;
+	color: #000;
+	text-decoration: none;
+	}
+
+ul.gd-report-top-menu ul ul li{
+	margin: 0;
+	}
+
+ul.gd-report-top-menu>li>a{
+	}
+
+ul.gd-report-top-menu li.gd-report-top-menu-root>a{
+	border-width: 0 0 3px 0;
+	border-style: none;
+	border-color: #FFFFFF;
+	}
+
+ul.gd-report-top-menu li.gd-report-top-menu-root:hover>a,ul.gd-report-top-menu li.gd-report-top-menu-root a.pressed{
+	border-style: solid;
+	border-color: #FFFFFF;
+	}
+
+ul.gd-report-top-menu img.gd-report-menu-root-icon {
+    float: left;
+    background-position: left center;
+    background-repeat: no-repeat;
+    width: 18px;
+}
+
+ul.gd-report-top-menu span.gd-report-menu-root-arrow {
+    float: left;
+    background-color: #fff;
+    background-image: url('/sites/all/modules/custom/gd/images/report_menu/arrow_down.gif');
+    background-position: right center;
+    background-repeat: no-repeat;
+    width: 10px;
+}
+
+ul.gd-report-menu li a.gd-report-menu-link {
+    background-position: 4px center;
+    background-repeat: no-repeat;
+}
+
+ul.gd-report-menu li a.gd-chart-link {
+    background-image: url('/sites/all/modules/custom/gd/images/report_menu/chart_bar.png');
+}
+
+ul.gd-report-menu li a.gd-table-link {
+    background-image: url('/sites/all/modules/custom/gd/images/report_menu/table.png');
+}
+
+ul.gd-report-menu li a.gd-edit-link {
+    background-image: url('/sites/all/modules/custom/gd/images/report_menu/page_white_edit.png');
+}
+
+ul.gd-report-menu li a.gd-inactive-link {
+    opacity: 0.4;
+    filter: alpha(opacity=40); /* For IE8 and earlier */
+    cursor: default !important;
+    pointer-events: none;
+}
+
+ul.gd-report-menu li a.gd-export-csv,
+ul.gd-report-menu li a.gd-export-csv-raw,
+ul.gd-report-menu li a.gd-export-excel,
+ul.gd-report-menu li a.gd-export-excel-raw
+{
+    background-image: url('/sites/all/modules/custom/gd/images/report_menu/page_white_excel.png');
+}
+
+ul.gd-report-menu li a.gd-export-pdf {
+    background-image: url('/sites/all/modules/custom/gd/images/report_menu/page_white_acrobat.png');
+}
+
+ul.gd-report-menu li a.gd-print-link {
+    background-image: url('/sites/all/modules/custom/gd/images/report_menu/printer.png');
+}
+
+li.gd-report-menu-section {
+    font-size: 12px !important;
+    font-family: Arial,sans-serif !important;
+    font-weight: bold;
+    color: #555;
+    padding: 0 5px;
+    border-width: 1px 0 0 0;
+    border-style: solid;
+    border-color: #DCDFED;
+}
+
+.gd-export-menu-disabled a { /* ul.gd-report-menu li a.gd-inactive-link */
+    opacity: 0.4;
+    filter: alpha(opacity=40); /* For IE8 and earlier */
+    cursor: default !important;
+    pointer-events: none;
+}

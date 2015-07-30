@@ -1,0 +1,99 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ *
+ * This file is part of GovDashboard.
+ *
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+class GD_DataQueryControllerWebTestCase extends GD_AbstractWebTestCase {
+
+    public static function getInfo() {
+        return array(
+            'name' => 'Dashboard Platform',
+            'description' => 'Test Dashboard Platform querying functionality',
+            'group' => 'GovDashboard - Platform');
+    }
+
+    public function test() {
+        // combining all test cases into one method to reduce number of call to setUp() which is expensive
+        return $this->validateQueryDataset()
+            && $this->validateQueryCube()
+            && $this->validateCountDatasetRecords()
+            && $this->validateCountCubeRecords();
+    }
+
+    protected function validateQueryDataset() {
+        $metamodel = data_controller_get_metamodel();
+        $controller = data_controller_get_instance();
+
+        $datasetName = NameSpaceHelper::addNameSpace(DATASOURCE_NAME__TEST, TABLE_NAME__LEAF);
+
+        // accessing dataset
+        $dataset = $metamodel->findDataset($datasetName);
+        if (!$this->assertNotNull($dataset, 'Dataset successfully retrieved')) {
+            return FALSE;
+        }
+
+        // accessing primary key column
+        $keyColumn = $dataset->findKeyColumn(FALSE);
+        if (!$this->assertNotNull($keyColumn, 'Dataset key column successfully retrieved')) {
+            return FALSE;
+        }
+
+        $columnNames = $dataset->getColumnNames();
+
+        // accessing first record from the dataset
+        $firstRecord = $controller->queryDataset($datasetName, $columnNames, NULL, $keyColumn->name, 0, 1);
+        if (!$this->assertNotNull($firstRecord, 'Dataset data successfully retrieved')
+                || !$this->assertTrue((count($firstRecord) == 1), 'One dataset record successfully retrieved')
+                || !$this->assertTrue(isset($firstRecord[0]), 'First dataset record successfully retrieved')) {
+            return FALSE;
+        }
+
+        // querying the dataset using first record to generate conditions
+        $alternativeCopyOfFirstRecord = $controller->queryDataset($datasetName, $columnNames, $firstRecord[0], $columnNames);
+        if (!$this->assertNotNull($alternativeCopyOfFirstRecord, 'Dataset data successfully retrieved using conditions')
+                || !$this->assertTrue((count($alternativeCopyOfFirstRecord) == 1), 'One dataset record successfully retrieved using conditions')
+                || !$this->assertTrue(isset($alternativeCopyOfFirstRecord[0]), 'First dataset record successfully retrieved using conditions')
+                || !$this->assertTrue(count($alternativeCopyOfFirstRecord[0]) == count($firstRecord[0]), 'First dataset record contains correct number of columns')) {
+            return FALSE;
+        }
+        // comparing the record with the source record
+        $equal = TRUE;
+        foreach ($alternativeCopyOfFirstRecord[0] as $columnName => $alternativeValue) {
+            $value = isset($firstRecord[0][$columnName]) ? $firstRecord[0][$columnName] : NULL;
+            $equal = $equal && ($alternativeValue === $value);
+        }
+        if (!$this->assertTrue($equal, 'First dataset record and a record retrieved using conditions are equal')) {
+            return FALSE;
+        }
+
+        return TRUE;
+    }
+
+    protected function validateQueryCube() {
+        return TRUE;
+    }
+
+    protected function validateCountDatasetRecords() {
+        return TRUE;
+    }
+
+    protected function validateCountCubeRecords() {
+        return TRUE;
+    }
+}

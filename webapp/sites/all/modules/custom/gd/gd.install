@@ -1,0 +1,90 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+function gd_install() {
+    db_update('system')
+        ->fields(array('weight' => -1))
+        ->condition('name', 'gd', '=')
+        ->execute();
+}
+
+function gd_update_7101() {
+    db_update('system')
+        ->fields(array('weight' => -1))
+        ->condition('name', 'gd', '=')
+        ->execute();
+}
+
+/**
+ *  Removing unused fields
+ */
+function gd_update_7102() {
+    $oldFields = array(
+        'comment_body',
+        'field_model_config',
+        'field_attr_dataset',
+        'field_attr_datatype',
+        'field_attr_desc',
+        'field_attr_file_col_index',
+        'field_attr_file_col_name',
+        'field_attr_format',
+        'field_attr_key',
+        'field_attr_mask',
+        'field_attr_required',
+        'field_attr_sysname',
+        'field_attr_unique',
+        'field_attr_used',
+        'field_column_attribute',
+        'field_column_fact',
+        'field_dashboard_groups',
+        'field_tags',
+        'field_accelerator_type',
+        'field_tags',
+        'field_dataset_columns',
+        'field_fact_dataset',
+        'field_fact_datatype',
+        'field_fact_desc',
+        'field_fact_file_col_index',
+        'field_fact_file_col_name',
+        'field_fact_format',
+        'field_fact_mask',
+        'field_fact_required',
+        'field_fact_sysname',
+        'field_fact_used',
+        'field_package_desc',
+        'field_package_max_datamarts',
+        'field_package_max_records',
+        'field_package_max_users',
+        'field_ref_point_attr',
+        'field_ref_point_dataset',
+        'field_report_datasets'
+    );
+
+    foreach ( $oldFields as $fieldName ) {
+        field_delete_field($fieldName);
+    }
+
+    // run purge twice.
+    // If there is data, only data is removed and requires another pass to finally remove field.
+    // setting batch size to 100 just in case there are other fields being purged elsewhere.
+    field_purge_batch(100);
+    field_purge_batch(100);
+}

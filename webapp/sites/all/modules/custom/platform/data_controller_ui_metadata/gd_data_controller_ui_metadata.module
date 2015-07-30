@@ -1,0 +1,91 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+require_once(realpath(drupal_get_path('module', 'data_controller')) . '/common/pattern/AbstractObject.php');
+require_once(realpath(drupal_get_path('module', 'data_controller')) . '/metamodel/datatype/handler/DateDataTypeHandler.php');
+require_once(realpath(drupal_get_path('module', 'data_controller')) . '/metamodel/datatype/handler/NumberDataTypeHandler.php');
+require_once(realpath(drupal_get_path('module', 'data_controller')) . '/metamodel/datatype/handler/ArrayDataTypeHandler.php');
+require_once(realpath(drupal_get_path('module', 'data_controller')) . '/metamodel/datatype/handler/ObjectDataTypeHandler.php');
+require_once(realpath(drupal_get_path('module', 'data_controller_dimension_date_core')) . '/metamodel/datatype/handler/DateDimensionMonthDataTypeHandler.php');
+require_once(realpath(drupal_get_path('module', 'data_controller_dimension_date_core')) . '/metamodel/datatype/handler/DateDimensionQuarterDataTypeHandler.php');
+require_once(realpath(drupal_get_path('module', 'data_controller_dimension_date_core')) . '/metamodel/datatype/handler/DateDimensionYearDataTypeHandler.php');
+
+require_once('metamodel/metadata/DatasetUIMetaData.php');
+require_once('metamodel/metadata/DataTypeUIMetaData.php');
+require_once('metamodel/assembler/DataTypeUIMetaDataAssembler.php');
+
+function gd_data_controller_ui_metadata_init() {
+    /*                                                                        |                                                     |       |                                               |Show  |  Auto  |Compatible with..|
+                                                                              |                  Data Type                          |Visible|          Parent Data Type                     |Parent|Expanded|-----------------|
+                                                                              |                                                     |       |                                               |On    |        | Key  | Formula  |
+                                                                              |                                                     |       |                                               |Select|        |      |Expression|*/
+    DataTypeUIMetaDataAssembler::registerDataTypeMapping(new DataTypeUIMapping(StringDataTypeHandler::DATA_TYPE,                     TRUE,   NULL,                                           FALSE, TRUE,    TRUE,  FALSE));
+    DataTypeUIMetaDataAssembler::registerDataTypeMapping(new DataTypeUIMapping(NumberDataTypeHandler::DATA_TYPE,                     TRUE,   NULL,                                           FALSE, TRUE,    FALSE, TRUE));
+    DataTypeUIMetaDataAssembler::registerDataTypeMapping(new DataTypeUIMapping(IntegerDataTypeHandler::DATA_TYPE,                    TRUE,   NumberDataTypeHandler::DATA_TYPE,               FALSE, TRUE,    TRUE,  TRUE));
+    DataTypeUIMetaDataAssembler::registerDataTypeMapping(new DataTypeUIMapping(CurrencyDataTypeHandler::DATA_TYPE,                   TRUE,   NumberDataTypeHandler::DATA_TYPE,               FALSE, TRUE,    FALSE, TRUE));
+    DataTypeUIMetaDataAssembler::registerDataTypeMapping(new DataTypeUIMapping(PercentDataTypeHandler::DATA_TYPE,                    TRUE,   NumberDataTypeHandler::DATA_TYPE,               FALSE, TRUE,    FALSE, TRUE));
+    DataTypeUIMetaDataAssembler::registerDataTypeMapping(new DataTypeUIMapping(DateTimeDataTypeHandler::DATA_TYPE,                   TRUE,   NULL,                                           FALSE, TRUE,    TRUE,  FALSE));
+    DataTypeUIMetaDataAssembler::registerDataTypeMapping(new DataTypeUIMapping(DateDataTypeHandler::DATA_TYPE,                       TRUE,   DateTimeDataTypeHandler::DATA_TYPE,             FALSE, TRUE,    TRUE,  FALSE));
+    DataTypeUIMetaDataAssembler::registerDataTypeMapping(new DataTypeUIMapping(TimeDataTypeHandler::DATA_TYPE,                       FALSE,  DateTimeDataTypeHandler::DATA_TYPE,             FALSE, TRUE,    TRUE,  FALSE));
+    DataTypeUIMetaDataAssembler::registerDataTypeMapping(new DataTypeUIMapping(DateDimensionMonthDataTypeHandler::DATA_TYPE,         FALSE,  DateDataTypeHandler::DATA_TYPE,                 TRUE,  TRUE,    TRUE,  FALSE));
+    DataTypeUIMetaDataAssembler::registerDataTypeMapping(new DataTypeUIMapping(DateDimensionQuarterDataTypeHandler::DATA_TYPE,       FALSE,  DateDataTypeHandler::DATA_TYPE,                 TRUE,  TRUE,    TRUE,  FALSE));
+    DataTypeUIMetaDataAssembler::registerDataTypeMapping(new DataTypeUIMapping(DateDimensionFiscalQuarterDataTypeHandler::DATA_TYPE, FALSE,  DateDimensionQuarterDataTypeHandler::DATA_TYPE, FALSE, TRUE,    TRUE,  FALSE));
+    DataTypeUIMetaDataAssembler::registerDataTypeMapping(new DataTypeUIMapping(DateDimensionYearDataTypeHandler::DATA_TYPE,          TRUE,   DateDataTypeHandler::DATA_TYPE,                 TRUE,  TRUE,    TRUE,  FALSE));
+    DataTypeUIMetaDataAssembler::registerDataTypeMapping(new DataTypeUIMapping(DateDimensionFiscalYearDataTypeHandler::DATA_TYPE,    TRUE,   DateDimensionYearDataTypeHandler::DATA_TYPE,    FALSE, TRUE,    TRUE,  FALSE));
+    DataTypeUIMetaDataAssembler::registerDataTypeMapping(new DataTypeUIMapping(ArrayDataTypeHandler::DATA_TYPE,                      FALSE,  NULL,                                           FALSE, TRUE,    FALSE, FALSE));
+    DataTypeUIMetaDataAssembler::registerDataTypeMapping(new DataTypeUIMapping(ObjectDataTypeHandler::DATA_TYPE,                     FALSE,  NULL,                                           FALSE, TRUE,    FALSE, FALSE));
+}
+
+function gd_data_controller_ui_metadata_get_datatype_ui_metadata() {
+    $timeStart = microtime(TRUE);
+
+    $assembler = new DataTypeUIMetaDataAssembler();
+    $datatypeUIMetaData = $assembler->assemble();
+
+    LogHelper::log_info(t(
+        'UI Data Type Meta Data preparation time: !executionTime',
+        array('!executionTime' => LogHelper::formatExecutionTime($timeStart))));
+
+    return $datatypeUIMetaData;
+}
+
+function gd_data_controller_ui_metadata_get_dataset_ui_metadata($datasetName, array $connectedDatasetNames = NULL) {
+    $timeStart = microtime(TRUE);
+
+    list($adjustedDatasetName) = gd_data_controller_metamodel_adjust_dataset_name($datasetName);
+
+    $adjustedConnectedDatasetNames = NULL;
+    if (isset($connectedDatasetNames)) {
+        foreach ($connectedDatasetNames as $connectedDatasetName) {
+            list($adjustedConnectedDatasetName) = gd_data_controller_metamodel_adjust_dataset_name($connectedDatasetName);
+            $adjustedConnectedDatasetNames[] = $adjustedConnectedDatasetName;
+        }
+    }
+
+    $assembler = new DatasetUIMetaDataAssembler();
+    $uiMetaData = $assembler->assemble($adjustedDatasetName, $adjustedConnectedDatasetNames);
+
+    LogHelper::log_info(t(
+        "'@datasetName' dataset UI Meta Data preparation time: !executionTime",
+        array('@datasetName' => $datasetName, '!executionTime' => LogHelper::formatExecutionTime($timeStart))));
+
+    return $uiMetaData;
+}

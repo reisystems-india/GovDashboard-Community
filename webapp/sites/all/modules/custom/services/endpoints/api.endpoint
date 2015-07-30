@@ -1,0 +1,933 @@
+<?php
+$endpoint = new stdClass();
+$endpoint->disabled = FALSE; /* Edit this to true to make a default endpoint disabled initially */
+$endpoint->api_version = 3;
+$endpoint->name = 'api';
+$endpoint->server = 'rest_server';
+$endpoint->path = 'api';
+$endpoint->authentication = array(
+    'gd_services_endpoint' => array(
+        'oauth_context' => 'data_api',
+        'authorization' => 'data',
+        'credentials' => 'unsigned_consumer',
+    ),
+);
+$endpoint->server_settings = array(
+    'formatters' => array(
+        'bencode' => TRUE,
+        'csv' => TRUE,
+        'debug' => TRUE,
+        'json' => TRUE,
+        'jsonp' => TRUE,
+        'pdf' => TRUE,
+        'php' => TRUE,
+        'rss' => TRUE,
+        'txt' => TRUE,
+        'xls' => TRUE,
+        'xml' => TRUE,
+    ),
+    'parsers' => array(
+        'application/json' => TRUE,
+        'application/vnd.php.serialized' => TRUE,
+        'application/x-www-form-urlencoded' => TRUE,
+        'application/xml' => TRUE,
+        'multipart/form-data' => TRUE,
+        'text/xml' => TRUE,
+    ),
+);
+$endpoint->resources = array(
+    'dashboard' => array(
+        'operations' => array(
+            'create' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'retrieve' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'update' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'delete' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'index' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+        ),
+        'actions' => array(
+            'lookup' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'data' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+        ),
+        'relationships' => array(
+            'data' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+        ),
+    ),
+    'data' => array(
+        'operations' => array(
+            'update' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'delete' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+        ),
+        'relationships' => array(
+            'metadata' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'dataset' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'cube' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+        ),
+    ),
+    'datafile' => array(
+        'operations' => array(
+            'retrieve' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'update' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+        ),
+        'relationships' => array(
+            'structure' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+        ),
+    ),
+    'datamart' => array(
+        'operations' => array(
+            'create' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'retrieve' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'update' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'delete' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'index' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+        ),
+        'targeted_actions' => array(
+            'setactive' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+        ),
+    ),
+    'dataset' => array(
+        'operations' => array(
+            'create' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'retrieve' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'update' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'delete' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'index' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+        ),
+        'relationships' => array(
+            'statistic' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'data' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'lookup' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'ui' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'references' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'referenced' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'connections' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+        ),
+        'targeted_actions' => array(
+            'truncate' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+        ),
+    ),
+    'datasource' => array(
+        'operations' => array(
+            'retrieve' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'index' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+        ),
+        'actions' => array(
+            'import' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+        ),
+        'relationships' => array(
+            'export' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+        ),
+        'targeted_actions' => array(
+            'setactive' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'sync' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+        ),
+    ),
+    'datatype' => array(
+        'operations' => array(
+            'index' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+        ),
+    ),
+    'account_group' => array(
+        'alias' => 'group',
+        'operations' => array(
+            'create' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'retrieve' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'update' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'delete' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'index' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+        ),
+        'relationships' => array(
+            'user_groups' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'users' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+        ),
+    ),
+    'reference' => array(
+        'operations' => array(
+            'create' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'retrieve' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'update' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'delete' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'index' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+        ),
+    ),
+    'report' => array(
+        'operations' => array(
+            'create' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'retrieve' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'update' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'delete' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'index' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+        ),
+        'actions' => array(
+            'lookup' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'data' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+        ),
+        'relationships' => array(
+            'export' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'referenced' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+        ),
+        'targeted_actions' => array(
+            'save_as' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'export' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+        ),
+    ),
+    'taxonomy_term' => array(
+        'operations' => array(
+            'retrieve' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'create' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'update' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'delete' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'index' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+        ),
+        'actions' => array(
+            'selectNodes' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+        ),
+    ),
+    'taxonomy_vocabulary' => array(
+        'operations' => array(
+            'retrieve' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'create' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'update' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'delete' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'index' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+        ),
+        'actions' => array(
+            'getTree' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+        ),
+    ),
+    'account_user' => array(
+        'alias' => 'user',
+        'operations' => array(
+            'create' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'retrieve' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'update' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'delete' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'index' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+        ),
+        'actions' => array(
+            'login' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'logout' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+        ),
+        'relationships' => array(
+            'groups' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+        ),
+    ),
+    'user' => array(
+        'alias' => 'users',
+        'actions' => array(
+            'login' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'services' => array(
+                        'resource_api_version' => '1.0',
+                    ),
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'logout' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'services' => array(
+                        'resource_api_version' => '1.0',
+                    ),
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+            'token' => array(
+                'enabled' => '1',
+                'settings' => array(
+                    'gd_services_endpoint' => array(
+                        'credentials' => 'unsigned_consumer',
+                        'authorization' => 'data',
+                    ),
+                ),
+            ),
+        ),
+    ),
+);
+$endpoint->debug = 0;

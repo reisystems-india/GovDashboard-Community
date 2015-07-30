@@ -1,0 +1,52 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+/**
+ * Populating data source field
+ */
+function gd_account_user_update_7101 () {
+    // checking that new fields exist. Checking just one of them
+    if (field_info_field('field_gd_user_default_datasource') == NULL) {
+        throw new DrupalUpdateException(t("'User' content type configuration had not been deployed successfully"));
+    }
+
+    $EnvironmentMetaModel = data_controller_get_environment_metamodel();
+
+    $accountIds = array();
+    $result = db_query('SELECT uid FROM {users} WHERE uid != 0');
+    foreach ( $result as $record ) {
+        $accountIds[] = $record->uid;
+    }
+
+    $accounts = user_load_multiple($accountIds);
+
+    foreach ( $accounts as $account ) {
+        if ( !empty($account->field_gd_user_default_datamart[LANGUAGE_NONE]) ) {
+            $datamartId = $account->field_gd_user_default_datamart[LANGUAGE_NONE][0]['nid'];
+            foreach ( $EnvironmentMetaModel->getDataSources() as $datasource ) {
+                if ( !empty($datasource->nid) && $datasource->nid == $datamartId ) {
+                    $account->field_gd_user_default_datasource[LANGUAGE_NONE][0]['value'] = $datasource->name;
+                    user_save($account);
+                }
+            }
+        }
+    }
+}

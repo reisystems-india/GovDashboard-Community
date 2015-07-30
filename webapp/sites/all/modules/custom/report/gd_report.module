@@ -1,0 +1,1773 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+define('NODE_TYPE_REPORT', 'report');
+define('GD_HIGHCHART_LIMIT', 500); // NOTE: 500 or less prevents IE long-running script popup from appearing
+define('GD_HIGHCHART_PIE_LIMIT', 100);
+define('GD_HIGHCHART_GUAGE_LIMIT', 100);
+define('GD_DYNAMIC_TEXT_LIMIT', 100);
+define('GD_MAP_LIMIT', 1000);
+define('GD_MAP_REQUEST_LIMIT', 100);
+define('GD_TABLE_ROWS_PER_PAGE', 100);
+define('GD_TABLE_PAGINATION_FOOTER_HEIGHT', 36); // refer to skin_styles.css, .gd-pagination-bar
+define('GD_REPORT_TITLE_HEIGHT', 31); // refer to skin_styles.css => .gd-report-menu-container & report_menu.css => .gd-report-menu-container
+define('GD_BUILDER_BORDER_ADJUSTMENT', 4);
+define('GD_REPORT_TABINDEX', 3000);
+
+/**
+ * Implements hook_gd_sync_entities()
+ *
+ * @return array
+ */
+function gd_report_gd_sync_entities () {
+    $items['report'] = array(
+        'export' => array(
+            'class' => 'ReportExport',
+            'weight' => -5
+        ),
+        'import' => array(
+            'class' => 'ReportImport',
+            'weight' => -5
+        )
+    );
+
+    return $items;
+}
+
+/**
+ * Implements hook_xautoload()
+ *
+ * @param \Drupal\xautoload\Adapter\LocalDirectoryAdapter $adapter
+ */
+function gd_report_xautoload($adapter) {
+    $adapter->add('GD','lib');
+}
+
+/**
+ * Implements hook_services_resources()
+ *
+ * @return array
+ */
+function gd_report_services_resources () {
+    $resource = array();
+    require 'resources/report.resource.inc';
+
+    return $resource;
+}
+
+/**
+ * Implementation of hook_menu().
+ *
+ * @return array
+ */
+function gd_report_menu() {
+    $items = array();
+
+    $items['admin/config/govdashboard/report'] = array(
+        'title' => 'Report Settings',
+        'description' =>  'Configure global report settings',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('gd_report_admin_settings_form'),
+        'file' => 'gd_report.admin.inc',
+        'access arguments' => array('administer site configuration')
+    );
+
+    $items['report/%gd_report/render'] = array(
+        'title callback' => 'gd_report_page_title',
+        'title arguments' => array(1),
+        'page callback' => 'gd_report_page_render',
+        'page arguments' => array(1),
+        'access callback' => 'node_access',
+        'access arguments' => array('view', 1),
+        'type' => MENU_CALLBACK
+    );
+
+    $items['report/preview'] = array(
+        'title' => 'Report Preview',
+        'page callback' => 'gd_report_page_preview',
+        'access callback' => TRUE,
+        'type' => MENU_CALLBACK
+    );
+
+    $items['report/%gd_report'] = array(
+        'page callback' => 'gd_report_page',
+        'page arguments' => array(1),
+        'access callback' => TRUE,
+        'type' => MENU_CALLBACK
+    );
+
+    return $items;
+}
+
+/**
+ * @param bool $load
+ * @param null $datasourceName
+ * @param bool $publishOnly
+ * @return array
+ */
+function gd_report_findall_by_datasource ( $load = false, $datasourceName = null, $publishOnly = true ) {
+
+    if ( !$datasourceName ) {
+        $datasourceName = gd_datasource_get_active();
+    }
+
+    $result = array();
+
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node');
+    if ( $publishOnly ) {
+        $query->propertyCondition('status', NODE_PUBLISHED);
+    }
+    $query->propertyCondition('type', NODE_TYPE_REPORT);
+    $query->fieldCondition('field_report_datasource', 'value', $datasourceName);
+    $query->addTag('DANGEROUS_ACCESS_CHECK_OPT_OUT');
+
+    $entities = $query->execute();
+
+    if ( !empty($entities['node']) ) {
+        $nids = array();
+        foreach ( $entities['node'] as $n ) {
+            $nids[] = $n->nid;
+        }
+
+        if ( !$load ) {
+            $result = $nids;
+        } else {
+            $result = node_load_multiple($nids);
+        }
+    }
+
+    return $result;
+}
+
+function gd_report_page ( $report ) {
+
+    kpr($report);
+
+    $ReportConfig = GD_ReportConfigFactory::getInstance()->getConfig($report);
+    kpr($ReportConfig);
+
+    $query_result = $ReportConfig->getData();
+    kpr($query_result);
+}
+
+/**
+ * TODO Is this being used anywhere?
+ * Report view for viewer
+ * @param $reportNode
+ * @return void
+ */
+function gd_report_page_render ( $reportNode ) {
+    try {
+        gd_datasource_set_active(get_node_field_value($reportNode,'field_report_datasource'));
+
+        $ReportConfig = GD_ReportConfigFactory::getInstance()->getConfig($reportNode);
+
+        // for dashboard quick view .. TODO: do we need this anymore?
+        if ( !empty($_GET['id']) ) {
+            $ReportConfig->setDashboard($_GET['id']);
+        }
+
+        $ReportView = new GD_ReportView($ReportConfig);
+        if ( $ReportConfig->validate() ) {
+            $view = $ReportView->getView();
+        } else {
+            $view = $ReportView->getWarningView();
+        }
+        $output = $view->header . $view->body . $view->footer;
+
+        echo $output;
+
+    } catch ( Exception $e ) {
+        LogHelper::log_error($e);
+        echo 'An unexpected Error has occurred. Please contact your Site Administrator.';
+    }
+
+    gd_get_session_messages(); // log and clear any messages
+    drupal_exit();
+}
+
+/**
+ * Report preview for admin
+ * @return void
+ */
+function gd_report_page_preview () {
+    try {
+        if ( empty($_POST['config']) ) {
+            $message = 'Missing report preview config.';
+            LogHelper::log_error($message);
+            echo $message;
+        } else {
+            $report = (object) json_decode($_POST['config'],true);
+            gd_datasource_set_active($report->datasource);
+            $ReportConfig = GD_ReportConfigFactory::getInstance()->getConfig($report);
+            $ReportConfig->setId(!empty($report->id) ? $report->id : null);
+            $ReportConfig->setTitle(!empty($report->title) ? $report->title : null);
+            $ReportConfig->setCustomView(!empty($report->customView) ? $report->customView : null);
+
+            $ReportView = new GD_ReportView($ReportConfig);
+            if ( $ReportConfig->validate() ) {
+                $view = $ReportView->getView(array('admin' => TRUE));
+            } else {
+                $view = $ReportView->getWarningView(array('admin' => TRUE));
+            }
+            $output = $view->header . $view->body . $view->footer;
+
+            echo $output;
+        }
+    } catch ( Exception $e ) {
+        LogHelper::log_error($e);
+        echo $e->getMessage();
+    }
+
+    gd_get_session_messages(); // log and clear any messages
+    drupal_exit();
+}
+
+function gd_report_theme($existing, $type, $theme, $path) {
+    return array(
+        'highcharts_theme' => array(
+            'path' => drupal_get_path('module', 'gd_report') . "/theme",
+            'file' => 'highcharts.theme.inc',
+            'template' => 'highcharts',
+            'variables' => array('ReportConfig' => null)
+        ),
+        'sparkline_theme' => array(
+            'path' => drupal_get_path('module', 'gd_report') . "/theme",
+            'file' => 'sparkline.theme.inc',
+            'template' => 'sparkline',
+            'variables' => array('ReportConfig' => null)
+        ),
+        'gauge_theme' => array(
+            'path' => drupal_get_path('module', 'gd_report') . "/theme",
+            'file' => 'gauge.theme.inc',
+            'template' => 'gauge',
+            'variables' => array('ReportConfig' => null)
+        ),
+        'pivot_table_theme' => array(
+            'path' => drupal_get_path('module', 'gd_report') . "/theme/PivotTable",
+            'file' => 'pivot_table.theme.inc',
+            'template' => 'pivot_table',
+            'variables' => array('ReportConfig' => null)
+        )
+    );
+}
+
+function gd_report_get_dashboards ( $nid ) {
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node');
+    $query->propertyCondition('status', NODE_PUBLISHED);
+    $query->propertyCondition('type', NODE_TYPE_DASHBOARD);
+    $query->fieldCondition('field_dashboard_datasource', 'value', gd_datasource_get_active());
+    $query->fieldCondition('field_dashboard_reports', 'nid', $nid);
+    $query->addTag('DANGEROUS_ACCESS_CHECK_OPT_OUT');
+
+    $entities = $query->execute();
+    return gd_report_get_result_from_entities($entities);
+}
+
+/**
+ * @param $report_nid
+ * @return array
+ */
+function gd_report_get_datasets ( $report_nid ) {
+    $report = node_load($report_nid);
+    // find all datasets, first one will be primary
+    $datasets = array();
+    if ( !empty($report->field_report_dataset_sysnames[$report->language]) ){
+        $metamodel = data_controller_get_metamodel();
+        foreach ( $report->field_report_dataset_sysnames[$report->language] as $key => $ref ){
+            $dataset = $metamodel->findDataset($ref['value']);
+            if ( $dataset ) {
+                $datasets[] = $dataset;
+            }
+        }
+    }
+    return $datasets;
+}
+
+function gd_report_get_by_nid ( $nid ) {
+    $node = node_load($nid);
+    if ( !$node || $node->type != NODE_TYPE_REPORT || $node->status != NODE_PUBLISHED ) {
+        return NULL;
+    }
+    return $node;
+}
+
+/**
+ * @param $uuid
+ * @param null $datasourceName
+ * @return bool|mixed|null
+ */
+function gd_report_get_by_uuid ( $uuid, $datasourceName = null ) {
+
+    if ( !$datasourceName ) {
+        $datasourceName = gd_datasource_get_active();
+    }
+
+    $result = null;
+
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node');
+    $query->propertyCondition('type', NODE_TYPE_REPORT);
+    $query->fieldCondition('field_report_datasource', 'value', $datasourceName);
+    $query->fieldCondition('field_report_uuid', 'value', $uuid);
+    $query->addTag('DANGEROUS_ACCESS_CHECK_OPT_OUT');
+
+    $entities = $query->execute();
+
+    if ( !empty($entities['node']) ) {
+        foreach ( $entities['node'] as $n ) {
+            $nid = $n->nid;
+        }
+        $result = node_load($nid);
+    }
+
+    return $result;
+}
+
+/**
+ * @param $tags
+ * @param null $datasourceName
+ * @return bool|mixed|null
+ */
+function gd_report_find_by_tags ( $tags, $datasourceName = null ) {
+
+    $vocabulary = taxonomy_vocabulary_machine_name_load('tags');
+    if ( !$vocabulary ) {
+        return null;
+    }
+
+    if ( !is_array($tags) ) {
+        $termNames = array($tags);
+    } else {
+        $termNames = $tags;
+    }
+
+    $query = new EntityFieldQuery;
+    $query->entityCondition('entity_type', 'taxonomy_term');
+    $query->propertyCondition('name', $termNames,'IN');
+    $query->propertyCondition('vid', $vocabulary->vid);
+    $result = $query->execute();
+    if ( !empty($result['taxonomy_term']) ) {
+        $termIds = array_keys($result['taxonomy_term']);
+    } else {
+        return null;
+    }
+
+    $result = null;
+
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node');
+    $query->propertyCondition('type', NODE_TYPE_REPORT)
+        ->propertyCondition('status', NODE_PUBLISHED);
+
+    $query->fieldCondition('field_report_tags', 'tid', $termIds);
+    $query->addTag('DANGEROUS_ACCESS_CHECK_OPT_OUT');
+
+    if ( $datasourceName ) {
+        $query->fieldCondition('field_report_datasource', 'value', $datasourceName);
+    }
+
+    $entities = $query->execute();
+
+    if ( !empty($entities['node']) ) {
+        $result = node_load_multiple(array_keys($entities['node']));
+    } else {
+        return $entities;
+    }
+
+    return $result;
+}
+
+/**
+ * @param null $nid
+ * @param null $vid
+ * @param bool $reset
+ * @return bool|mixed
+ */
+function gd_report_load ( $nid = null, $vid = null, $reset = FALSE ) {
+    $node = node_load($nid,$vid,$reset);
+
+    if ( !$node ) {
+        return FALSE;
+    }
+
+    if ( $node->type == NODE_TYPE_REPORT && $node->status == NODE_PUBLISHED ) {
+        return $node;
+    } else {
+        return FALSE;
+    }
+}
+
+/**
+ * @param $reportIds
+ * @return array
+ */
+function gd_report_load_multiple ( $reportIds ) {
+    $reportNodes = node_load_multiple($reportIds);
+    $result = array();
+    foreach ( $reportNodes as $node ) {
+        if ( $node->type == NODE_TYPE_REPORT && $node->status == NODE_PUBLISHED ) {
+            $result[$node->nid] = $node;
+        }
+    }
+    return $result;
+}
+
+/**
+ * Report content type wrapper for node_save
+ *
+ * @param $reportNode
+ */
+function gd_report_save ( $reportNode ) {
+  $reportNode->field_report_changed[$reportNode->language][0]['value'] = time();
+  node_save($reportNode);
+}
+
+
+/**
+ * @param $nid
+ * @param bool $unpublishOnly
+ * @return bool
+ */
+function gd_report_delete($nid, $unpublishOnly = TRUE) {
+    $report = gd_report_load($nid);
+
+    if (!$report) {
+        return FALSE;
+    }
+
+    if ($unpublishOnly) {
+        $report->status = NODE_NOT_PUBLISHED;
+        gd_report_save($report);
+
+        $event = new DefaultEvent();
+        $event->type = 102; // see gd_health_monitoring_database_install() for more details
+        $event->owner = $report->nid;
+        EventRecorderFactory::getInstance()->record($event);
+    } else {
+        node_delete($nid);
+    }
+
+    return TRUE;
+}
+
+/**
+ * Check result-set if more than one row present then show Error message.
+ * @param GD_ReportConfig $ReportConfig
+ * @return string
+ */
+function gd_report_render_gauge ( GD_ReportConfig $ReportConfig, $data ) {
+    if (sizeof($data) > 1) {
+        return _gd_report_get_formatted_error_text("More than one row returned.<br/>Please add filters to reduce the number of rows to one.");
+    } else {
+        return theme('gauge_theme', array('ReportConfig' => $ReportConfig));
+    }
+}
+
+/**
+ * Method returns formatted error message if more than one row returned.
+ *
+ * @param $errorText
+ * @return string
+ */
+function _gd_report_get_formatted_error_text ($errorText){
+    return '<div class="canvas-warning">'.$errorText.'</div>';
+}
+
+/**
+ * @param GD_ReportConfig $ReportConfig
+ * @return string
+ */
+function gd_report_render_dynamic_text ( GD_ReportConfig $ReportConfig, $data, $fields ) {
+    $datasourceName = $ReportConfig->getNode() != null ? get_node_field_value($ReportConfig->getNode(), 'field_report_datasource') : null;
+    if (!isset($datasourceName)) {
+        $datasourceName = gd_datasource_get_active();
+    }
+    $draft = gd_datasource_is_property($datasourceName, 'draft') ?
+        '<img alt="Draft Overlay" title="Draft Overlay" aria-label="Draft Overlay" id="report-'.intval($ReportConfig->getId()).'-overlay" class="report-draft-overlay" src="/sites/all/modules/custom/report/includes/images/draft.png"/>' : '';
+    $output = $draft . '<dl>';
+
+    foreach ( $fields as $field ) {
+        if ( isset($data[0]) ) {
+            foreach ( $data[0]->record as $column_id => $value ) {
+                $style = '';
+                if ( $column_id == $field['name'] ) {
+                    $seriesConfig = !empty($ReportConfig->options['visual']['series'][$column_id]) ? $ReportConfig->options['visual']['series'][$column_id] : array();
+
+                    $showTitle = !empty($seriesConfig["dynamicTextShowTitle"]) ? $seriesConfig["dynamicTextShowTitle"] : null;
+
+                    $showTitleInline = !empty($seriesConfig["dynamicTextShowTitleInline"]) ? $seriesConfig["dynamicTextShowTitleInline"] : null;
+
+                    $alternateTitle = !empty($seriesConfig["dynamicTextTitle"]) ? $seriesConfig["dynamicTextTitle"] : null;
+
+                    if ( !empty($seriesConfig["dynamicTextColor"]) ) {
+                        $style .= "color:".$seriesConfig["dynamicTextColor"]." !important; ";
+                    }
+                    if ( !empty($seriesConfig["dynamicTextFont"]) ) {
+                        $style .= "font-family:".$seriesConfig["dynamicTextFont"]."; ";
+                    }
+                    if ( !empty($seriesConfig["dynamicTextSize"]) ) {
+                        $style .= "font-size:".$seriesConfig["dynamicTextSize"]."px; ";
+                    }
+
+                    $title = $field['title'];
+                    if ( $showTitle == 'other'){
+                        $title = $alternateTitle;
+                    } else if ( $showTitle == "no" ){
+                        $title = '';
+                    }
+
+                    if ( $showTitleInline == 'true' || $showTitleInline == '1' || $showTitleInline == 1 ) {
+                        $output .= '<dt style="'.$style.' float: left; margin-right: 10px;">'.$title.'</dt>';
+                    } else{
+                        $output .= '<dt style="'.$style.'">'.$title.'</dt>';
+                    }
+
+
+                    if ( isset($showTitleInline) && ($showTitleInline == 'true' || $showTitleInline == '1' || $showTitleInline == 1) ){
+                        $output .= '<dd style="'.$style.' white-space:pre;word-break: break-all;">&nbsp;'.$value.'</dd>';
+                    } else {
+                        $output .= '<dd style="'.$style.' ">'.$value.'</dd>';
+                    }
+                }
+            }
+        }
+    }
+    $output .= '</dl>';
+
+    $height = 0;
+    $heightAdj = 0;
+    if ( $ReportConfig->showTitle() || $ReportConfig->showMenu() ) {
+        $heightAdj = (GD_REPORT_TITLE_HEIGHT);
+    }
+
+    $reportSize = $ReportConfig->getDisplaySize();
+    if ( !empty($reportSize) ) {
+        $height = $reportSize->height;
+    }
+
+    if ( isset($_REQUEST['h']) && isset($_REQUEST['w']) ) {
+        $height = $_REQUEST['h'];
+    }
+
+    $height -= $heightAdj;
+
+    return '<div class="report-container report dynamic-report" id="report-' . intval($ReportConfig->getId()) . '" style=position:relative;' . (!empty($ReportConfig->options['style'])?$ReportConfig->options['style']:'') . 'height:' . $height .'px;">' . $output . '</div>';
+}
+
+
+/**
+ * Returns the reordered fields array based on values in reorderBy
+ * @param $fields
+ * @param $reorderBy - array of column names (system)
+ * @return array
+ */
+function gd_report_reorder_fields($fields, $reorderBy){
+    $output = array();
+    for($i=0; $i<sizeof($reorderBy); $i++){
+        for( $j=0; $j<sizeof($fields); $j++ ){
+            if(isset($fields[$j]['name'])){
+                if($reorderBy[$i] == $fields[$j]['name']){
+                    array_push($output,$fields[$j]);
+                    unset($fields[$j]['name']);
+                    break;
+                }
+            }
+        }
+    }
+    for( $j=0; $j<sizeof($fields); $j++ ){
+        if(isset($fields[$j]['name'])){
+            array_push($output,$fields[$j]);
+        }
+    }
+    return $output;
+}
+
+function gd_report_render_map ( GD_ReportConfig $ReportConfig ) {
+
+    $data = $ReportConfig->getData();
+    list($fields,$formattedData,$errors) = array_values(gd_report_format_data($ReportConfig, $data));
+
+    // lookup lat/long
+    $locations = array();
+    $queryValues = array();
+    $config = gd_report_get_settings();
+    foreach ( $formattedData as $rowNum => $row ) {
+        $loc = array();
+        foreach ( $row->record as $column => $value ) {
+            if ( substr($column,0,5) == 'attr:' ) {
+                $loc[] = $value;
+            }
+        }
+        $loc = implode(", ", $loc);
+
+        if (!empty($loc)) {
+            $location_key = md5('location_'.strtolower($loc));
+            $location = null;
+            if ( function_exists('apc_fetch') ) {
+                $location = apc_fetch($location_key);
+            }
+            if ( $location ) {
+                $locations[$rowNum] = $location;
+            } else {
+                $queryValues[$rowNum] = strtolower($loc);
+            }
+        }
+    }
+
+    if (!empty($queryValues)) {
+        LogHelper::log_debug("Map Proxy Query Values: " . json_encode($queryValues));
+        $protocol = 'http://';
+        if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) {
+            $protocol = 'https://';
+        }
+
+        $url = $protocol . $config['geocode_url'];
+        $body = new stdClass();
+        $body->q = array_values($queryValues);
+        if (!empty($config["geocode_key"])) $body->key = $config["geocode_key"];
+
+        $query = json_encode($body);
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POST, TRUE);
+        curl_setopt($ch, CURLOPT_ENCODING, "");
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array("Content-Type: application/json", "Content-Length: " . strlen($query)));
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $query);
+
+        $response = curl_exec($ch);
+
+        if (!curl_errno($ch)) {
+            LogHelper::log_debug("Map Proxy Response: " . $response);
+            $results = json_decode($response);
+            foreach($results as $result) {
+                if ($result) {
+                    $locations[array_search($result->address, $queryValues)] = $result->location;
+                    if ( function_exists('apc_add') ) {
+                        apc_add(md5('location_'.strtolower($result->address)),$result->location);
+                    }
+                }
+            }
+        }
+    }
+    // info window data
+    $infos = array();
+    foreach ( $formattedData as $rowNum => $row ) {
+        $header = array();
+        $info = '';
+        foreach ( $row->record as $column => $value ) {
+
+            if ( substr($column,0,5) == 'attr:' ) {
+                $header[] = $value;
+            } else {
+                foreach ( $fields as $field ) {
+                    if ( $column == $field['name'] ) {
+                        $info .= $field['title'].': '.$value;
+                    }
+                }
+            }
+        }
+        $infos[$rowNum] = implode(", ", $header).'<br/>'.$info;
+    }
+
+    $plotdata = array();
+    foreach ( $formattedData as $rowNum => $row ) {
+        if ( !empty($locations[$rowNum]) ) {
+            $plotdata[$rowNum]['location'] = $locations[$rowNum];
+            $plotdata[$rowNum]['info'] = $infos[$rowNum];
+        }
+    }
+
+    $datasourceName = $ReportConfig->getNode() != null ? get_node_field_value($ReportConfig->getNode(), 'field_report_datasource') : null;
+    if (!isset($datasourceName)) {
+        $datasourceName = gd_datasource_get_active();
+    }
+
+    $heightAdj = 0;
+    if ( $ReportConfig->showTitle() || $ReportConfig->showMenu() ) {
+        $heightAdj = GD_REPORT_TITLE_HEIGHT;
+    }
+
+    // dashboard viewer fix
+    if ( !empty($ReportConfig->dashboard) ) {
+        $reportSize = $ReportConfig->getDisplaySize();
+        $reportWidth = $reportSize->width - GD_BUILDER_BORDER_ADJUSTMENT;
+        $reportHeight = $reportSize->height - $heightAdj - GD_BUILDER_BORDER_ADJUSTMENT;
+    }
+
+    if ( !empty($_GET['w']) && !empty($_GET['h']) ) {
+        $reportWidth = $_GET['w'];
+        $reportHeight = $_GET['h'];
+    }
+    $ReportConfig->options['style'] = 'width:'.intval($reportWidth).'px; height:'.intval($reportHeight).'px;';
+
+    $overlay = '';
+    if (gd_datasource_is_property($datasourceName, 'draft')){
+        //  TODO Research Google Maps Overlay API to make true static overlay instead of really large overlay
+        $overlay = '
+            var overlay;
+            DraftOverlay.prototype = new google.maps.OverlayView();
+
+            function DraftOverlay(map) {
+                this.map = map;
+                this.setMap(map);
+
+                this.image_ = "/sites/all/modules/custom/report/includes/images/draft.png";
+            }
+
+            DraftOverlay.prototype.onAdd = function() {
+                this.width = jQuery(this.map.b).width() * 50 + "px";
+                this.height = jQuery(this.map.b).height() * 50 + "px";
+                var div = document.createElement("div");
+                div.className = "report-map-overlay";
+                div.style.borderStyle = "none";
+                div.style.borderWidth = "0px";
+                div.style.position = "absolute";
+                div.style.width = "' . ($reportWidth * 10) . 'px";
+                div.style.height = "' . ($reportHeight * 10) . 'px";
+                div.style.left = "-' . ($reportWidth * 5) . 'px";
+                div.style.top = "-' . ($reportHeight * 5) . 'px";
+                div.setAttribute("alt", "Draft Overlay" title="Draft Overlay" aria-label="Draft Overlay");
+                div.setAttribute("title", "Draft Overlay" title="Draft Overlay" aria-label="Draft Overlay");
+                div.setAttribute("aria-label", "Draft Overlay" title="Draft Overlay" aria-label="Draft Overlay");
+                div.style["background-image"] = "url(/sites/all/modules/custom/report/includes/images/draft.png)";
+
+                var panes = this.getPanes();
+                panes.overlayLayer.appendChild(div);
+                this.div_ = div;
+            };
+
+            DraftOverlay.prototype.draw = function() {
+            };
+
+            DraftOverlay.prototype.onRemove = function() {
+                this.div_.parentNode.removeChild(this.div_);
+                this.div_ = null;
+            };
+
+            overlay = new DraftOverlay(map);
+
+        ';
+    }
+
+    $output = '
+    <script type="text/javascript">
+
+        (function (global) {
+        !function($,undefined) {
+            var gd_mapReport'.intval($ReportConfig->getId()).' = null;
+
+            var loading = $("<div class=\'ldng\'></div>");
+            $("#report-'.intval($ReportConfig->getId()).'").append(loading);
+
+            GD.Util.Google.loadAPIShared(function(){
+                try {
+                    var markerBounds = new google.maps.LatLngBounds();
+                    var mapOptions = {
+                        mapTypeId: google.maps.MapTypeId.TERRAIN
+                    };
+
+                    var selector = $("#report-' . intval($ReportConfig->getId()).'");
+                    var map = new google.maps.Map(selector[0],mapOptions);
+                    gd_mapReport'.intval($ReportConfig->getId()).' = map;
+
+                    var plotdata_'.intval($ReportConfig->getId()).' = '.json_encode($plotdata).';
+
+                    $.each(plotdata_'.intval($ReportConfig->getId()).',function(k,point) {
+                        if ( typeof point.location.lat != "undefined" && typeof point.location.lng != "undefined" ) {
+                            var options = {
+                                position: new google.maps.LatLng(point.location.lat,point.location.lng),
+                                map: map,
+                                title: "Click for more info"
+                            };
+                            var marker = new google.maps.Marker(options);
+                            markerBounds.extend(options.position);
+                            google.maps.event.addListener(marker, \'click\', function () {
+                                var infoWindow = new google.maps.InfoWindow({
+                                    content: "<div style=\'line-height:1.35;overflow:hidden;white-space:nowrap;\'>" + point.info + "</div>"
+                                });
+                                infoWindow.open(map,marker);
+                            });
+                        }
+                    });
+
+                    map.fitBounds(markerBounds);
+                    loading.hide();
+                    ' . $overlay . '
+                } catch ( e ) {
+                    loading.hide();
+                    $("#report-' . intval($ReportConfig->getId()).'").html(\'<div class="alert alert-danger alert-dismissible" role="alert" style="text-align: left;"><button type="button" class="close" data-dismiss="alert"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button><h4>Error!</h4> Map lib did not load.</div>\');
+                    return false;
+                }
+            });
+        }(global.GD_jQuery ? global.GD_jQuery : jQuery);
+        })(!window ? this : window);
+
+    </script>
+    ';
+
+    return '<div class="report-container report-map" id="report-' . intval($ReportConfig->getId()) . '" style="' . $ReportConfig->options['style'] . '"></div>'.$output;
+}
+
+function gd_report_is_numeric_data_type ($type) {
+    if ( $type == NumberDataTypeHandler::DATA_TYPE
+        || $type == IntegerDataTypeHandler::DATA_TYPE
+        || $type == CurrencyDataTypeHandler::DATA_TYPE
+        || $type == PercentDataTypeHandler::DATA_TYPE
+    ) {
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+function gd_report_get_export_table ( GD_ReportConfig $ReportConfig, $raw = false ) {
+
+    // flag to query in the raw
+    if ( !$raw ) {
+        $data = $ReportConfig->getData();
+    } else {
+        $data = $ReportConfig->getRawData();
+    }
+
+    /*
+     * If there is no data returned, building the fields will be incomplete.
+     * Seems useless to build fields for data that isn't there anyways so
+     * just return nothing.
+     */
+    if ( empty($data) ) {
+        return null;
+    }
+
+    // prevent drilldowns from being applied
+    $ReportConfig->drilldowns = array();
+
+    list($fields,$formattedData,$errors) = array_values(gd_report_format_data($ReportConfig, $data));
+
+    $table = array();
+    $table['header'] = array();
+    foreach ( $fields as $c ) {
+        $table['header'][$c['name']]['data'] = '<strong>'.$c['title'].'</strong>';
+    }
+
+    $table['rows'] = array();
+    foreach ( $formattedData as $data ) {
+        $table['rows'][] = $data->record;
+    }
+
+    $table['attributes']['width']['data'] = '100%';
+    $table['attributes']['cellspacing']['data'] = '0';
+    $table['attributes']['cellpadding']['data'] = '2';
+    $table['attributes']['border']['data'] = '1';
+
+    return theme('table',$table);
+}
+
+function gd_report_get_table_fields(GD_ReportConfig $ReportConfig) {
+    $tableFields = array();
+    $columnIds = array(); // used for applying column configs to column headers
+
+    foreach ( $ReportConfig->options['column_details'] as $col ) {
+        $fieldProperties = array();
+        $fieldProperties['name'] = $col->name;
+        $fieldProperties['title'] = $col->publicName;
+
+        if ( isset($ReportConfig->traffic) ) {
+            foreach ( $ReportConfig->traffic as $traffic ) {
+                if ( $traffic->trafficColumnId == $col->name && $traffic->trafficLightImagePosition != 'replace' &&$ReportConfig->options["config"]['chartType'] !== 'dynamic_text') {
+                    $trafficColumn = array();
+                    $trafficColumn['name'] = 'gd_report_adv_table_traffic_light';
+                    $trafficColumn['title'] = $traffic->trafficLightImageTitle;
+                    $trafficColumn['width'] = '30';
+                    $trafficColumn['position'] = $traffic->trafficLightImagePosition;
+                    $trafficColumn['column'] = $col->name;
+                }
+            }
+        }
+
+        array_push($tableFields, $fieldProperties);
+        $columnIds[] = $col->name;
+    }
+
+    // apply any column configs to the column headers
+    foreach ($ReportConfig->options['column_configs'] as $configItem) {
+        $i = array_search($configItem['columnId'], $columnIds);
+        if ($i !== FALSE) {
+            $tableFields[$i]['title'] = $configItem['displayName'];
+        }
+    }
+
+    // Apply Column Order
+    $columnOrder = $ReportConfig->getColumnOrder();
+    if ( !empty($columnOrder) ) {
+        $orderedTableFields = array();
+        foreach ( $columnOrder as $c ) {
+            foreach ( $tableFields as $f ) {
+                if ( $f['name'] == $c ) {
+                    $orderedTableFields[] = $f;
+                    break;
+                }
+            }
+        }
+        // add columns not in columnOrder to the end
+        $otherColumns = $tableFields;
+        for ( $i=0, $fieldCount=count($tableFields); $i<$fieldCount; $i++ ) {
+            foreach ( $orderedTableFields as $o ) {
+                if ( !empty($otherColumns[$i]) && $otherColumns[$i]['name'] == $o['name'] ) {
+                    unset($otherColumns[$i]);
+                }
+            }
+        }
+        $otherColumns = array_values($otherColumns); // re-index
+        $tableFields = array_merge($orderedTableFields, $otherColumns);
+    }
+
+    if ( isset($trafficColumn) ) {
+        for ( $i = 0; $i < count($tableFields); $i++ ) {
+            if ( $tableFields[$i]['name'] == $trafficColumn['column'] ) {
+                $offset = $i;
+                if ( $trafficColumn['position'] == 'right') {
+                    $offset += 1;
+                }
+                array_splice($tableFields, $offset, 0, array($trafficColumn));
+                break;
+            }
+        }
+    }
+
+    return $tableFields;
+}
+
+/**
+ *
+ * @param GD_ReportConfig $ReportConfig
+ * @param $data
+ * @return array
+ */
+function gd_report_format_data ( GD_ReportConfig $ReportConfig, $data ) {
+
+    $fields = gd_report_get_table_fields($ReportConfig);
+
+    $errors = array();
+    $formattedData = array();
+    $r = 0;
+    if ( !empty($data) ) {
+
+        $columnIds = array();
+        $columnDataTypes = array();
+        foreach ( $ReportConfig->options['column_details'] as $headerCols) {
+            $columnIds[] = $headerCols->name;
+            $columnDataTypes[$headerCols->name] = isset($headerCols->type) ? $headerCols->type->applicationType : null;
+        }
+
+        $selectedColumnConfigs = array();
+
+        foreach ( $columnIds as $key => $columnId ) {
+            $column = $ReportConfig->getColumn($columnId);
+            if ( isset($column) ) {
+                $selectedColumnConfigs[$column->name] = array();
+                $selectedColumnConfigs[$column->name]['id'] = $key;
+                $selectedColumnConfigs[$column->name]['displayName'] = $column->publicName;
+                $selectedColumnConfigs[$column->name]['columnId'] = $column->name;
+                $selectedColumnConfigs[$column->name]['formatter'] = array();
+                $selectedColumnConfigs[$column->name]['formatter']['format'] = isset($column->type) ? $column->type->applicationType : null;
+                $selectedColumnConfigs[$column->name]['formatter']['scale'] = isset($column->type) ? $column->type->scale : null;
+                $selectedColumnConfigs[$column->name]['columnType'] = isset($column->type) ? $column->type->applicationType : null;
+                $selectedColumnConfigs[$column->name]['datasetConfig'] = FALSE;
+            }
+        }
+
+        foreach ($ReportConfig->options['column_configs'] as $config) {
+            if (in_array($config['columnId'], $columnIds)) {
+                $selectedColumnConfigs[$config['columnId']] = $config;
+            }
+        }
+
+        foreach ( $data as $record ) {
+            $recordAttributes = array();
+            $formatted_columns = array();
+
+            foreach ( $fields as $f ) {
+
+                //  If a field is not present in the record, skip it
+                if (!array_key_exists($f['name'], $record)) {
+                    $record[$f['name']] = null;
+                }
+
+                $columnKey = $f['name'];
+                $columnValue = $record[$f['name']];
+
+                // apply month and quarter date formatting
+                $dateFormatter = array();
+                if (!empty($columnDataTypes[$columnKey])) {
+                    if ( $columnDataTypes[$columnKey] == DateDimensionMonthDataTypeHandler::DATA_TYPE ) {
+                        $dateFormatter['format'] = 'month';
+                        $formatted_columns[$columnKey] = gd_report_data_formatter($columnValue, $dateFormatter);
+                    } else if ( $columnDataTypes[$columnKey] == DateDimensionQuarterDataTypeHandler::DATA_TYPE ) {
+                        $dateFormatter['format'] = 'quarter';
+                        $formatted_columns[$columnKey] = gd_report_data_formatter($columnValue, $dateFormatter);
+                    }
+                }
+
+                // Traffic Light
+                if ( !empty($ReportConfig->traffic) && $ReportConfig->options["config"]['chartType'] !== 'dynamic_text') {
+                    foreach ( $ReportConfig->traffic as $traffic ) {
+                        if ( $columnKey == $traffic->trafficColumnId ) {
+                            $trafficColor = gd_report_data_get_traffic_light_color($columnDataTypes[$columnKey], $record[$traffic->trafficColumnId], $traffic);
+                            if ( isset($traffic->displayTrafficLightRowColor) ) {
+                                $recordAttributes['class'] = gd_report_data_get_traffic_light_class($trafficColor);
+                            }
+
+                            if ( isset($traffic->displayTrafficLightImage) && $traffic->displayTrafficLightImage === true) {
+                                $record['gd_report_adv_table_traffic_light'] = gd_report_data_get_traffic_light_image($trafficColor);
+
+                                if ( $traffic->trafficLightImagePosition == 'replace' ) {
+                                    $formatted_columns[$traffic->trafficColumnId] = gd_report_data_get_traffic_light_image($trafficColor);
+                                }
+                            }
+                        }
+                    }
+                    reset($ReportConfig->traffic);
+                }
+            }
+
+            // apply any report config formatting
+            foreach ( $selectedColumnConfigs as $config ) {
+                if ( !empty($config['columnId']) && !isset($formatted_columns[$config['columnId']]) && isset($record[$config['columnId']]) ) {
+                    $formatted_columns[$config['columnId']] = gd_report_data_formatter($record[$config['columnId']], $config['formatter']);
+                }
+            }
+
+            // if has a drilldown link
+            foreach ($ReportConfig->getDrilldowns() as $d) {
+                if (array_key_exists($d->column, $record)) {
+                    $params = array();
+
+                    // incorporate url filters
+                    if ( !empty($ReportConfig->url_params) ) {
+                        $params = $ReportConfig->url_params;
+                    }
+
+                    foreach ( $d->filters as $f ) {
+                        $column = $ReportConfig->getColumnByFilterName($f);
+                        if ( $column ) {
+                            if ( isset($record[$column->name]) ) {
+                                $params[$ReportConfig->dashboard][$f] = $record[$column->name];
+                                $column_type = $column->type->applicationType;
+
+                                if ( $column_type == DateDimensionQuarterDataTypeHandler::DATA_TYPE || $column_type == DateDimensionMonthDataTypeHandler::DATA_TYPE || $column_type == DateDataTypeHandler::DATA_TYPE || $column_type == DateTimeDataTypeHandler::DATA_TYPE ) {
+                                    $params[$ReportConfig->dashboard][$f] = date('m/d/Y',strtotime($record[$column->name]));
+                                } else {
+                                    $params[$ReportConfig->dashboard][$f] = $record[$column->name];
+                                }
+                            }
+                        }
+                    }
+
+                    $query = '';
+                    foreach ( $params as $dashboard_id => $filters ) {
+                        foreach ( $filters as $k => $v ) {
+                            if ( is_array($v) && isset($v['o']) ) {
+                                $query .= '&t['.$d->dashboard.']['.$k.'][o]='.$v['o'];
+                                if ( is_array($v['v']) ) {
+                                    foreach ( $v['v'] as $idx => $val ) {
+                                        $query .= '&t['.$d->dashboard.']['.$k.'][v]['.$idx.']='.rawurlencode($val); // already encoded
+                                    }
+                                } else {
+                                    $query .= '&t['.$d->dashboard.']['.$k.'][v]='.rawurlencode($v['v']);
+                                }
+                                $query .= '&t['.$d->dashboard.']['.$k.'][ddf]=1';
+                            }
+                            else {
+                                $query .= '&t['.$d->dashboard.']['.$k.'][o]=equal';
+                                $query .= '&t['.$d->dashboard.']['.$k.'][v][0]='.rawurlencode($v);
+                                $query .= '&t['.$d->dashboard.']['.$k.'][ddf]=1';
+                            }
+                        }
+                    }
+
+                    // use the formatted value for the link if it exists
+                    if ( isset($formatted_columns[$d->column]) ) {
+                        $linkValue = $formatted_columns[$d->column];
+                    } else {
+                        $linkValue = $record[$d->column];
+                    }
+
+                    // sanitize the origin for dashboard builder
+                    $origin = preg_replace('/\/api\/dashboard\/data.json/', 'dashboards', $ReportConfig->origin, 1);
+                    // set the dashboard id in the origin url to the drilldown dashboard id
+                    $drilldown_url = preg_replace('/\/dashboard\/(\d+)/', '/dashboard/'.$d->dashboard, $origin, 1);
+                    $bc = null;
+
+                    if (isset($_REQUEST['bc'])) {
+                        $bc = $_REQUEST['bc'] . ',' . $d->dashboard;
+                    } else {
+                        if ( $ReportConfig->dashboard !== true ) {
+                            $bc = $ReportConfig->dashboard .','. $d->dashboard;
+                        }
+                    }
+
+                    if (isset($_REQUEST['t'])) {
+                        $oldQuery = '';
+                        foreach ($_REQUEST['t'] as $dId => $filter) {
+                            $q = '&t[' . $dId . ']';
+                            foreach ($filter as $name => $values) {
+                                $q1 = $q . '[' . $name . ']';
+                                foreach ($values as $k => $v) {
+                                    if (is_array($v)) {
+                                        foreach ($v as $index => $i) {
+                                            $i = rawurlencode($i);
+                                            $oldQuery .= $q1 . '[' . $k . '][' . $index . ']=' . $i;
+                                        }
+                                    }
+                                    else{
+                                        $v = rawurlencode($v);
+                                        $oldQuery .= $q1 . '[' . $k . ']=' . $v;
+                                    }
+                                }
+                            }
+                        }
+                        $query = $oldQuery . $query;
+                    } else if (isset($_REQUEST['filter'])) {
+                        $oldQuery = '';
+                        foreach($_REQUEST['filter'] as $f) {
+                            $q = '&t[' . $f['dashboard'] . '][' . $f['name'] . ']';
+                            $oldQuery .= $q . '[o]=' . $f['operator'];
+                            foreach ($f['value'] as $k => $v) {
+                                $oldQuery .= $q . '[v][' . $k . ']=' . urlencode($v);
+                            }
+
+                            if (isset($f['ddf'])) {
+                                $oldQuery .= $q . '[ddf]=1';
+                            }
+                        }
+                        $query = $oldQuery . $query;
+                    }
+
+                    $formatted_columns[$d->column] = '<a tabindex="'.GD_REPORT_TABINDEX.'" href="' . (($drilldown_url[0] == '/' || substr($drilldown_url, 0, 4) == 'http') ? '' : '/') . $drilldown_url . '?id=' . $d->dashboard . $query . (isset($bc) ? ('&bc='. $bc) : '') . (!empty($link) ? ('&' . $link) : '') .'">' . $linkValue . '</a>';
+                }
+
+            }
+
+            // adds fields that did not get formatted
+            $formattedRecord = array();
+            foreach ( $fields as $f ) {
+                //  If a field is not present in the record, skip it
+                if (!array_key_exists($f['name'], $record)) {
+                    $record[$f['name']] = null;
+                }
+
+                if ( array_key_exists($f['name'],$formatted_columns) ) {
+                    $formattedRecord[$f['name']] = $formatted_columns[$f['name']];
+                } else {
+                    $formattedRecord[$f['name']] = $record[$f['name']];
+                }
+            }
+
+            // Add record
+            $formattedData[$r] = new stdClass();
+            $formattedData[$r]->record = $formattedRecord;
+            $formattedData[$r]->attributes = $recordAttributes;
+
+            if ( !empty($formattedData[$r]->record['errors']) ) {
+                $errors[] = $d->record['errors'];
+            }
+
+            $r++;
+        }
+
+    }
+
+    return array('fields'=>$fields,'formattedData'=>$formattedData,'errors'=>$errors);
+}
+
+function gd_report_data_get_traffic_light_image($color) {
+    if ( is_null($color) ) {
+        return '';
+    }
+    $imageUrlPrefix = GOVDASH_HOST.'/sites/all/modules/custom/webui/admin/images/traffic_light_';
+    $imageUrlSuffix = '.png';
+    return '<img src="'.$imageUrlPrefix.$color.$imageUrlSuffix.'" alt="'.gd_report_data_get_traffic_light_alttext($color).'" /> ';
+}
+
+function gd_report_data_get_traffic_light_class ( $color ) {
+    switch ( $color ) {
+        case "green":
+            return 'trafficLightGreenCell';
+            break;
+
+        case "yellow":
+            return 'trafficLightYellowCell';
+            break;
+
+        case "red":
+            return 'trafficLightRedCell';
+            break;
+    }
+    return null;
+}
+
+function gd_report_data_get_traffic_light_alttext($color) {
+    switch($color)
+    {
+        case "green":
+            return  'Healthy';
+            break;
+
+        case "yellow":
+            return 'Cautionary';
+            break;
+
+        case "red":
+            return 'Critical';
+            break;
+    }
+    return null;
+}
+
+function gd_report_data_get_traffic_light_color ( $columnDataType, $trafficValue, $visual ) {
+    $color = null;
+
+    if ( isset($visual->trafficColumnId) && !empty($visual->trafficColumnId) ) {
+        // String Column
+        if ($columnDataType == "string") {
+            if ( isset($visual->trafficGreenValue) && $visual->trafficGreenValue != null
+                && $visual->trafficGreenValue == $trafficValue
+            ) {
+                $color = 'green';
+            }
+
+            if ( isset($visual->trafficYellowValue) && $visual->trafficYellowValue != null
+                && $visual->trafficYellowValue == $trafficValue
+            ) {
+                $color = 'yellow';
+            }
+
+            if ( isset($visual->trafficRedValue) && $visual->trafficRedValue != null
+                && $visual->trafficRedValue == $trafficValue
+            ) {
+                $color = 'red';
+            }
+        }
+        // Numeric Column
+        else {
+            $value = $columnDataType == 'percent' ? (float)preg_replace('/\$|,/', '', $trafficValue) * 100 : (float)preg_replace('/\$|,/', '', $trafficValue);
+            if ( isset($visual->trafficGreenTo) && isset($visual->trafficGreenFrom)
+                && $visual->trafficGreenTo!=null && $visual->trafficGreenFrom!=null
+            ) {
+                if ( (float)$visual->trafficGreenTo >= $value && $value >= (float)$visual->trafficGreenFrom ) {
+                    $color = 'green';
+                }
+            }
+
+            if ( isset($visual->trafficYellowTo) && isset($visual->trafficYellowFrom)
+                && $visual->trafficYellowTo!=null && $visual->trafficYellowFrom!=null
+            ) {
+                if ( (float)$visual->trafficYellowTo >= $value && $value >= (float)$visual->trafficYellowFrom ) {
+                    $color = 'yellow';
+                }
+            }
+
+            if ( isset($visual->trafficRedTo) && isset($visual->trafficRedFrom)
+                && $visual->trafficRedTo!=null && $visual->trafficRedFrom!=null
+            ) {
+                if ( (float)$visual->trafficRedTo >= $value && $value >= (float)$visual->trafficRedFrom ) {
+                    $color = 'red';
+                }
+            }
+        }
+    }
+
+    return $color;
+}
+
+/**
+ * Calls the dataset data format function. Separated because reports could
+ * require additional formatting capability.
+ *
+ * @param $value
+ * @param $config
+ * @param bool $raw
+ * @return mixed
+ */
+function gd_report_data_formatter ( $value, $config, $raw = FALSE ) {
+    if ( $value === null || empty($config['format']) ) { return $value; }
+    $configInput = new stdClass();
+    $configInput->applicationType = $config['format'];
+    $configInput->scale = isset($config['scale']) ? $config['scale'] : null;
+    return gd_dataset_data_formatter($value,$configInput,$raw);
+}
+
+/**
+ * @return mixed
+ */
+function gd_report_get_filter_operators() {
+    return OperatorFactory::getInstance()->getSupportedOperators();
+}
+
+/**
+ * @param $name
+ * @param null $datasourceName
+ * @return bool
+ */
+function gd_report_name_isunique ( $name, $datasourceName = null ) {
+
+    if ( !$datasourceName ) {
+        $datasourceName = gd_datasource_get_active();
+    }
+
+    // report name unique?
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node');
+    $query->propertyCondition('status', NODE_PUBLISHED);
+    $query->propertyCondition('type', NODE_TYPE_REPORT);
+    $query->propertyCondition('title', $name, '=');
+    $query->fieldCondition('field_report_datasource', 'value', $datasourceName);
+    $query->addTag('DANGEROUS_ACCESS_CHECK_OPT_OUT');
+
+    $entities = $query->execute();
+
+    if (!empty($entities['node'])) {
+        return FALSE;
+    } else {
+        return TRUE;
+    }
+}
+
+/**
+ * @param $entities
+ * @param int $load
+ * @return array
+ */
+function gd_report_get_result_from_entities ( $entities, $load = LOAD_ENTITY ) {
+    $result = array();
+
+    if ( !empty($entities['node']) ) {
+        if ( !$load ) {
+            foreach ( $entities['node'] as $n ) {
+                $result[$n->nid] = $n->nid;
+            }
+        } else {
+            $result = node_load_multiple(array_keys($entities['node']));
+        }
+    }
+
+    return $result;
+}
+
+//  TODO Merge this into gd_report_get_table_data()
+function _gd_report_get_paging_table_data ( GD_ReportConfig $ReportConfig, $filters = array(), $orderBy = null, $offset = 0, $limit = null ) {
+
+    if ( !empty($filters) ) {
+        foreach ( $filters as $filter ) {
+            foreach ( $ReportConfig->getFilters() as $report_filter ) {
+                if ( $filter['name'] == $report_filter->name && $report_filter->exposed) {
+                    $ReportConfig->updateFilterValue($report_filter->name, $report_filter->exposed, (object) $filter);
+                }
+            }
+        }
+    }
+
+    $memoryOrder = false;
+    if ( $orderBy ) {
+        if ($ReportConfig->isLimitSet() && count($ReportConfig->sort) > 0) {
+            $memoryOrder = true;
+        } else {
+            $sort = array();
+            foreach($orderBy as $order) {
+                if ($order['order'] == 'asc') {
+                    $sort[] = $order['column'];
+                } else {
+                    $sort[] = '-'.$order['column'];
+                }
+            }
+            //  Readd hidden sorts back to the list
+            $oldSorts = $ReportConfig->getSort();
+            $columns = $ReportConfig->getColumns();
+            foreach ($oldSorts as $os) {
+                $col = $os;
+                if (substr($os, 0, 1) === '-') $col = substr($col, 1);
+                if (!in_array($col, $columns)) {
+                    $sort[] = $os;
+                }
+            }
+            $ReportConfig->setSort($sort);
+        }
+    }
+
+    if ( $offset ) {
+        $ReportConfig->setOffset($offset+$ReportConfig->getOffset());
+    }
+
+    $data = $ReportConfig->getData();
+
+    if ($memoryOrder) {
+        usort($data, function ($a, $b) use ($orderBy) {
+            return gd_report_in_memory_sort($orderBy, $a, $b);
+        });
+    }
+
+    list($fields,$formattedData,$errors) = array_values(gd_report_format_data($ReportConfig, $data));
+
+    $reportData = new stdClass();
+    $reportData->response = new stdClass();
+    $reportData->response->status = 0;
+    $reportData->response->offset = $offset;
+    $reportData->response->limit = $limit;
+    $reportData->response->rows = count($formattedData);
+    $reportData->response->totalRows = $ReportConfig->isLimitSet() ? (count($formattedData) < $ReportConfig->getLimit() ? count($formattedData) : $ReportConfig->getLimit()) : (count($formattedData) >= $limit ? ($ReportConfig->getCount()-$ReportConfig->getOffset()+$offset) : count($formattedData) + $offset);
+
+    $reportData->response->data = $formattedData;
+    $reportData->response->fields = $fields;
+
+    if ( count($ReportConfig->getColumnOrder()) > 0 ) {
+        $reportData->response->fields = gd_report_reorder_fields($fields, $ReportConfig->getColumnOrder());
+    }
+
+    return isset($_SESSION['messages']['error']) ? gd_admin_ui_service_session_error_handler() : $reportData;
+}
+
+function gd_report_in_memory_sort($orderBy, $a, $b) {
+    $sort = 0;
+    foreach ($orderBy as $o) {
+        $column = $o['column'];
+        $asc = $o['order'] == 'asc';
+        if ($asc) {
+            $sort = $a[$column] > $b[$column];
+        } else {
+            $sort = $a[$column] < $b[$column];
+        }
+
+        if ($a[$column] != $b[$column]) {
+            break;
+        }
+    }
+
+    return $sort;
+}
+
+/**
+ * @param $report
+ * @param null $reportNode
+ * @return null|StdClass
+ */
+function gd_report_create_node_from_api_object ( $report, $reportNode = null ) {
+    if ( !isset($reportNode) ) {
+        $reportNode = new StdClass();
+        $reportNode->type = NODE_TYPE_REPORT;
+        $reportNode->language = LANGUAGE_NONE;
+        node_object_prepare($reportNode);
+
+        $reportNode->field_report_uuid[$reportNode->language][0]['value'] = \GD\Utility\Uuid::generate();
+    }
+
+    if ( isset($report->title) ) {
+        $reportNode->title = $report->title;
+    }
+
+    if ( isset($report->description) ) {
+        $reportNode->field_report_desc[$reportNode->language][0]['value'] = $report->description;
+    }
+
+    if ( isset($report->datasource) ) {
+        $reportNode->field_report_datasource[$reportNode->language][0]['value'] = $report->datasource;
+    }
+
+    if ( isset($report->tags) ) {
+        $reportNode->field_report_tags[$reportNode->language] = array();
+        foreach ( $report->tags as $tid ) {
+            $reportNode->field_report_tags[$reportNode->language][] = array('tid' => $tid);
+        }
+    }
+
+    if ( !empty($report->config) ) {
+
+        $reportNode->field_report_conf[$reportNode->language][0]['value'] = json_encode($report->config);
+
+        if ( !empty($report->config['model']['datasets']) ) {
+            $metamodel = data_controller_get_metamodel();
+            $reportNode->field_report_dataset_sysnames[$reportNode->language] = array();
+            foreach ( $report->config['model']['datasets'] as $datasetName ) {
+                $dataset = $metamodel->getDataset($datasetName);
+                $reportNode->field_report_dataset_sysnames[$reportNode->language][] = array('value' => $dataset->name);
+            }
+        }
+    }
+
+    if ( !empty($report->customView) ) {
+        $reportNode->field_report_custom_view[$reportNode->language][0]['value'] = $report->customView;
+    }
+
+    return $reportNode;
+}
+
+/**
+ * @param $reportNode
+ * @param $options
+ * @return StdClass
+ */
+function gd_report_create_api_object_from_node ( $reportNode, $options ) {
+    $apiObject = new StdClass();
+
+    $apiObject->id = $reportNode->nid;
+    $apiObject->title = $reportNode->title;
+
+    $apiObject->alias = get_node_field_value($reportNode,'field_report_alias');
+    $apiObject->uuid = get_node_field_value($reportNode,'field_report_uuid');
+
+    if ( isset($reportNode->field_report_desc[$reportNode->language][0]['value']) ) {
+        $apiObject->description = $reportNode->field_report_desc[$reportNode->language][0]['value'];
+    }
+
+    if (!empty($reportNode->field_report_datasource)){
+        $apiObject->datasource = $reportNode->field_report_datasource[$reportNode->language][0]['value'];
+        gd_datasource_set_active($apiObject->datasource);
+    }
+
+    $config = null;
+    if ( isset($reportNode->field_report_conf[$reportNode->language][0]['value']) ) {
+        $config = json_decode($reportNode->field_report_conf[$reportNode->language][0]['value']);
+    }
+
+    // do we need to include it in results
+    if ( in_array('config', $options['fields']) ) {
+        $apiObject->config = $config;
+    }
+
+    // dates
+    $apiObject->created = date(GD_DATETIME_FORMAT_API, $reportNode->created);
+
+    $changed = get_node_field_int_value($reportNode, 'field_report_changed');
+    if (isset($changed)) {
+        $apiObject->changed = date(GD_DATETIME_FORMAT_API, $changed);
+    }
+    else {
+        $apiObject->changed = $apiObject->created;
+    }
+
+    // author info
+    if ( isset($reportNode->uid) ) {
+        $account = user_load($reportNode->uid);
+
+        $apiObject->author = new stdClass();
+        if ( $account ) {
+            $apiObject->author->uid = $account->uid;
+            $apiObject->author->name = $account->name;
+            $apiObject->author->email = $account->mail;
+            $apiObject->author->info = $account->fullname . ' (' . $account->mail . ')';
+        }
+    }
+
+    if (in_array('tags', $options['fields'])) {
+        $apiObject->tags = array();
+        if (!empty($reportNode->field_report_tags)) {
+            foreach($reportNode->field_report_tags[$reportNode->language] as $tag) {
+                $apiObject->tags[] = $tag['tid'];
+            }
+        }
+    }
+
+    // find all datasets
+    if ( in_array('dataset', $options['fields']) && $config !== null ) {
+        $metamodel = data_controller_get_metamodel();
+        foreach ( $config->model->datasets as $datasetName ) {
+            $dataset = $metamodel->findDataset($datasetName);
+            if ( !$dataset ) {
+                $apiObject->datasets[] = array('name' => $datasetName, 'publicName' => $datasetName);
+            } else {
+                $apiObject->datasets[] = array('name' => $dataset->name, 'publicName' => $dataset->publicName);
+            }
+        }
+    }
+
+    if ( in_array('dashboard', $options['fields']) ) {
+        $apiObject->dashboards = array();
+        $dashboardNodes = gd_report_get_dashboards($reportNode->nid);
+        foreach ( $dashboardNodes as $d ) {
+            $item = new stdClass();
+            $item->id = $d->nid;
+            $item->name = $d->title;
+            $apiObject->dashboards[] = $item;
+        }
+    }
+
+    if ( in_array('filters', $options['fields']) ) {
+        $ReportConfig = GD_ReportConfigFactory::getInstance()->getConfig($reportNode);
+        $filters = array();
+        foreach ( $ReportConfig->getFilters() as $key => $filter ) {
+            $column = $ReportConfig->getColumnByFilterName($filter->name);
+            $filters[$key] = (array) $filter;
+            if (isset($column)) {
+                $filters[$key]['column'] = $column;
+                if (isset($column->type)) {
+                    $filters[$key]['type'] = $column->type->applicationType;
+                }
+            }
+        }
+        $apiObject->filters = $filters;
+    }
+
+    // TODO we are using this in dashboards section, need to remove this constraint
+    if ( in_array('metadata', $options['fields']) ) {
+        $copy = array_slice($config->model->datasets,0,1);
+        $apiObject->metadata = gd_data_controller_ui_metadata_get_dataset_ui_metadata($copy[0],array_slice($config->model->datasets,1));
+    }
+
+    if ( in_array('customview', $options['fields']) ) {
+        if ( !empty($reportNode->field_report_custom_view[$reportNode->language] ) ) {
+            $apiObject->customView = $reportNode->field_report_custom_view[$reportNode->language][0]['value'];
+        }
+    }
+
+    return $apiObject;
+}
+
+/**
+ * @param $name
+ * @return null
+ */
+function gd_report_get_setting ( $name ) {
+    $settings = gd_report_get_settings();
+    if ( isset($settings[$name]) ) {
+        return $settings[$name];
+    }
+    LogHelper::log_debug('missing report setting: '.$name);
+    return NULL;
+}
+
+/**
+ * @return array
+ */
+function gd_report_get_settings () {
+    return variable_get('gd_report_config',array());
+}
+
+/**
+ * @param $type
+ * @return string
+ */
+function gd_report_get_export_file_extension ( $type ) {
+    if ( $type == 'excel' ) {
+        return 'xls';
+    }
+    return $type;
+}
+
+/**
+ * @param $ext
+ * @return string
+ */
+function gd_report_get_export_type_by_extension ( $ext ) {
+    if ( $ext == 'xls' ) {
+        return 'excel';
+    }
+    return $ext;
+}
+
+function gd_report_lookup_column(GD_ReportConfig $config, $column, $query = '*', $offset = 0, $limit = NULL, array $options = NULL) {
+    $parameters = isset($options) && !empty($options['parameters']) ? $options['parameters'] : NULL;
+    if (isset($query)) {
+        if (!empty($parameters[$column])) {
+            if (!is_array($parameters[$column])) {
+                $parameters[$column] = array(
+                    $parameters[$column]
+                );
+            }
+
+            $parameters[$column][] = OperatorFactory::getInstance()->initiateHandler(WildcardOperatorHandler::OPERATOR__NAME, $query);
+        } else {
+            $parameters[$column] = OperatorFactory::getInstance()->initiateHandler(WildcardOperatorHandler::OPERATOR__NAME, $query);
+        }
+    }
+    $lookupData = gd_data_controller_query_data_by_ui_metadata($config->datasets[0], $column, $parameters, $column, $offset, $limit, $config->getQueryFormulas(), new SingleColumnResultFormatter($column));
+    return array('count' => 0, 'data' => $lookupData);
+}
+
+/**
+ * Implements hook_gd_health_medic_symptoms().
+ *
+ * @return array
+ */
+function gd_report_gd_health_medic_symptoms() {
+    $items = array();
+
+    $items[] = array(
+        'className' => '\GD\Health\Medic\Symptom\Report\ColumnNameLevelSymptom'
+    );
+
+    $items[] = array(
+        'className' => '\GD\Health\Medic\Symptom\Report\MissingColumnNameSymptom'
+    );
+
+    $items[] = array(
+        'className' => '\GD\Health\Medic\Symptom\Report\MissingDatasourceSymptom'
+    );
+
+    $items[] = array(
+        'className' => '\GD\Health\Medic\Symptom\Report\MissingDatasetSymptom'
+    );
+
+    $items[] = array(
+        'className' => '\GD\Health\Medic\Symptom\Report\InvalidHiddenFilterSymptom'
+    );
+
+    return $items;
+}
+
+/**
+ * Implements hook_gd_health_medic_treatments().
+ *
+ * @return array
+ */
+function gd_report_gd_health_medic_treatments() {
+    $items = array();
+
+    $items['ReportConfigRemoveColumnLevel'] = array(
+        'className' => '\GD\Health\Medic\Treatment\Report\RemoveColumnLevelTreatment',
+        'weight' => 100
+    );
+
+    $items['ReportConfigRemoveColumnConfig'] = array(
+        'className' => '\GD\Health\Medic\Treatment\Report\RemoveColumnConfigTreatment',
+        'weight' => 100
+    );
+
+    $items['ReportDelete'] = array(
+        'className' => '\GD\Health\Medic\Treatment\Report\DeleteReportTreatment',
+        'weight' => 100
+    );
+
+    $items['ReportRepairDataset'] = array(
+        'className' => '\GD\Health\Medic\Treatment\Report\RepairDatasetConfigTreatment',
+        'weight' => 100
+    );
+
+    $items['ReportConfigRemoveFilter'] = array(
+        'className' => '\GD\Health\Medic\Treatment\Report\RemoveFilterTreatment',
+        'weight' => 100
+    );
+
+
+    return $items;
+}

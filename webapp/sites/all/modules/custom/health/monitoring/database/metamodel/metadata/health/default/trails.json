@@ -1,0 +1,208 @@
+{
+    "datasets": {
+        "default:default:users": {
+            "datasourceName": "default:default",
+            "publicName": "Users",
+            "source": "users",
+            "columns": [
+                {
+                    "name": "uid",
+                    "type": {
+                        "applicationType": "integer"},
+                    "visible": false,
+                    "key": true},
+                {
+                    "name": "name",
+                    "publicName": "Name",
+                    "type": {
+                        "applicationType": "string"}},
+                {
+                    "name": "mail",
+                    "publicName": "Email Address",
+                    "type": {
+                        "applicationType": "string"}}
+            ],
+            "access": "private",
+            "complete": true},
+
+        "default:default:nodes": {
+            "datasourceName": "default:default",
+            "publicName": "Nodes",
+            "source": "node",
+            "columns": [
+                {
+                    "name": "nid",
+                    "type": {
+                        "applicationType": "integer"},
+                    "key": true},
+                {
+                    "name": "title",
+                    "publicName": "Name",
+                    "type": {
+                        "applicationType": "string"}},
+                {
+                    "name": "type",
+                    "publicName": "Type",
+                    "type": {
+                        "applicationType": "string"}},
+                {
+                    "name": "status",
+                    "publicName": "Active",
+                    "type": {
+                        "applicationType": "integer"}}
+            ],
+            "access": "private",
+            "complete": true},
+
+        "hm_event_types": {
+            "publicName": "Event Types",
+            "source": "hm_event_types",
+            "columns": [
+                {
+                    "name": "event_type_id",
+                    "publicName": "Event Type Identifier",
+                    "type": {
+                        "applicationType": "integer"},
+                    "key": true},
+                {
+                    "name": "name",
+                    "publicName": "Name",
+                    "type": {
+                        "applicationType": "string"}},
+                {
+                    "name": "status",
+                    "publicName": "Active",
+                    "type": {
+                        "applicationType": "integer"}}
+            ],
+            "access": "protected",
+            "complete": true},
+
+        "hm_trails": {
+            "publicName": "Event Trails",
+            "source": "hm_trails",
+            "columns": [
+                {
+                    "name": "trail_id",
+                    "publicName": "Event Trail Identifier",
+                    "type": {
+                        "applicationType": "integer"},
+                    "visible": false,
+                    "key": true},
+                {
+                    "name": "request_id",
+                    "publicName": "Request Identifier",
+                    "type": {
+                        "applicationType": "integer"}},
+                {
+                    "name": "user_ref",
+                    "publicName": "User Reference",
+                    "type": {
+                        "applicationType": "integer"}},
+                {
+                    "name": "workspace",
+                    "publicName": "Workspace",
+                    "type": {
+                        "applicationType": "string"}},
+                {
+                    "name": "event_type_id",
+                    "publicName": "Event Type Identifier",
+                    "type": {
+                        "applicationType": "integer"}},
+                {
+                    "name": "event_ref",
+                    "publicName": "Event Owner Reference",
+                    "type": {
+                        "applicationType": "integer"}},
+                {
+                    "name": "entry_datetime",
+                    "publicName": "Occurrence Date & Time",
+                    "type": {
+                        "applicationType": "datetime"}},
+                {
+                    "name": "duration",
+                    "publicName": "Duration",
+                    "type": {
+                        "applicationType": "number"}}
+            ],
+            "access": "protected",
+            "complete": true}
+    },
+
+    "cubes" : {
+        "hm_trails" : {
+            "factsDatasetName": "hm_trails",
+            "dimensions": [
+                {
+                    "name": "request_id"},
+                {
+                    "name": "user_ref",
+                    "publicName": "User",
+                    "datasetName": "default:default:users"},
+                {
+                    "name": "workspace"},
+                {
+                    "name": "event_type_id",
+                    "publicName": "Event Type",
+                    "datasetName": "hm_event_types"},
+                {
+                    "name": "event_ref",
+                    "publicName": "Event Owner",
+                    "datasetName": "default:default:nodes"},
+                {
+                    "name": "entry_datetime"},
+                {
+                    "name": "duration"}
+            ],
+            "measures": {
+                "record_count": {
+                    "publicName": "Record Count",
+                    "function": "COUNT(*)",
+                    "type": {
+                        "applicationType": "integer"}},
+                "duration__avg": {
+                    "publicName": "AVG",
+                    "function": "AVG($COLUMN{duration})",
+                    "type": {
+                        "applicationType": "number"}},
+                "duration__min": {
+                    "publicName": "MIN",
+                    "function": "MIN($COLUMN{duration})",
+                    "type": {
+                        "applicationType": "number"}},
+                "duration__max": {
+                    "publicName": "MAX",
+                    "function": "MAX($COLUMN{duration})",
+                    "type": {
+                        "applicationType": "number"}},
+                "duration__sum": {
+                    "publicName": "SUM",
+                    "function": "SUM($COLUMN{duration})",
+                    "type": {
+                        "applicationType": "number"}},
+                "entry_datetime__min": {
+                    "publicName": "MIN",
+                    "function": "MIN($COLUMN{entry_datetime})",
+                    "type": {
+                        "applicationType": "datetime"}},
+                "entry_datetime__max": {
+                    "publicName": "MAX",
+                    "function": "MAX($COLUMN{entry_datetime})",
+                    "type": {
+                        "applicationType": "datetime"}},
+                "entry_datetime__range": {
+                    "publicName": "Range (MAX - MIN)",
+                    "function": "TIMEDIFF(MAX($COLUMN{entry_datetime}), MIN($COLUMN{entry_datetime}))",
+                    "type": {
+                        "applicationType": "string"}}
+            },
+            "complete": true
+        }
+    },
+
+    "references": {
+        "default:default:users": [{"datasetName": "default:default:users"}, {"datasetName": "hm_trails", "columnNames": ["user_ref"]}],
+        "default:default:nodes": [{"datasetName": "default:default:nodes"}, {"datasetName": "hm_trails", "columnNames": ["event_ref"]}],
+        "hm_event_types": [{"datasetName": "hm_event_types"}, {"datasetName": "hm_trails", "columnNames": ["event_type_id"]}]
+    }
+}

@@ -1,0 +1,333 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+require_once 'gd.libraries.php';
+require_once 'gd.admin.php';
+
+/**
+ * Implementation of hook_init
+ */
+function gd_init () {
+
+    $version = trim(file_get_contents(DRUPAL_ROOT.'/VERSION'));
+    define('GOVDASH_VERSION',$version);
+
+    if ( PHP_SAPI !== 'cli' ) {
+        $serverName = (empty($_SERVER['SERVER_NAME'])||$_SERVER['SERVER_NAME']=='_') ? $_SERVER['SERVER_ADDR'] : $_SERVER['SERVER_NAME'];
+
+        if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) {
+            $uri = 'https://'.$serverName;
+        } else if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https'){
+            $uri = 'https://'.$serverName;
+        } else {
+            $uri = 'http://'.$serverName;
+        }
+
+        if ( !in_array($_SERVER['SERVER_PORT'],array(80,443)) ) {
+            define('GOVDASH_HOST',$uri.':'.$_SERVER['SERVER_PORT']);
+        } else {
+            define('GOVDASH_HOST',$uri);
+        }
+
+        $context = array(
+            '#type' => 'html_tag',
+            '#tag' => 'meta',
+            '#attributes' => array(
+                'name' => 'Application-Name',
+                'content' => 'GovDashboard '.GOVDASH_VERSION.' (http://www.govdashboard.com)'
+            )
+        );
+        drupal_add_html_head($context,'gd_version');
+        drupal_add_http_header('X-Application','GovDashboard '.GOVDASH_VERSION);
+    } else {
+        if ( function_exists('drush_main') ) {
+            $uri = drush_get_option('uri');
+            if ( !$uri ) {
+                //drush_log('URI is required for GovDash to function optimally.','warning');
+            }
+            define('GOVDASH_HOST',$uri);
+        } else {
+            // TODO will need to find out how we invoke cron
+            // this would be for cron running via command line, not through wget, etc.
+            //is_numeric($_SERVER['argc']) && $_SERVER['argc'] > 0
+        }
+    }
+}
+
+/**
+ * Implements hook_xautoload()
+ *
+ * @param \Drupal\xautoload\Adapter\LocalDirectoryAdapter $adapter
+ */
+function gd_xautoload($adapter) {
+    $adapter->add('GD','lib');
+}
+
+/**
+ * Implementation of hook_menu
+ *
+ * @return array
+ */
+function gd_menu () {
+
+    $items = array();
+
+    $items['admin/config/govdashboard'] = array(
+        'title' => 'GovDashboard',
+        'description' => 'Configuration settings for GovDashboard.',
+        'position' => 'left',
+        'weight' => -50,
+        'page callback' => 'system_admin_menu_block_page',
+        'access arguments' => array('access administration pages'),
+        'file' => 'system.admin.inc',
+        'file path' => drupal_get_path('module', 'system')
+    );
+
+    $items['admin/config/govdashboard/performance'] = array(
+        'title' => 'Performance Settings',
+        'description' =>  'Performance settings for GovDashboard.',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('gd_performance_admin_settings'),
+        'file' => 'gd.admin.php',
+        'access arguments' => array('administer site configuration'),
+    );
+
+    $items['accessibility/players'] = array(
+        'page callback' => 'gd_accessibility_players',
+        'access callback' => true,
+        'type' => MENU_CALLBACK,
+        'file' => 'gd.pages.php'
+    );
+
+    $items['accessibility/info'] = array(
+        'page callback' => 'gd_accessibility_info',
+        'access callback' => true,
+        'type' => MENU_CALLBACK,
+        'file' => 'gd.pages.php'
+    );
+
+    $items['gd/js/lib'] = array(
+        'page callback' => 'gd_get_js_library',
+        'access callback' => true,
+        'type' => MENU_CALLBACK,
+        'file' => 'gd.js.php'
+    );
+
+    // External lib callbacks
+    $items['gd/ext'] = array(
+        'page callback' => 'gd_ext',
+        'access callback' => 'gd_ext_access_bypass',
+        'type' => MENU_CALLBACK,
+        'file' => 'gd.ext.php'
+    );
+
+    $items['gd/ext/js'] = array(
+        'page callback' => 'gd_js_ext',
+        'access callback' => true,
+        'type' => MENU_CALLBACK,
+        'file' => 'gd.ext.php'
+    );
+
+    $items['gd/ext/css'] = array(
+        'page callback' => 'gd_css_ext',
+        'access callback' => true,
+        'type' => MENU_CALLBACK,
+        'file' => 'gd.ext.php'
+    );
+
+    $items['gd/ext/dashboard/%gd_dashboard'] = array(
+        'page callback' => 'gd_dashboard_ext',
+        'page arguments' => array(3),
+        'access callback' => 'gd_ext_access_bypass',
+        'access arguments' => array(3),
+        'type' => MENU_CALLBACK
+    );
+
+    $items['gd/ext/dashboard/%gd_dashboard/filter/data'] = array(
+        'page callback' => 'gd_dashboard_get_filter_data',
+        'page arguments' => array(3),
+        'access callback' => 'gd_ext_access_auth',
+        'access arguments' => array(3),
+        'type' => MENU_CALLBACK
+    );
+
+    $items['gd/ext/dashboard/%gd_dashboard/data'] = array(
+        'page callback' => 'gd_dashboard_ext_get_paging_data',
+        'page arguments' => array(3),
+        'access callback' => 'gd_ext_access_auth',
+        'access arguments' => array(3),
+        'type' => MENU_CALLBACK
+    );
+
+    $items['gd/ext/dashboard/%gd_dashboard/report/%'] = array(
+        'page callback' => 'gd_dashboard_report_view',
+        'page arguments' => array(3, 5),
+        'access callback' => 'gd_ext_access_bypass',
+        'access arguments' => array(3),
+        'type' => MENU_CALLBACK
+    );
+
+    return $items;
+}
+
+/**
+ * Implements hook_library()
+ * @return mixed
+ */
+function gd_library() {
+    return array_merge(gd_get_libs(), gd_get_contrib_libs());
+}
+
+/**
+ * @param $dashboard
+ * @return bool
+ */
+function gd_ext_access_auth( $dashboard ) {
+    global $user;
+
+    if ( gd_account_user_is_admin() ) {
+        return true;
+    } else if ( $user->uid ) {
+
+        // is public
+        if ( !empty($dashboard->field_dashboard_public) && $dashboard->field_dashboard_public[$dashboard->language][0]['value'] == 1 ) {
+            return true;
+        }
+
+        // check if user is datasource admin of dashboard
+        if ( gd_account_user_is_datasource_admin($user,$dashboard->field_dashboard_datasource[$dashboard->language][0]['value']) ) {
+            return true;
+        }
+
+        // check if user has view privileges for dashboard
+        return gd_account_user_is_dashboard_viewer($user,$dashboard->nid);
+
+    } else {
+        // anonymous access
+        if ( !empty($dashboard->field_dashboard_public) && $dashboard->field_dashboard_public[$dashboard->language][0]['value'] == 1 ) {
+            return true;
+        } else {
+            return gd_ext_access();
+        }
+    }
+}
+
+function gd_ext_access_bypass ( $dashboard = null ) {
+    return true;
+}
+
+/**
+ * @param null $dashboard
+ * @return bool
+ */
+function gd_ext_access ( $dashboard = null ) {
+    if ( function_exists('gd_auth_authenticate') ) {
+        return gd_auth_authenticate();
+    } else {
+        return user_is_logged_in();
+    }
+}
+
+function gd_preprocess_user_profile() {
+    drupal_add_library('gd', 'bootstrap');
+}
+
+/**
+ * @param $page
+ */
+function gd_page_build ( &$page ) {
+    $page['content']['skip-link'] = array(
+        '#markup' => '
+        <script type="text/javascript">
+        jQuery("#skip-link a").attr("tabindex", 1);
+        jQuery("#skip-link a").click(function() { jQuery("#content").focus(); });
+        </script>'
+    );
+}
+
+/**
+ * Implements hook_field_formatter_info().
+ */
+function gd_field_formatter_info () {
+    return array(
+        'gd_json' => array(
+            'label' => t('JSON Code, formatted'),
+            'field types' => array('text_long'),
+            'settings' => array()
+        ),
+    );
+}
+
+/**
+ * Implements hook_field_formatter_view().
+ */
+function gd_field_formatter_view ( $entity_type, $entity, $field, $instance, $langcode, $items, $display ) {
+    $element = array(); // Initialize the var
+
+    foreach ( $items as $delta => $item ) {
+        $code = $item['value']; // Getting the actual value
+    }
+
+    if ( isset($code) ) {
+        if ( function_exists('kpr') ) {
+            $element[0]['#markup'] = kpr(json_decode($code), true);
+        } else {
+            $element[0]['#markup'] = '<pre>'.print_r(json_decode($code), true).'</pre>';
+        }
+    }
+
+    return $element;
+}
+
+function gd_get_session_messages() {
+
+    $messages = drupal_get_messages();
+
+    if (!empty($messages['error'])) {
+        foreach ($messages['error'] as $m) {
+            LogHelper::log_error($m);
+        }
+    }
+
+    if (!empty($messages['warning'])) {
+        foreach ($messages['warning'] as $m) {
+            LogHelper::log_warn($m);
+        }
+    }
+
+    if (!empty($messages['status'])) {
+        foreach ($messages['status'] as $m) {
+            LogHelper::log_info($m);
+        }
+    }
+
+    return $messages;
+}
+
+function gd_exception_handler ( Exception $e ) {
+    return gd_error_handler($e);
+}
+
+function gd_error_handler ( $error ) {
+    $messages = gd_get_session_messages();
+    LogHelper::log_error($error);
+    return $messages;
+}

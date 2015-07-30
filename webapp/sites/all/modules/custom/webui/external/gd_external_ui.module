@@ -1,0 +1,362 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+function gd_external_ui_menu () {
+
+    $items = array();
+
+    $items['external_ui_example'] = array(
+        'title' => 'External Dashboard Embed',
+        'page callback' => 'gd_external_ui_page_example',
+        'access callback' => 'gd_external_ui_access',
+        'type' => MENU_CALLBACK
+    );
+
+    return $items;
+}
+
+function gd_external_ui_access () {
+    return true;
+}
+
+function gd_external_ui_page_example () {
+
+    list($datasources, $dashboard, $dashboards) = gd_external_ui_variables();
+    $active = NULL;
+    foreach ($datasources as $d) {
+        if ( isset($d->active) ) {
+            $active = $d;
+            break;
+        }
+    }
+
+    $output = '';
+
+    $output .= '<div id="gd-navbar" class="navbar navbar-default" role="navigation">';
+    $output .= '<div class="nav">';
+    $output .= '<div class="container">';
+
+    $output .= '<ul title="Dashboard List" id="dashboardList" class="nav navbar-nav" tabindex="5">';
+    foreach ($dashboards as $dash) {
+        $output .= '<li dash-id="' . $dash->nid . '" dash-name="' . $dash->title . '"' . ($dash->nid == $dashboard->nid ? ' class="active"' : '') . '>';
+        $output .= ' <a' . ($dash->nid != $dashboard->nid ? ' title="' . $dash->title . '" href="?id=' . $dash->nid . '"' : '') . ' tabindex="5">' . $dash->title . '</a>';
+        $output .= '</li>';
+    }
+    $output .= '</ul>';
+
+    $output .= '<ul title="Datasource List" id="datasourceList" class="nav navbar-nav navbar-right" tabindex="5">';
+    $output .= '<li class="divider-vertical"></li>';
+    $output .= '<li class="dropdown">';
+    $output .= '<a id="currentDatasource" title="'.$active->publicName.'" tabindex="5" href="#" role="button" class="dropdown-toggle" data-toggle="dropdown">';
+    $output .= '<strong>'.$active->publicName.'</strong>';
+    $output .= '<b class="caret"></b>';
+    $output .= '</a>';
+    $output .= '<ul class="dropdown-menu" role="menu" aria-labelledby="currentDatasource">';
+    foreach ($datasources as $ds) {
+        $anchor = '<a role="menuitem" title="' . $ds->publicName . '" tabindex="-1" href="#"' . (isset($ds->active) ? '' : ' ds-name="' . $ds->name . '"') . ' class="datasource-link">'
+            . (isset($ds->active) ? '<span class="icon-hidden">Current Datasource</span><span class="glyphicon glyphicon-ok"></span> ' : '') . $ds->publicName .
+            '</a>';
+        $output .= '<li role="presentation">' . $anchor . '</li>';
+    }
+    $output .= '</ul>';
+    $output .= '</li>';
+    $output .= '</ul>';
+    $output .= '</div>';
+    $output .= '</div>';
+    $output .= '</div>';
+    
+    $output .= '            
+    <script type="text/javascript">
+
+        $("*").not("li.dropdown").not("li.dropdown a").focus(function() {
+            $("li.dropdown").removeClass("open");
+        });
+
+        $("#currentDatasource").on("click",function(){
+           $(this).dropdown("toggle");
+        });
+
+        $("#gd-navbar a.datasource-link").click(function (e) {
+            e.preventDefault();
+            if ($(this).attr("ds-name")) {
+                location.href = "?ds=" + $(this).attr("ds-name");
+            }
+        });
+
+        var dsWidth = $("#datasourceList").width();
+        var dbWidth = $("#dashboardList").width();
+
+        if (dsWidth + dbWidth > 1000) {
+            var children = $("#dashboardList").children();
+            var overflow = $(\'<li class="dropdown"></li>\');
+            var active = $(\'<a id="currentDashboard" class="dropdown-toggle" role="button" data-toggle="dropdown" href="#" tabindex="5"></a>\');
+            active.append(\'<span class="glyphicon glyphicon-th-list"></span> \');
+            var strong = $("<strong></strong>");
+            strong.text("'.(isset($dashboard) ? addslashes($dashboard->title) : "").'");
+            active.append(strong);
+            overflow.append(active);
+
+            var dropdown = $(\'<ul class="dropdown-menu" role="menu" aria-labelledby="currentDashboard" style="max-height:260px;overflow-y:scroll;"></ul>\');
+            overflow.append(dropdown);
+            $.each(children, function (i, c) {
+                c = $(c);
+                var lineItem = $(\'<li role="presentation"></li>\');
+                var anchor = $(\'<a role="menuitem" tabindex="-1" tabindex="5"></a>\');
+                anchor.attr("title", c.attr("dash-name"));
+                lineItem.append(anchor);
+
+                if (c.hasClass("active")) {
+                    anchor.append(\'<span class="icon-hidden">Current Dashboard</span>\');
+                    anchor.append(\'<span class="glyphicon glyphicon-ok"></span> \');
+                    anchor.attr("href", "#");
+                } else {
+                    anchor.attr("href", "?id=" + c.attr("dash-id"));
+                }
+                anchor.append(c.attr("dash-name"));
+
+                dropdown.append(lineItem);
+            });
+
+            $("#dashboardList").empty();
+            $("#dashboardList").append(overflow);
+
+            dsWidth = $("#datasourceList").width();
+            dbWidth = $("#dashboardList").width();
+            if (dsWidth + dbWidth > 1000) {
+                $("#currentDashboard").text($("#currentDashboard").text().substr(0, 100) + "...");
+            }
+        }
+
+    </script>
+    ';
+
+
+    if ( $dashboard ) {
+        $output .= '
+        <div id="ext-ui-example-container"></div>
+        <script type="text/javascript" src="' . GOVDASH_HOST . '/gd/ext/js"></script>
+        <script type="text/javascript">
+        (function(global,$,GD) {
+
+            var options = {
+                container: "#ext-ui-example-container",
+                datasource: "' . $active->name . '",
+                dashboard: "' . $dashboard->nid . '"
+            };
+
+        var GD_Ext = new GD.Ext(options);
+        GD_Ext.run();
+
+        })(typeof window === "undefined" ? this : window, jQuery, GD);
+        </script>';
+    }
+
+    return $output;
+}
+
+/**
+ * Copied function to remove redirect.
+ * TODO: Integrate external dashboard test module with dashboard module
+ *
+ * @return array
+ * @throws Exception
+ * @throws IllegalArgumentException
+ */
+function gd_external_ui_variables () {
+    $dashboards = array();
+    $active_datasource_name = gd_datasource_find_active();
+    $current_dashboard = gd_dashboard_get_current();
+    global $user;
+
+    if ( gd_account_user_is_admin() ) {
+
+        // can see all datasources
+        $datasources = gd_datasource_get_all();
+
+        if ( $current_dashboard ) {
+            gd_datasource_set_active(get_node_field_value($current_dashboard,'field_dashboard_datasource'));
+        } else if ( !$active_datasource_name ) {
+            if (isset($_GET['ds'])) {
+                gd_datasource_set_active($_GET['ds']);
+            } else {
+                gd_datasource_set_active(key($datasources));
+            }
+        }
+
+        // don't pick up any dashboards if there are no published datamarts - causes logic bomb further down
+        if ( !empty($datasources) ) {
+            $dashboards = gd_dashboard_findall_by_datasource(LOAD_ENTITY);
+        }
+
+    } else if ( $user->uid ) {
+
+        // get view privileges for all dashboards
+        $results = gd_account_user_get_dashboards();
+
+        // pick up the datasources from the dashboards
+        $datasources = gd_account_user_get_datasources();
+        foreach ( $results as $dashboard ) {
+            if ( !isset($datasources[get_node_field_value($dashboard,'field_dashboard_datasource')]) ) {
+                $datasource = gd_datasource_get(get_node_field_value($dashboard,'field_dashboard_datasource'));
+                $datasources[$datasource->name] = $datasource;
+            }
+        }
+
+        // set current datasource
+        if ( $current_dashboard ) {
+            gd_datasource_set_active(get_node_field_value($current_dashboard,'field_dashboard_datasource'));
+        } else {
+            if ( !$active_datasource_name ) {
+                if ( isset($_GET['ds']) && isset($datasources[$_GET['ds']]) ) {
+                    gd_datasource_set_active($_GET['ds']);
+                } else {
+                    reset($results);
+                    try {
+                        if (!empty($results[key($results)])) {
+                            $active_datasource_name = get_node_field_value($results[key($results)],'field_dashboard_datasource');
+                            gd_datasource_set_active($active_datasource_name);
+                        } else {
+                            return 'You have not been granted permission to view any dashboards.';
+                        }
+                    } catch (Exception $e) {
+                        drupal_set_message('No default datasource set.', 'error');
+                        LogHelper::log_error($e->getMessage());
+                    }
+                }
+            }
+        }
+
+        // remove dashboards that do not belong to datasource of current dashboard
+        $active_datasource_name = gd_datasource_get_active();
+        $dashboards = array();
+        foreach ( $results as $key => $dashboard ) {
+            if ( $active_datasource_name === get_node_field_value($dashboard,'field_dashboard_datasource') ) {
+                $dashboards[$key] = $dashboard;
+            }
+        }
+
+        // remove dashboards that were not created by the user
+        if ( gd_datasource_is_property($active_datasource_name, 'personal') ) {
+            global $user;
+            $userCreatedDashboards = array();
+            foreach ( $dashboards as $key => $dashboard ) {
+                if ( $user->uid == $dashboard->uid ) {
+                    $userCreatedDashboards[$key] = $dashboard;
+                }
+            }
+            $dashboards = $userCreatedDashboards; // overwrite dashboard list
+        }
+
+    } else {
+
+        // get all public dashboards
+        $results = gd_dashboard_get_dashboards_public(LOAD_ENTITY);
+
+        // get datasources that belong to the dashboards
+        $datasources = array();
+        foreach ( $results as $dashboard ) {
+            $datasourceName = get_node_field_value($dashboard,'field_dashboard_datasource');
+            if ( !isset($datasources[$datasourceName]) ) {
+                $datasource = gd_datasource_get(get_node_field_value($dashboard,'field_dashboard_datasource'));
+                $datasources[$datasource->name] = $datasource;
+            }
+        }
+
+        // set current datamart
+        if ( $current_dashboard ) {
+            gd_datasource_set_active(get_node_field_value($current_dashboard,'field_dashboard_datasource'));
+        } else {
+            if ( isset($_GET['ds']) && isset($datasources[$_GET['ds']]) ) {
+                gd_datasource_set_active($_GET['ds']);
+            } else {
+                reset($results);
+                gd_datasource_set_active(get_node_field_value($results[key($results)],'field_dashboard_datasource'));
+            }
+        }
+
+        // remove dashboards that do not belong to datamart of current dashboard
+        $active_datasource_name = gd_datasource_get_active();
+        $dashboards = array();
+        foreach ( $results as $key => $dashboard ) {
+            if ( $active_datasource_name === get_node_field_value($dashboard,'field_dashboard_datasource') ) {
+                $dashboards[$key] = $dashboard;
+            }
+        }
+    }
+
+    reset($datasources);
+    reset($dashboards);
+
+    // sort the dashboard list by name
+    usort($dashboards, function($a, $b) {
+        if (strtolower($a->title) === strtolower($b->title)){
+            return strnatcmp($a->title,$b->title);
+        }
+        return strnatcasecmp($a->title,$b->title);
+    });
+
+    // which dashboard to display
+    if ( $current_dashboard ) {
+        $dashboard = $current_dashboard;
+    } else if (!empty($dashboards) ) {
+        $dashboard = $dashboards[0];
+    } else {
+        $dashboard = null;
+    }
+
+    $display_dashboards = array();
+    if ( !empty($dashboards) ) {
+        $dashboard_ids = array(); // index of any parents from $dashboards
+        $drilldown_dashboard_ids = array();
+        foreach ( $dashboards as $d ) {
+            $config = new GD_DashboardConfig($d);
+            $dashboard_ids[] = (int)$d->nid;
+            foreach( $config->drilldowns as $drilldown) {
+                if ( is_object($drilldown->dashboard) ) {
+                    $drilldown_dashboard_ids[] = (int)$drilldown->dashboard->id; // for backwards compatibility
+                } else {
+                    $drilldown_dashboard_ids[] = (int)$drilldown->dashboard;
+                }
+            }
+        }
+        $drilldown_dashboard_ids = array_unique($drilldown_dashboard_ids);
+        $display_dashboard_ids = array_diff($dashboard_ids, $drilldown_dashboard_ids);
+        $display_dashboards = array();
+        foreach ( $dashboards as $d ) {
+            if ( in_array($d->nid,$display_dashboard_ids) ) {
+                $display_dashboards[] = $d;
+            }
+        }
+        // if initial dashboard is a drilldown dashboard, load first non-drilldown dashboard instead
+        if ( in_array($dashboard->nid, $drilldown_dashboard_ids) && empty($_GET['id']) ) {
+            $dashboardKeys = array_keys($display_dashboard_ids);
+            $dashboard = $dashboards[array_shift($dashboardKeys)];
+        }
+    }
+
+    foreach ( $datasources as $k => $ds ) {
+        if ( $ds->name == gd_datasource_get_active() ) {
+            $datasources[$k]->active = true;
+        }
+    }
+
+    return array($datasources, $dashboard, $display_dashboards);
+}

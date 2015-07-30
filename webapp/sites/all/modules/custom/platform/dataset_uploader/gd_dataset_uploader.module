@@ -1,0 +1,224 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+require_once('provider/rest/gd_dataset_uploader_source_rest.php');
+require_once('provider/url/gd_dataset_uploader_source_url.php');
+
+define('FILE_ENCODING__DEFAULT', 'UTF-8');
+define('FILE_ENCODING__WINDOWS_DEFAULT', 'Windows-1252');
+
+define('DATASET_STRUCTURE_ANALYZING__SKIP_RECORD_COUNT', 0);
+define('DATASET_STRUCTURE_ANALYZING__LIMIT_RECORD_COUNT', 100);
+
+define('COLUMN_TYPE_ANALYZING__MAXIMUM_RECORD_COUNT', NULL);
+define('COLUMN_STRUCTURE_ANALYZING__MINIMUM_RECORD_COUNT', DATASET_STRUCTURE_ANALYZING__LIMIT_RECORD_COUNT);
+define('COLUMN_STRUCTURE_ANALYZING__MAXIMUM_RECORD_COUNT', NULL);
+
+define('COLUMN_VALUE__EXCEPTION_POOL_SIZE', 50);
+define('COLUMN_VALUE__MAXIMUM_LENGTH', 255);
+
+define('DATASET_PREVIEW__SKIP_RECORD_COUNT', 0); // starting from first analyzed record
+define('DATASET_PREVIEW__LIMIT_RECORD_COUNT', 5);
+
+define('DATASET_FILE_STORAGE_DESTINATION', 'private://upload');
+
+
+function gd_dataset_uploader_services_resources() {
+    module_load_include('inc', 'gd_dataset_uploader', 'provider/rest/resource/data_resource');
+
+    return gd_dataset_uploader_resource_definitions();
+}
+
+function gd_dataset_uploader_rest_server_request_parsers_alter ( &$parsers ) {
+    $parsers['text/plain'] = 'GD_ServicesParser_Text';
+}
+
+function gd_dataset_uploader_detect_encoding(AbstractDataProvider $dataProvider) {
+    $detectedEncoding = NULL;
+
+    if ($dataProvider->openResource()) {
+        try {
+            while (TRUE) {
+                $dataProvider->startReading();
+
+                $s = $dataProvider->readLine();
+                if ($s === FALSE) {
+                    break;
+                }
+                if (!mb_check_encoding($s, FILE_ENCODING__DEFAULT)) {
+                    $detectedEncoding = FILE_ENCODING__WINDOWS_DEFAULT;
+                    break;
+                }
+
+                $dataProvider->endReading();
+            }
+        }
+        catch (Exception $e) {
+            try {
+                $dataProvider->closeResource();
+            }
+            catch (Exception $ne) {
+                // we do not need to rethrow this exception. We need to preserve and rethrow original exception
+            }
+
+            throw $e;
+        }
+        $dataProvider->closeResource();
+    }
+
+    if (!isset($detectedEncoding)) {
+        $detectedEncoding = FILE_ENCODING__DEFAULT;
+    }
+
+    return $detectedEncoding;
+}
+
+function gd_dataset_uploader_get_source_metadata($file_id, $delimiter, $isHeaderPresent, $metadata) {
+    $environment_metamodel = data_controller_get_environment_metamodel();
+
+    $activeDataSource = $environment_metamodel->getDataSource(gd_datasource_get_active());
+
+    $file = file_load($file_id);
+
+    $fileFullName = drupal_realpath($file->uri);
+
+    // preparing request object to obtain file meta data
+    $metadataRequest = new DelimiterSeparatedFileUploadRequest();
+    $metadataRequest->fullFileName = $fileFullName;
+    $metadataRequest->delimiter = $delimiter;
+    $metadataRequest->isHeaderPresent = $isHeaderPresent;
+    $metadataRequest->skipRecordCount = DATASET_STRUCTURE_ANALYZING__SKIP_RECORD_COUNT;
+    $metadataRequest->limitRecordCount = DATASET_STRUCTURE_ANALYZING__LIMIT_RECORD_COUNT;
+    // adjusting the request for existing meta data
+    if (isset($metadata)) {
+        // provided meta data is not in of DatasetMetaData class. It is usually an array of properties
+        $existingMetaData = new RecordMetaData();
+        $existingMetaData->initializeFrom($metadata);
+
+        $metadataRequest->metadata = $existingMetaData;
+        // because the meta data is already present we do not need to re-process whole file again.
+        // we need to process just the minimum required to load preview data
+        $metadataRequest->limitRecordCount = DATASET_PREVIEW__LIMIT_RECORD_COUNT + DATASET_PREVIEW__SKIP_RECORD_COUNT;
+    }
+    $parser = $metadataRequest->prepareDataParser();
+    $dataProvider = $metadataRequest->prepareDataProvider();
+
+    // initializing data encoder
+    $detectedEncoding = gd_dataset_uploader_detect_encoding($dataProvider);
+    $columnCharsetEncoder = ($detectedEncoding == FILE_ENCODING__DEFAULT)
+        ? NULL
+        : new ColumnCharsetEncoder($detectedEncoding, FILE_ENCODING__DEFAULT);
+    // initializing primary key detector
+    $acceptablePrimaryKeyDataTypes = NULL;
+    if (isset(DataTypeUIMetaDataAssembler::$datatypeMappings)) {
+        foreach (DataTypeUIMetaDataAssembler::$datatypeMappings as $datatypeMapping) {
+            if ($datatypeMapping->isVisible && $datatypeMapping->isKeyCompatible) {
+                $acceptablePrimaryKeyDataTypes[] = $datatypeMapping->datatype;
+            }
+        }
+    }
+    $primaryKeyAutoDetector = isset($acceptablePrimaryKeyDataTypes)
+        ? new PrimaryKeyAutoDetector($acceptablePrimaryKeyDataTypes, COLUMN_STRUCTURE_ANALYZING__MINIMUM_RECORD_COUNT, COLUMN_STRUCTURE_ANALYZING__MAXIMUM_RECORD_COUNT)
+        : NULL;
+    // initializing data sample provider
+    $sampleDataProvider = new SampleDataPreparer(TRUE, DATASET_PREVIEW__SKIP_RECORD_COUNT, DATASET_PREVIEW__LIMIT_RECORD_COUNT);
+
+    $dataSubmitters = NULL;
+    if (isset($columnCharsetEncoder)) {
+        $dataSubmitters[] = $columnCharsetEncoder;
+    }
+    $dataSubmitters[] = new ColumnValueTrimmer(COLUMN_VALUE__MAXIMUM_LENGTH);
+    $dataSubmitters[] = new EmptyRecordSkipper();
+    $dataSubmitters[] = gd_data_controller_ddl_initialize_column_name_preparer($activeDataSource->name, GD_NamingConvention::$PREFIX_NAME__COLUMN);
+    $dataSubmitters[] = new ColumnPublicNamePreparer();
+    $dataSubmitters[] = new ColumnTypeAutoDetector(COLUMN_TYPE_ANALYZING__MAXIMUM_RECORD_COUNT);
+    if (isset($primaryKeyAutoDetector)) {
+        $dataSubmitters[] = $primaryKeyAutoDetector;
+    }
+    $dataSubmitters[] = $sampleDataProvider;
+
+    // processing the file to detect meta data
+    $recordCount = $parser->parse($dataProvider, $dataSubmitters);
+
+    return array(
+        $recordCount,                  // number of processed records
+        $parser->metadata,             // detected meta data
+        $detectedEncoding,
+        $sampleDataProvider->records); // sample data prepared by corresponding data provider
+}
+
+function gd_dataset_uploader_store_dataset_data($datafile_nid) {
+    $metamodel = data_controller_get_metamodel();
+
+    $datafileNode = node_load($datafile_nid);
+
+    // datafile-related drupal file object
+    $file = file_load(get_node_field_int_value($datafileNode, 'field_datafile_file', 0, 'fid', TRUE));
+    $fileFullName = drupal_realpath($file->uri);
+    // the file delimiter
+    $delimiter = get_node_field_value($datafileNode, 'field_datafile_delimiter', 0, 'value', TRUE);
+    // is file header present
+    $isHeaderPresent = get_node_field_boolean_value($datafileNode, 'field_datafile_hasheader', 0, 'value', TRUE);
+    // is encoding known for the file
+    $encoding = get_node_field_value($datafileNode, 'field_datafile_encoding');
+
+  	// loading meta data for the datafile's dataset
+    $datasetName = get_node_field_value($datafileNode, 'field_datafile_dataset_sysname', 0, 'value', TRUE);
+    $dataset = $metamodel->getDataset($datasetName);
+    $cube = gd_data_controller_metamodel_find_cube_by_dataset_name($dataset->name);
+
+    // preparing a request which describe the file uploading
+    $uploadRequest = new DelimiterSeparatedFileUploadRequest();
+    $uploadRequest->fullFileName = $fileFullName;
+    $uploadRequest->delimiter = $delimiter;
+    $uploadRequest->metadata = $dataset;
+    $uploadRequest->isHeaderPresent = $isHeaderPresent;
+
+    $parser = $uploadRequest->prepareDataParser();
+    $dataProvider = $uploadRequest->prepareDataProvider();
+
+    // if file encoding is not provided we need to try to detect it
+    if (!isset($encoding)) {
+        $encoding = gd_dataset_uploader_detect_encoding($dataProvider);
+
+        $datafileNode->field_datafile_encoding[$datafileNode->language][0]['value'] = $encoding;
+        node_save($datafileNode);
+    }
+
+    // initializing data submitter
+    $dataSubmitter = isset($cube) ? new StarSchemaDataSubmitter($dataset->name) : new FlatSchemaDataSubmitter($dataset->name);
+    $dataSubmitter->setVersion($datafile_nid);
+
+    $dataSubmitters = NULL;
+    if ($encoding != FILE_ENCODING__DEFAULT) {
+        $dataSubmitters[] = new ColumnCharsetEncoder($encoding, FILE_ENCODING__DEFAULT);
+    }
+    $dataSubmitters[] = new TransactionSupporter($dataset->datasourceName);
+    $dataSubmitters[] = new EmptyRecordSkipper();
+    $dataSubmitters[] = gd_data_controller_ddl_initialize_column_name_preparer($dataset->datasourceName, GD_NamingConvention::$PREFIX_NAME__COLUMN);
+    $dataSubmitters[] = new ColumnValueTypeAdjuster(COLUMN_VALUE__EXCEPTION_POOL_SIZE);
+    $dataSubmitters[] = new ColumnValueTrimmer(COLUMN_VALUE__MAXIMUM_LENGTH);
+    $dataSubmitters[] = $dataSubmitter;
+
+    $lineCount = $parser->parse($dataProvider, $dataSubmitters);
+
+    return array($lineCount, $dataSubmitter->insertedRecordCount, $dataSubmitter->updatedRecordCount, $dataSubmitter->deletedRecordCount);
+}

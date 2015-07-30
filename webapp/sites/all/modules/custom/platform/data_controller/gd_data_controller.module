@@ -1,0 +1,257 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+function gd_data_controller_services_resources() {
+    module_load_include('inc', 'gd_data_controller', 'resource/data_resource');
+
+    return gd_data_controller_resource_definitions();
+}
+
+function gd_data_controller_access_data() {
+    return TRUE;
+}
+
+function gd_data_controller_query_by_preview_metadata($datasetName, $columns = NULL, $parameters = NULL, $orderBy = NULL, $startWith = 0, $limit = NULL) {
+    /*
+        TODO eliminate this function. Use queryDataset()
+
+        queryDataset() does not work if we request a column which is a reference to another lookup.
+        The problem is with implementation of ReferenceDimensionDatasetAssembler class. See comments there
+     */
+
+    $dataQueryController = data_controller_get_instance();
+
+    $dataset = $dataQueryController->getDatasetMetaData($datasetName);
+
+    $previewResultFormatter = new GD_DatasetPreviewResultFormatter($dataset);
+
+    $datasetUIMetaData = gd_data_controller_ui_metadata_get_dataset_ui_metadata($datasetName);
+
+    // preparing list of UI columns which are supported for the dataset
+    $uiMetaDataNameMapping = NULL;
+    // adding attributes
+    if (isset($datasetUIMetaData->attributes)) {
+        foreach ($datasetUIMetaData->attributes as $attribute) {
+            if ($attribute->isSelectable) {
+                $uiMetaDataNameMapping[$attribute->name] = $previewResultFormatter->formatColumnName($attribute->name);
+            }
+            else {
+                // finding first selectable
+                $selectedElement = NULL;
+                foreach ($attribute->elements as $element) {
+                    if ($element->isSelectable) {
+                        $selectedElement = $element;
+                        break;
+                    }
+                }
+                if (isset($selectedElement)) {
+                    $uiMetaDataNameMapping[$selectedElement->name] = $previewResultFormatter->formatColumnName($selectedElement->name);
+                }
+            }
+        }
+    }
+
+    // mapping columns to retrieve data
+    $adjustedColumnNames = NULL;
+    if (isset($columns)) {
+        foreach ($columns as $columnName) {
+            $adjustedColumnName = array_search($columnName, $uiMetaDataNameMapping);
+            if ($adjustedColumnName === FALSE) {
+                throw new IllegalArgumentException(t('Unsupported column to retrieve data: %columnName', array('%columnName' => $columnName)));
+            }
+
+            $adjustedColumnNames[] = $adjustedColumnName;
+        }
+    }
+    else {
+        $adjustedColumnNames = array_keys($uiMetaDataNameMapping);
+    }
+
+    // mapping parameters
+    $adjustedParameters = NULL;
+    if (isset($parameters)) {
+        foreach ($parameters as $columnName => $columnValue) {
+            $adjustedColumnName = array_search($columnName, $uiMetaDataNameMapping);
+            if ($adjustedColumnName === FALSE) {
+                throw new IllegalArgumentException(t('Unsupported column to query data: %columnName', array('%columnName' => $columnName)));
+            }
+
+            $adjustedParameters[$adjustedColumnName] = $columnValue;
+        }
+    }
+
+    // mapping columns to sort data
+    $adjustedOrderByColumnNames = NULL;
+    if (isset($orderBy)) {
+        foreach ($orderBy as $columnName) {
+            $adjustedColumnName = array_search($columnName, $uiMetaDataNameMapping);
+            if ($adjustedColumnName === FALSE) {
+                throw new IllegalArgumentException(t('Unsupported column to sort result: %columnName', array('%columnName' => $columnName)));
+            }
+
+            $adjustedOrderByColumnNames[] = $adjustedColumnName;
+        }
+    }
+
+    return gd_data_controller_query_data_by_ui_metadata($datasetName, $adjustedColumnNames, $adjustedParameters, $adjustedOrderByColumnNames, $startWith, $limit, NULL, $previewResultFormatter);
+}
+
+function gd_data_controller_query_data_by_ui_metadata($datasetName, $columns = NULL, $parameters = NULL, $orderBy = NULL, $startWith = 0, $limit = NULL, array $options = NULL, ResultFormatter $resultFormatter = NULL) {
+    LogHelper::log_debug('Dataset: ' . $datasetName);
+    LogHelper::log_debug('Columns: ' . (is_array($columns) ? ArrayHelper::serialize($columns, ', ', TRUE, FALSE) : $columns));
+    LogHelper::log_debug('Parameters: ' . (is_array($parameters) ? ArrayHelper::serialize($parameters, ', ', TRUE, FALSE) : $parameters));
+    LogHelper::log_debug('Sorting: ' . (is_array($orderBy) ? ArrayHelper::serialize($orderBy, ', ', TRUE, FALSE) : $orderBy));
+    LogHelper::log_debug('Pagination (offset): ' . $startWith);
+    LogHelper::log_debug('Pagination (limit): ' . $limit);
+    LogHelper::log_debug('Options: ' . ArrayHelper::serialize($options, ', ', TRUE, FALSE, FALSE));
+
+    $timeStart = microtime(TRUE);
+
+    $dataQueryController = data_controller_get_instance();
+
+    list($adjustedDatasetName) = gd_data_controller_metamodel_adjust_dataset_name($datasetName);
+
+    // preparing 'list' or 'cube' request based on provided data
+    $request = DatasetUIMetaDataQueryHelper::prepareDataQueryControllerRequest($adjustedDatasetName, $columns, $parameters, $orderBy, $options);
+
+    $request->startWith = $startWith;
+    $request->limit = $limit;
+    if (isset($resultFormatter)) {
+        $request->resultFormatter->addParent($resultFormatter);
+    }
+
+    $result = $dataQueryController->query($request);
+
+    LogHelper::log_info(t(
+        'Query by UI Meta Data execution time: !executionTime',
+        array('!executionTime' => LogHelper::formatExecutionTime($timeStart))));
+
+    return $result;
+}
+
+function gd_data_controller_count_records_by_ui_metadata($datasetName, $columns = NULL, $parameters = NULL, $orderBy = NULL, array $options = NULL) {
+    $timeStart = microtime(TRUE);
+
+    $dataQueryController = data_controller_get_instance();
+
+    list($adjustedDatasetName) = gd_data_controller_metamodel_adjust_dataset_name($datasetName);
+
+    // preparing 'list' or 'cube' request based on provided data
+    $request = DatasetUIMetaDataQueryHelper::prepareDataQueryControllerRequest($adjustedDatasetName, $columns, $parameters, $orderBy, $options);
+
+    $recordCount = $dataQueryController->countRecords($request);
+
+    LogHelper::log_info(t(
+        'Record Count by UI Meta Data execution time: !executionTime',
+        array('!executionTime' => LogHelper::formatExecutionTime($timeStart))));
+
+    return $recordCount;
+}
+
+// FIXME support columns which are used in formulas
+function gd_data_controller_query_rawdata_by_ui_metadata($datasetName, $columns = NULL, $parameters = NULL, $orderBy = NULL, $startWith = 0, $limit = NULL, array $options = NULL, ResultFormatter $resultFormatter = NULL) {
+    $metamodel = data_controller_get_metamodel();
+
+    list($adjustedDatasetName) = gd_data_controller_metamodel_adjust_dataset_name($datasetName);
+
+    list($selectedColumns, $cleanedParameters, $cleanedOrderBy, $cleanedOptions) = DatasetUIMetaDataQueryHelper::cleanFunctionParameters($adjustedDatasetName, $columns, $parameters, $orderBy, $options);
+    if (isset($selectedColumns)) {
+        // parsing the columns to understand their type
+        $parsedUIMetaDataNames = NULL;
+        foreach ($selectedColumns as $uiMetaDataName) {
+            $parsedUIMetaDataNames[$uiMetaDataName] = DatasetUIMetaDataQueryHelper::parseUIMetaDataName($adjustedDatasetName, $uiMetaDataName, $cleanedOptions);
+        }
+
+        $selectedRawColumns = $selectedColumns;
+
+        // replacing measures with corresponding facts. One measure could use one or several facts
+        $cubes = NULL;
+        foreach ($selectedColumns as $key => $selectedColumn) {
+            $parsedUIMetaDataName = $parsedUIMetaDataNames[$selectedColumn];
+            if ($parsedUIMetaDataName instanceof MeasureParsedUIMetaDataName) {
+                // removing the measure from a list of selected columns (we can use the same index)
+                unset($selectedRawColumns[$key]);
+
+                $cube = isset($cubes[$parsedUIMetaDataName->datasetName]) ? $cubes[$parsedUIMetaDataName->datasetName] : NULL;
+                if (!isset($cube)) {
+                    $cube = $metamodel->getCubeByDatasetName($parsedUIMetaDataName->datasetName);
+                    $cubes[$parsedUIMetaDataName->datasetName] = $cube;
+                }
+
+                $measure = $cube->getMeasure($parsedUIMetaDataName->name);
+
+                // parsing the measure function to prepare list of columns
+                $columnSection = new CompositeColumnSection($measure->getFunction(), $parsedUIMetaDataName->name);
+                $measureColumnNames = $columnSection->parseColumns();
+                if (isset($measureColumnNames)) {
+                    foreach ($measureColumnNames as $columnName) {
+                        $columnUIMetaDataName = AbstractDatasetUIMetaDataGenerator::prepareColumnUIMetaDataName(
+                            NULL, $parsedUIMetaDataName->datasetName, $columnName);
+                        $selectedRawColumns[] = $columnUIMetaDataName;
+                    }
+                }
+            }
+        }
+
+        $selectedColumns = $selectedRawColumns;
+    }
+
+    return gd_data_controller_query_data_by_ui_metadata($datasetName, $selectedColumns, $parameters, $orderBy, $startWith, $limit, $options, $resultFormatter);
+}
+
+function gd_data_controller_query_lookup_by_ui_metadata($lookupDatasetName, $columnName, $wildcardSearch, $startWith = 0, $limit = NULL, array $options = NULL) {
+    $parameters = NULL;
+    if (isset($wildcardSearch)) {
+        $parameters[$columnName] = OperatorFactory::getInstance()->initiateHandler(WildcardOperatorHandler::OPERATOR__NAME, $wildcardSearch);
+    }
+
+    $lookupData = gd_data_controller_query_data_by_ui_metadata(
+        $lookupDatasetName, $columnName, $parameters, $columnName, $startWith, $limit, $options, new SingleColumnResultFormatter($columnName));
+
+    $count = count($lookupData);
+    if (isset($limit)) {
+        if ($count < $limit) {
+            // we loaded all records which we could. There is nothing left. Adding number of records which we skipped
+            $count += $startWith;
+        }
+        else {
+            $count = gd_data_controller_count_records_by_ui_metadata($lookupDatasetName, $columnName, $parameters, NULL, $options);
+        }
+    }
+    else {
+        // we loaded all records starting from Ns. We need to add number of records which we skipped
+        $count += $startWith;
+    }
+
+    return array('count' => $count, 'data' => $lookupData);
+}
+
+function gd_data_controller_adjust_formula_metadata($datasetName, array $formulas = NULL) {
+    if (!isset($formulas)) {
+        return NULL;
+    }
+
+    list($adjustedDatasetName) = gd_data_controller_metamodel_adjust_dataset_name($datasetName);
+
+    list(, , , $cleanedOptions) = DatasetUIMetaDataQueryHelper::cleanFunctionParameters($adjustedDatasetName, NULL, NULL, NULL, array(AbstractQueryRequest::OPTION__FORMULA_DEF => $formulas));
+
+    return isset($cleanedOptions[AbstractQueryRequest::OPTION__FORMULA_DEF]) ? $cleanedOptions[AbstractQueryRequest::OPTION__FORMULA_DEF] : NULL;
+}

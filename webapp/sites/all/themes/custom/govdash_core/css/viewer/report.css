@@ -1,0 +1,37 @@
+.gd_report_title {
+    height: 22px;
+    line-height: 22px;
+    background: transparent;
+    font-family: "Lucida Grande", "Lucida Sans Unicode", Segoe UI, Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    color: #3E576F;
+    overflow: hidden;
+}
+
+.gd_report_sub_title {
+    float: right;
+    background: transparent;
+    font-family: "Lucida Grande", "Lucida Sans Unicode", Segoe UI, Helvetica, Arial, sans-serif;
+    font-size: 12px;
+    color: #3E576F;
+}
+
+h3.gd_report_title,
+h2.gd_report_title {
+    margin: 0 0 0 0;
+    padding-bottom: 0;
+    font-weight: normal;
+}
+
+h5.gd_report_sub_title {
+    margin: 0 0 0 0;
+    padding-bottom: 0;
+    font-weight: normal;
+}
+
+/* Report Footer */
+.gd-report-footer {
+    font-family: 'Lucida Grande', 'Lucida Sans Unicode', Verdana, Arial, Helvetica, sans-serif;
+    clear: both;
+    background-color: transparent;
+}

@@ -1,0 +1,30 @@
+td.pvtRows div.row-paging {
+    position: absolute;
+    bottom: 7px;
+    left: 5px;
+}
+
+td.pvtCols div.col-paging {
+    position: absolute;
+    right: 10px;
+    top:7px;
+}
+
+td.pvtCols,
+td.pvtRows {
+    position: relative;
+}
+
+td.pvtRendererArea {
+    display: block;
+    overflow: hidden;
+    position: relative;
+}
+
+div.gd-report-pivot-table {
+    font-size: 14px;
+}
+
+td.pvtRendererArea div {
+    overflow: auto;
+}

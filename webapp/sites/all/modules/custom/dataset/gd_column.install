@@ -1,0 +1,79 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+/**
+ * Renaming 'Column Source Name' to 'Column Source' and calculating value for 'Column Persistence' field
+ */
+function gd_column_update_7102(&$sandbox) {
+    // checking that new fields exist
+    if (field_info_field('field_column_persistence') == NULL) {
+        throw new DrupalUpdateException(t(" Definition for 'Column Persistence' field of 'Column' content type could not be found"));
+    }
+    if (field_info_field('field_column_source') == NULL) {
+        throw new DrupalUpdateException(t(" Definition for 'Column Source' field of 'Column' content type could not be found"));
+    }
+
+    if (!isset($sandbox['total'])) {
+        $sandbox['total'] = db_select('node', 'n')->condition('type', NODE_TYPE_COLUMN)->countQuery()->execute()->fetchField();
+        $sandbox['progress'] = 0;
+        $sandbox['current_nid'] = 0;
+    }
+
+    $column_nids = db_select('node', 'n')
+        ->fields('n', array('nid'))
+        ->condition('type', NODE_TYPE_COLUMN)
+        ->condition('nid', $sandbox['current_nid'], '>')
+        ->orderBy('nid', 'ASC')
+        ->range(0, 10)
+        ->execute();
+
+    $nids = array();
+    foreach ($column_nids as $column_nid) {
+        $nids[] = $column_nid->nid;
+    }
+
+    if (count($nids) > 0) {
+        $nodes = node_load_multiple($nids);
+        foreach ($nodes as $node) {
+            $updated = FALSE;
+            if (!isset($node->field_column_source[$node->language][0]['value'])) {
+                $node->field_column_source[$node->language][0]['value'] = get_node_field_value($node, 'field_column_source_name');
+                $updated = TRUE;
+            }
+
+            if (!isset($node->field_column_persistence[$node->language][0]['value'])) {
+                $node->field_column_persistence[$node->language][0]['value'] = $node->status;
+                $updated = TRUE;
+            }
+
+            if ($updated) {
+                node_save($node);
+            }
+
+            $sandbox['current_nid'] = $node->nid;
+            $sandbox['progress']++;
+        }
+    }
+
+    $sandbox['#finished'] = ($sandbox['progress'] == $sandbox['total'])
+        ? 1
+        : ($sandbox['progress'] / $sandbox['total']);
+}

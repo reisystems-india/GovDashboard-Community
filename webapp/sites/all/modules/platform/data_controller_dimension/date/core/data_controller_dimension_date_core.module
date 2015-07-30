@@ -1,0 +1,136 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+function data_controller_dimension_date_core_dp_data_type() {
+    // month
+    $items[DateDimensionMonthDataTypeHandler::DATA_TYPE] = array(
+        'classname' => 'DateDimensionMonthDataTypeHandler');
+
+    // quarter
+    $items[DateDimensionQuarterDataTypeHandler::DATA_TYPE] = array(
+        'classname' => 'DateDimensionQuarterDataTypeHandler');
+    // fiscal quarter
+    $items[DateDimensionFiscalQuarterDataTypeHandler::DATA_TYPE] = array(
+        'classname' => 'DateDimensionFiscalQuarterDataTypeHandler');
+
+    // year
+    $items[DateDimensionYearDataTypeHandler::DATA_TYPE] = array(
+        'classname' => 'DateDimensionYearDataTypeHandler');
+    // fiscal year
+    $items[DateDimensionFiscalYearDataTypeHandler::DATA_TYPE] = array(
+        'classname' => 'DateDimensionFiscalYearDataTypeHandler');
+
+    return $items;
+}
+
+function data_controller_dimension_date_core_dp_operator() {
+    // date-related operators
+    $items[OldestDateOperatorHandler::OPERATOR__NAME] = array(
+        'description' => t('Oldest Date'),
+        'handler' => array(
+            'classname' => 'OldestDateOperatorHandler'));
+    $items[PreviousDateOperatorHandler::OPERATOR__NAME] = array(
+        'description' => t('Previous Date'),
+        'handler' => array(
+            'classname' => 'PreviousDateOperatorHandler'),
+        'metadata' => array(
+            'classname' => 'PreviousOperatorMetaData'));
+    $items[LatestDateOperatorHandler::OPERATOR__NAME] = array(
+        'description' => t('Latest Date'),
+        'handler' => array(
+            'classname' => 'LatestDateOperatorHandler'));
+    $items[CurrentDateOperatorHandler::OPERATOR__NAME] = array(
+        'description' => t('Current Date'),
+        'handler' => array(
+            'classname' => 'CurrentDateOperatorHandler'));
+
+    // month-related operators
+    $items[OldestMonthOperatorHandler::OPERATOR__NAME] = array(
+        'description' => t('Oldest Month'),
+        'handler' => array(
+            'classname' => 'OldestMonthOperatorHandler'));
+    $items[PreviousMonthOperatorHandler::OPERATOR__NAME] = array(
+        'description' => t('Previous Month'),
+        'handler' => array(
+            'classname' => 'PreviousMonthOperatorHandler'),
+        'metadata' => array(
+            'classname' => 'PreviousOperatorMetaData'));
+    $items[LatestMonthOperatorHandler::OPERATOR__NAME] = array(
+        'description' => t('Latest Month'),
+        'handler' => array(
+            'classname' => 'LatestMonthOperatorHandler'));
+    $items[CurrentMonthOperatorHandler::OPERATOR__NAME] = array(
+        'description' => t('Current Month'),
+        'handler' => array(
+            'classname' => 'CurrentMonthOperatorHandler'));
+
+    // quarter-related operators
+    $items[OldestQuarterOperatorHandler::OPERATOR__NAME] = array(
+        'description' => t('Oldest Quarter'),
+        'handler' => array(
+            'classname' => 'OldestQuarterOperatorHandler'));
+    $items[PreviousQuarterOperatorHandler::OPERATOR__NAME] = array(
+        'description' => t('Previous Quarter'),
+        'handler' => array(
+            'classname' => 'PreviousQuarterOperatorHandler'),
+        'metadata' => array(
+            'classname' => 'PreviousOperatorMetaData'));
+    $items[LatestQuarterOperatorHandler::OPERATOR__NAME] = array(
+        'description' => t('Latest Quarter'),
+        'handler' => array(
+            'classname' => 'LatestQuarterOperatorHandler'));
+    $items[CurrentQuarterOperatorHandler::OPERATOR__NAME] = array(
+        'description' => t('Current Quarter'),
+        'handler' => array(
+            'classname' => 'CurrentQuarterOperatorHandler'));
+    // fiscal quarter related operators
+    $items[CurrentFiscalQuarterOperatorHandler::OPERATOR__NAME] = array(
+        'description' => t('Current Fiscal Quarter'),
+        'handler' => array(
+            'classname' => 'CurrentFiscalQuarterOperatorHandler'));
+
+    // year-related operators
+    $items[OldestYearOperatorHandler::OPERATOR__NAME] = array(
+        'description' => t('Oldest Year'),
+        'handler' => array(
+            'classname' => 'OldestYearOperatorHandler'));
+    $items[PreviousYearOperatorHandler::OPERATOR__NAME] = array(
+        'description' => t('Previous Year'),
+        'handler' => array(
+            'classname' => 'PreviousYearOperatorHandler'),
+        'metadata' => array(
+            'classname' => 'PreviousOperatorMetaData'));
+    $items[LatestYearOperatorHandler::OPERATOR__NAME] = array(
+        'description' => t('Latest Year'),
+        'handler' => array(
+            'classname' => 'LatestYearOperatorHandler'));
+    $items[CurrentYearOperatorHandler::OPERATOR__NAME] = array(
+        'description' => t('Current Year'),
+        'handler' => array(
+            'classname' => 'CurrentYearOperatorHandler'));
+    // fiscal year related operators
+    $items[CurrentFiscalYearOperatorHandler::OPERATOR__NAME] = array(
+        'description' => t('Current Fiscal Year'),
+        'handler' => array(
+            'classname' => 'CurrentFiscalYearOperatorHandler'));
+
+    return $items;
+}

@@ -1,0 +1,492 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+// Predefined role ids: DRUPAL_ANONYMOUS_RID, DRUPAL_AUTHENTICATED_RID
+
+//Instance admin is role used by REI employees to enable/disable modules, debugging, drupal adminstration work etc.
+define('GOVDASHBOARD_INSTANCE_ADMIN_RID',3);
+
+//TODO: Reserve Role Id for Sites Admins. Assigning random place holder number for now. NEEDS TO CHANGE
+// Is the govdash user role who can add/remove users, datasources etc. (Site administrator)
+define('GOVDASHBOARD_SITE_ADMIN_RID',4);
+
+/**
+ * Implementation of hook_services_resources().
+ */
+function gd_account_group_services_resources() {
+    module_load_include('inc', 'gd_account_group', 'resources/group_resource');
+    return _gd_account_group_resource_definition();
+}
+
+/**
+ * Get all groups
+ *
+ * @return array
+ */
+function gd_account_group_get_all () {
+    $sql  = 'SELECT R.rid, R.name, D.role_description description, D.role_changed changed ';
+    $sql .= 'FROM {role} R ';
+    $sql .= 'LEFT JOIN {role_info} D ON D.rid = R.rid ';
+    $sql .= 'WHERE R.rid NOT IN ('.implode(',',gd_account_group_get_system_groups()).') ';
+    $sql .= 'ORDER BY R.name';
+
+    $result = db_query($sql);
+
+    if ( !$result ) {
+        return array();
+    }
+
+    return $result->fetchAll();
+}
+
+/**
+ * Get group
+ *
+ * @param $groupId
+ * @return null|object
+ */
+function gd_account_group_get ( $groupId ) {
+
+    $sql  = 'SELECT R.rid, R.name, D.role_description description, D.role_changed changed ';
+    $sql .= 'FROM {role} R ';
+    $sql .= 'LEFT JOIN {role_info} D ON D.rid = R.rid ';
+    $sql .= 'WHERE R.rid = :groupId ';
+
+    $result = db_query($sql,array(':groupId'=>$groupId));
+
+    if ( !$result ) {
+        return null;
+    }
+
+    return $result->fetchObject();
+}
+
+function gd_account_group_is_datasource_admin ( $groupId, $datasourceName ) {
+    $roles = new \GD\Common\Collections\ArrayCollection();
+    $roles->add(new \GD\Security\Authorization\Role\DrupalRole($groupId));
+    $entity = new \GD\Security\Authorization\Entity\DrupalEntity($datasourceName,ENTITY_TYPE_DATASOURCE);
+    return gd_security_is_allowed_by_role($roles, $entity, 'admin');
+}
+
+/**
+ * Get group by name
+ *
+ * @param $groupName
+ * @return null|object
+ */
+function gd_account_group_get_by_name ( $groupName ) {
+
+    $sql  = 'SELECT R.rid, R.name, D.role_description description, D.role_changed changed ';
+    $sql .= 'FROM {role} R ';
+    $sql .= 'LEFT JOIN {role_info} D ON D.rid = R.rid ';
+    $sql .= 'WHERE R.name = :groupName ';
+
+    $result = db_query($sql,array(':groupName'=>$groupName));
+
+    if ( !$result ) {
+        return null;
+    }
+
+    return $result->fetchObject();
+}
+
+/**
+ * Get group members
+ *
+ * @param $groupId
+ * @param bool $load
+ * @return array
+ */
+function gd_account_group_get_members ( $groupId, $load = false ) {
+    $result = db_query("SELECT u.uid FROM {users} u INNER JOIN {users_roles} ur ON u.uid = ur.uid WHERE ur.rid = :rid", array(':rid' => $groupId));
+    if ( !$result || !$result->rowCount() ) {
+        return array();
+    }
+
+    $members = array();
+    foreach ( $result as $row ) {
+        $members[] = $row->uid;
+    }
+
+    if ( $load ) {
+        $members = user_load_multiple($members);
+    }
+
+    return $members;
+}
+
+/**
+ * @return array
+ */
+function gd_account_group_get_system_groups () {
+    return array(DRUPAL_ANONYMOUS_RID,DRUPAL_AUTHENTICATED_RID,GOVDASHBOARD_INSTANCE_ADMIN_RID,GOVDASHBOARD_SITE_ADMIN_RID);
+}
+
+/**
+ * @return array
+ */
+function gd_account_group_get_admin_groups () {
+    return array(GOVDASHBOARD_INSTANCE_ADMIN_RID,GOVDASHBOARD_SITE_ADMIN_RID);
+}
+
+/**
+ * Returns all datasources for a role
+ * @param $roleId
+ * @return array
+ */
+function gd_account_group_get_datasources ( $roleId ) {
+    if ( in_array($roleId,gd_account_group_get_admin_groups()) ) {
+        return gd_datasource_get_all();
+    } else {
+        return GD\Security\Authorization\Helper\DrupalHelper::findEntities(array('entityType'=>'datasource','roleId'=>$roleId,'operation'=>'admin'));
+    }
+}
+
+/**
+ * Returns all dashboards for a role
+ * @param $roleId
+ * @return array
+ */
+function gd_account_group_get_dashboards ( $roleId, $adminOnly = false ) {
+    $dashboards = gd_dashboard_get_dashboards(LOAD_ENTITY);
+    if ( in_array($roleId,gd_account_group_get_admin_groups()) ) {
+        return $dashboards;
+    } else {
+        $roles = new \GD\Common\Collections\ArrayCollection();
+        $roles->add(new \GD\Security\Authorization\Role\DrupalRole($roleId));
+
+        $results = array();
+        foreach ( $dashboards as $nid => $dashboard ) {
+            if ( gd_security_is_allowed_by_role($roles,new \GD\Security\Authorization\Entity\DrupalEntity(get_node_field_value($dashboard,'field_dashboard_datasource'),'datasource'),'admin') ) {
+                $results[$nid] = $dashboard;
+            } else if ( !$adminOnly && gd_security_is_allowed_by_role($roles,new \GD\Security\Authorization\Entity\DrupalEntity($dashboard->nid,'dashboard'),'view') ) {
+                $results[$nid] = $dashboard;
+            } else {
+                // user has no access
+            }
+        }
+        return $results;
+    }
+}
+
+function gd_account_group_create ( $entity ) {
+
+     // create role
+    user_role_save($entity);
+
+    // Load newly created user role
+    $role = user_role_load_by_name($entity->name);
+
+    // save description and time info in custom table
+    $fields = array(
+        'rid' => $role->rid,
+        'role_name' => $entity->name,
+        'role_description' => $entity->description,
+        'role_changed' => REQUEST_TIME
+    );
+    db_insert('role_info')->fields($fields)->execute();
+
+    return gd_account_group_get($role->rid);
+}
+
+function gd_account_group_update ( $groupId, $input ) {
+
+    $fields = array();
+
+    if ( !empty($input->name)  ) {
+        $fields['role_name'] = $input->name;
+
+        // update role
+        $role = new stdClass();
+        $role->rid = $groupId;
+        $role->name = $input->name;
+        user_role_save($role);
+    }
+
+    if ( isset($input->description) ) {
+        $fields['role_description'] = $input->description;
+    }
+
+    $fields['role_changed'] = REQUEST_TIME;
+
+    db_update('role_info')->fields($fields)->condition('rid', $groupId, '=')->execute();
+
+    gd_account_group_update_users($groupId,$input->users);
+
+    /*
+     * datasources must be processed before dashboards to prevent adding dashboards
+     * to view permissions when they are in a datasource, hence already have admin privileges
+     */
+    gd_account_group_update_datasources($groupId,$input->datasources);
+
+    gd_account_group_update_dashboards($groupId,$input->dashboards);
+
+
+    return gd_account_group_get($groupId);
+}
+
+/**
+ * @param $rid
+ * @return mixed
+ */
+function gd_account_group_get_info ( $rid ) {
+    $result = db_query('SELECT role_description, role_changed FROM {role_info} WHERE rid = :roleId',array(':roleId'=>$rid));
+    $group = $result->fetchObject();
+    return $group;
+}
+
+/**
+ * @param $roleId
+ * @param $userId
+ */
+function gd_account_group_add_user ( $roleId, $userId ) {
+    $role = user_role_load($roleId);
+    $account = user_load($userId);
+
+    // get existing roles
+    $accountRoles = $account->roles;
+
+    // Add the new role
+    if ( !isset($accountRoles[$role->rid]) ) {
+        $accountRoles[$role->rid] = $role->name;
+        user_save($account, array('roles'=>$accountRoles));
+    }
+}
+
+/**
+ * @param $roleId
+ * @param $userId
+ */
+function gd_account_group_remove_user ( $roleId, $userId ) {
+    $role = user_role_load($roleId);
+    $account = user_load($userId);
+
+    // get existing roles
+    $accountRoles = $account->roles;
+
+    // Add the new role
+    if ( isset($accountRoles[$role->rid]) ) {
+        unset($accountRoles[$role->rid]);
+        user_save($account, array('roles'=>$accountRoles));
+    }
+}
+
+/**
+ * @param $roleId
+ * @param $users
+ */
+function gd_account_group_update_users ( $roleId, $users ) {
+
+    // new user list
+    $userIds = array();
+    foreach ( $users as $user ) {
+        $userIds[] = $user['id'];
+    }
+
+    // get all users with current role
+    $existingUserIds = array();
+    $result = db_query('SELECT uid FROM {users_roles}  WHERE rid = :rid', array(':rid' => $roleId));
+    foreach ( $result as $record ) {
+        $existingUserIds[] = $record->uid;
+    }
+
+    // find added users
+    $newUserIds = array_diff($userIds, $existingUserIds);
+    // add users
+    if ( !empty($newUserIds) ) {
+        foreach ( $newUserIds as $uid ) {
+            gd_account_group_add_user($roleId,$uid);
+        }
+    }
+
+    // find removed users
+    $removedUserIds = array_diff($existingUserIds, $userIds);
+    // remove users
+    if ( !empty($removedUserIds) ) {
+        foreach ( $removedUserIds as $uid ) {
+            gd_account_group_remove_user($roleId,$uid);
+        }
+    }
+}
+
+/**
+ * @param $roleId
+ * @param $dashboardId
+ */
+function gd_account_group_add_dashboard ( $roleId, $dashboardId ) {
+    $dashboard = node_load($dashboardId);
+
+    if ( $dashboard ) {
+        $roles = new \GD\Common\Collections\ArrayCollection();
+        $roles->add(new \GD\Security\Authorization\Role\DrupalRole($roleId));
+        $entity = new \GD\Security\Authorization\Entity\DrupalEntity($dashboard->nid,NODE_TYPE_DASHBOARD);
+        
+        if ( !gd_security_is_allowed_by_role($roles, $entity, 'view') ) {
+            gd_security_allow($roles, $entity, 'view');    
+        }
+    }
+}
+
+/**
+ * @param $roleId
+ * @param $dashboardId
+ */
+function gd_account_group_remove_dashboard ( $roleId, $dashboardId ) {
+    $dashboard = node_load($dashboardId);
+
+    if ( $dashboard ) {
+        $roles = new \GD\Common\Collections\ArrayCollection();
+        $roles->add(new \GD\Security\Authorization\Role\DrupalRole($roleId));
+        $entity = new \GD\Security\Authorization\Entity\DrupalEntity($dashboard->nid,NODE_TYPE_DASHBOARD);
+
+        if ( gd_security_is_allowed_by_role($roles, $entity, 'view') ) {
+            gd_security_deny($roles, $entity, 'view');
+        }
+    }
+}
+
+/**
+ * @param $roleId
+ * @param $dashboards
+ */
+function gd_account_group_update_dashboards ( $roleId, $dashboards ) {
+
+    // new dashboard list
+    $dashboardIds = array();
+    $groupDatasources = gd_account_group_get_datasources($roleId);
+    foreach ( $dashboards as $dashboard ) {
+        $dashboardNode = node_load($dashboard['id']);
+        // ignore dashboards in datasource that group has admin privileges for
+        $ignore = false;
+        foreach ( $groupDatasources as $datasource ) {
+            if ( get_node_field_value($dashboardNode,'field_dashboard_datasource') == $datasource->name ) {
+                $ignore = true;
+            }
+        }
+        if ( !$ignore ) {
+            $dashboardIds[] = $dashboard['id'];
+        }
+    }
+
+    // get all dashboards with current role
+    $existingDashboardIds = array();
+    foreach ( gd_account_group_get_dashboards($roleId) as $record ) {
+        $existingDashboardIds[] = $record->nid;
+    }
+
+    // find added dashboards
+    $newDashboardIds = array_diff($dashboardIds, $existingDashboardIds);
+    // add dashboards
+    if ( !empty($newDashboardIds) ) {
+        foreach ( $newDashboardIds as $nid ) {
+            gd_account_group_add_dashboard($roleId,$nid);
+        }
+    }
+
+    // find removed dashboards
+    $removedDashboardIds = array_diff($existingDashboardIds, $dashboardIds);
+    // remove dashboards
+    if ( !empty($removedDashboardIds) ) {
+        foreach ( $removedDashboardIds as $nid ) {
+            gd_account_group_remove_dashboard($roleId,$nid);
+        }
+    }
+}
+
+/**
+ * @param $roleId
+ * @param $datasourceName
+ */
+function gd_account_group_add_datasource ( $roleId, $datasourceName ) {
+    $datasource = gd_datasource_get($datasourceName);
+    if ( $datasource ) {
+        $roles = new \GD\Common\Collections\ArrayCollection();
+        $roles->add(new \GD\Security\Authorization\Role\DrupalRole($roleId));
+        $entity = new \GD\Security\Authorization\Entity\DrupalEntity($datasource->name,ENTITY_TYPE_DATASOURCE);
+
+        if ( !gd_security_is_allowed_by_role($roles, $entity, 'admin') ) {
+            gd_security_allow($roles, $entity, 'admin');
+        }
+    }
+}
+
+/**
+ * @param $roleId
+ * @param $datasourceName
+ */
+function gd_account_group_remove_datasource ( $roleId, $datasourceName ) {
+    $datasource = gd_datasource_get($datasourceName);
+    if ( $datasource ) {
+        $roles = new \GD\Common\Collections\ArrayCollection();
+        $roles->add(new \GD\Security\Authorization\Role\DrupalRole($roleId));
+        $entity = new \GD\Security\Authorization\Entity\DrupalEntity($datasource->name,ENTITY_TYPE_DATASOURCE);
+
+        if ( gd_security_is_allowed_by_role($roles, $entity, 'admin') ) {
+            gd_security_deny($roles, $entity, 'admin');
+        }
+    }
+}
+
+/**
+ * @param $roleId
+ * @param $datasources
+ */
+function gd_account_group_update_datasources ( $roleId, $datasources ) {
+
+    // new datasource list
+    $DatasourceNames = array();
+    foreach ( $datasources as $datasource ) {
+        $DatasourceNames[] = $datasource['name'];
+    }
+
+    // get all datasources with current role
+    $existingDatasourceNames = array();
+    foreach ( gd_account_group_get_datasources($roleId) as $record ) {
+        $existingDatasourceNames[] = $record->name;
+    }
+
+    // find added datasources
+    $newDatasourceNames = array_diff($DatasourceNames, $existingDatasourceNames);
+    // add datasources
+    if ( !empty($newDatasourceNames) ) {
+        foreach ( $newDatasourceNames as $datasourceName ) {
+            gd_account_group_add_datasource($roleId,$datasourceName);
+        }
+    }
+
+    // find removed datasources
+    $removedDatasourceNames = array_diff($existingDatasourceNames, $DatasourceNames);
+    // remove datasources
+    if ( !empty($removedDatasourceNames) ) {
+        foreach ( $removedDatasourceNames as $datasourceName ) {
+            gd_account_group_remove_datasource($roleId,$datasourceName);
+        }
+    }
+}
+
+/**
+ * @param $name
+ * @return bool
+ */
+function gd_account_group_name_isunique ( $name ) {
+    // validate name is unique
+    return (bool) !db_query("SELECT COUNT(name) FROM {role} WHERE name = :name", array(':name' => $name))->fetchField();
+}
