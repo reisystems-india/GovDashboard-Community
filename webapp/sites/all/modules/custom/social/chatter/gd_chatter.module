@@ -1,0 +1,430 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+/*
+ * Implements hook_menu
+ */
+function gd_chatter_menu() {
+    $items = array();
+
+    $items['admin/config/govdashboard/chatter'] = array(
+        'title' => "Chatter Settings",
+        'description' => "Govdashboard Chatter Configuration and Settings",
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('gd_chatter_admin_settings_form'),
+        'access arguments' => array('administer site configuration'),
+        'type' => MENU_CALLBACK
+    );
+
+    $items['chatter/user'] = array(
+        'page callback' => 'gd_chatter_get_user',
+        'access callback' => true,
+        'type' => MENU_CALLBACK
+    );
+
+    $items['chatter/groups'] = array(
+        'page callback' => 'gd_chatter_get_group_list',
+        'access callback' => true,
+        'type' => MENU_CALLBACK
+    );
+
+    $items['chatter/feeds'] = array(
+        'page callback' => 'gd_chatter_get_feed_list',
+        'access callback' => true,
+        'type' => MENU_CALLBACK
+    );
+
+    $items['chatter/comments'] = array(
+        'page callback' => 'gd_chatter_get_comment_list',
+        'access callback' => true,
+        'type' => MENU_CALLBACK
+    );
+
+    $items['chatter/new/feed'] = array(
+        'page callback' => 'gd_chatter_new_feed',
+        'access callback' => true,
+        'type' => MENU_CALLBACK
+    );
+
+    $items['chatter/new/comment'] = array(
+        'page callback' => 'gd_chatter_new_comment',
+        'access callback' => true,
+        'type' => MENU_CALLBACK
+    );
+
+    $items['chatter/access'] = array(
+        'page callback' => 'gd_chatter_access_redirect',
+        'access callback' => true,
+        'type' => MENU_CALLBACK
+    );
+
+    $items['chatter/callback'] = array(
+        'page callback' => 'gd_chatter_get_access_token',
+        'access callback' => true,
+        'type' => MENU_CALLBACK
+    );
+
+    return $items;
+}
+
+/*
+ * Implements hook_form().
+ */
+function gd_chatter_admin_settings_form($form, &$form_state) {
+    $form = array();
+
+    $form['gd_chatter_consumer_key'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Consumer Key'),
+        '#default_value' => '',
+        '#description' => t('Consumer Key for SalesForce Connected App'),
+        '#required' => TRUE,
+    );
+
+    $form['gd_chatter_consumer_secret'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Consumer Secret'),
+        '#default_value' => '',
+        '#description' => t('Consumer Secret for SalesForce Connected App'),
+        '#required' => TRUE,
+    );
+
+    $form['submit'] = array(
+        '#value' => t('Save'),
+        '#type' => 'submit',
+    );
+
+    $form['#submit'][] = 'gd_chatter_admin_settings_submit';
+
+    return $form;
+}
+
+function gd_chatter_admin_settings_submit($form, &$form_state) {
+    global $user;
+    $creator = array('user' => $user->uid, 'timestamp' => microtime());
+    //  Hash the user's password using the current timestamp as a salt
+    $key = hash_hmac('sha512', $user->pass, $creator['timestamp']);
+    variable_set('gd_chatter_consumer_creator', json_encode($creator));
+    variable_set('gd_chatter_consumer_key', mcrypt_encrypt(MCRYPT_RIJNDAEL_256, substr($key, 0, 32), $form_state['values']['gd_chatter_consumer_key'], MCRYPT_MODE_ECB));
+    variable_set('gd_chatter_consumer_secret', mcrypt_encrypt(MCRYPT_RIJNDAEL_256, substr($key, 0, 32), $form_state['values']['gd_chatter_consumer_secret'], MCRYPT_MODE_ECB));
+}
+
+function gd_chatter_get_user() {
+    $response_object = new stdClass();
+    if (isset($_SESSION['access_token'])) {
+        $url = 'https://na15.salesforce.com/services/data/v28.0/chatter/users/me/';
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+            'Authorization: Bearer ' . $_SESSION['access_token']
+        ));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $response = curl_exec($ch);
+        curl_close($ch);
+        $response_object = json_decode($response);
+
+    } else {
+        $response_object->errorCode = 1;
+        $response_object->errorMessage = 'No access token';
+    }
+
+    echo json_encode($response_object);
+}
+
+function gd_chatter_get_group_list() {
+    $response_object = new stdClass();
+    if (isset($_SESSION['access_token'])) {
+        $url = 'https://na15.salesforce.com/services/data/v28.0/chatter/users/me/groups';
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+            'Authorization: Bearer ' . $_SESSION['access_token']
+        ));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $response = curl_exec($ch);
+        curl_close($ch);
+        $response_object->errorCode = 0;
+        $response_object->response = json_decode($response);
+    } else {
+        $response_object->errorCode = 1;
+        $response_object->errorMessage = 'No access token';
+    }
+
+    echo json_encode($response_object);
+}
+
+function gd_chatter_get_feed_list() {
+    $dashboard = new GD_DashboardConfig(gd_dashboard_get_by_nid($_GET['dashboard']));
+    $response_object = new stdClass();
+    if (isset($_SESSION['access_token'])) {
+        if (!empty($_GET['group'])) {
+            $url = 'https://na15.salesforce.com/services/data/v28.0/chatter/feeds/record/' . $_GET['group'] . '/feed-items';
+        } else {
+            $url = 'https://na15.salesforce.com/services/data/v28.0/chatter/feeds/news/me/feed-items';
+        }
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+            'Authorization: Bearer ' . $_SESSION['access_token']
+        ));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $response = curl_exec($ch);
+        curl_close($ch);
+        $response_object->errorCode = 0;
+
+        $feedItems = json_decode($response);
+
+        $url = 'https://na15.salesforce.com/services/data/v28.0/chatter/topics';
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+            'Authorization: Bearer ' . $_SESSION['access_token']
+        ));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $topics = json_decode(curl_exec($ch));
+        curl_close($ch);
+        foreach($topics->topics as $topic) {
+            if ($dashboard->title == $topic->name) {
+                $topicId = $topic->id;
+                break;
+            }
+        }
+
+        if (isset($topicId)) {
+            $fi = array();
+            foreach ($feedItems->items as $feedItem) {
+                foreach ($feedItem->topics->topics as $topic) {
+                    if ($topic->id == $topicId) {
+                        $fi[] = $feedItem;
+                        break;
+                    }
+                }
+            }
+            $response_object->response = $fi;
+        }
+    } else {
+        $response_object->errorCode = 1;
+        $response_object->errorMessage = 'No access token';
+    }
+
+    echo json_encode($response_object);
+}
+
+function gd_chatter_get_comment_list() {
+    $feedId = $_GET['feed'];
+    $response_object = new stdClass();
+    if (isset($_SESSION['access_token'])) {
+        $url = 'https://na15.salesforce.com/services/data/v28.0/chatter/feed-items/' . $feedId . '/comments';
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+            'Authorization: Bearer ' . $_SESSION['access_token']
+        ));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $response = curl_exec($ch);
+        curl_close($ch);
+        $response_object->errorCode = 0;
+        $response_object->response = json_decode($response);
+    } else {
+        $response_object->errorCode = 1;
+        $response_object->errorMessage = 'No access token';
+    }
+
+    echo json_encode($response_object);
+}
+
+function gd_chatter_new_feed() {
+    $value = $_GET['comment'];
+    $dashboard = new GD_DashboardConfig(gd_dashboard_get_by_nid($_GET['dashboard']));
+    $response_object = new stdClass();
+    if (isset($_SESSION['access_token'])) {
+        if (!empty($_GET['group'])) {
+            $url = 'https://na15.salesforce.com/services/data/v28.0/chatter/feeds/record/' . $_GET['group'] . '/feed-items';
+        } else {
+            $url = 'https://na15.salesforce.com/services/data/v28.0/chatter/feeds/news/me/feed-items';
+        }
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        $feedItem = new stdClass();
+        $feedItem->body = new stdClass();
+        $feedItem->body->messageSegments = array();
+        $messageSegment = new stdClass();
+        $messageSegment->type = "Text";
+        $messageSegment->text = $value;
+        $feedItem->body->messageSegments[] = $messageSegment;
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($feedItem));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+            'Authorization: Bearer ' . $_SESSION['access_token'],
+            "Content-Type: application/json"
+        ));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $response = curl_exec($ch);
+        curl_close($ch);
+        $response_object->errorCode = 0;
+        $response_object->response = json_decode($response);
+
+
+        $url = 'https://na15.salesforce.com/services/data/v28.0/chatter/topics';
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+            'Authorization: Bearer ' . $_SESSION['access_token']
+        ));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $topics = json_decode(curl_exec($ch));
+        curl_close($ch);
+        foreach($topics->topics as $topic) {
+            if ($dashboard->title == $topic->name) {
+                $topicId = $topic->id;
+                break;
+            }
+        }
+
+        $url = 'https://na15.salesforce.com/services/data/v28.0/chatter/feed-items/' . $response_object->response->id . '/topics';
+        if (isset($topicId)) {
+            $url .= '?topicId=' . $topicId;
+        } else {
+            $url .= '?topicName=' . rawurlencode($dashboard->title);
+        }
+
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+            'Authorization: Bearer ' . $_SESSION['access_token']
+        ));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $response = curl_exec($ch);
+        curl_close($ch);
+    } else {
+        $response_object->errorCode = 1;
+        $response_object->errorMessage = 'No access token';
+    }
+
+    echo json_encode($response_object);
+}
+
+function gd_chatter_new_comment() {
+    $feedId = $_GET['feed'];
+    $value = $_GET['comment'];
+    $response_object = new stdClass();
+    if (isset($_SESSION['access_token'])) {
+        $url = 'https://na15.salesforce.com/services/data/v28.0/chatter/feed-items/' . $feedId . '/comments?text=' . rawurlencode($value);
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+            'Authorization: Bearer ' . $_SESSION['access_token']
+        ));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $response = curl_exec($ch);
+        curl_close($ch);
+        $response_object->errorCode = 0;
+        $response_object->response = json_decode($response);
+    } else {
+        $response_object->errorCode = 1;
+        $response_object->errorMessage = 'No access token';
+    }
+
+    echo json_encode($response_object);
+}
+
+function gd_chatter_get_access_token() {
+
+    $consumerKey = gd_chatter_get_consumer_key();
+    $consumerSecret = gd_chatter_get_consumer_secret();
+
+    $authorizationCode = $_GET['code'];
+    $url = 'https://login.salesforce.com/services/oauth2/token';
+    $query = 'grant_type=authorization_code';
+    $query .= '&code=' . $authorizationCode;
+    $query .= '&client_id=' . $consumerKey;
+    $query .= '&client_secret=' . $consumerSecret;
+    $query .= '&redirect_uri=' . rawurlencode(GOVDASH_HOST . '/chatter/callback');
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_POST, 1);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $query);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+    $response = curl_exec($ch);
+    curl_close($ch);
+
+    $response = json_decode($response);
+    $_SESSION['access_token'] = $response->access_token;
+    echo '<script type="text/javascript">window.close();</script>';
+}
+
+function gd_chatter_access_redirect() {
+    $consumerKey = gd_chatter_get_consumer_key();
+
+    if (isset($consumerKey)) {
+        $redirectUri = 'https://login.salesforce.com/services/oauth2/authorize?redirect_uri=' . rawurlencode(GOVDASH_HOST . '/chatter/callback');
+        $redirectUri .= '&response_type=code&client_id=' . $consumerKey;
+        drupal_goto($redirectUri);
+    } else {
+        //  TODO Throw back error saying there is no app connected
+    }
+}
+
+function gd_chatter_get_consumer_key() {
+    $creator = json_decode(variable_get('gd_chatter_consumer_creator'));
+    $user = user_load($creator->user);
+    $key = hash_hmac('sha512', $user->pass, $creator->timestamp);
+
+    $consumerKey = variable_get('gd_chatter_consumer_key');
+
+    if (isset($consumerKey)) {
+        $consumerKey = mcrypt_decrypt(MCRYPT_RIJNDAEL_256, substr($key, 0, 32), $consumerKey, MCRYPT_MODE_ECB);
+        $consumerKey = trim($consumerKey);
+    }
+
+    return $consumerKey;
+}
+
+function gd_chatter_get_consumer_secret() {
+    $creator = json_decode(variable_get('gd_chatter_consumer_creator'));
+    $user = user_load($creator->user);
+    $key = hash_hmac('sha512', $user->pass, $creator->timestamp);
+
+    $consumerSecret = variable_get('gd_chatter_consumer_secret');
+
+    if (isset($consumerSecret)) {
+        $consumerSecret = mcrypt_decrypt(MCRYPT_RIJNDAEL_256, substr($key, 0, 32), $consumerSecret, MCRYPT_MODE_ECB);
+        $consumerSecret = trim($consumerSecret);
+    }
+
+    return $consumerSecret;
+}
+
+/*
+ * Implements hook_gd_social_register
+ */
+function gd_chatter_gd_social_register() {
+    $items = array();
+
+    //  Chatter API only works in HTTPS
+    if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) {
+        $items['gd_chatter'] = array(
+            'js' => array(
+                drupal_get_path('module', 'gd_chatter') . '/js/gd_chatter.js',
+                drupal_get_path('module', 'gd_chatter') . '/js/model/ChatterUser.js',
+            ),
+            'css' => array(
+                drupal_get_path('module', 'gd_chatter') . '/css/gd_chatter.css',
+            ),
+        );
+    }
+
+    return $items;
+}

@@ -1,0 +1,86 @@
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+.modal {
+    z-index: 1000001 !important;
+    margin-top: 150px;
+}
+
+.gd-dataset-name-value {
+    font-size: 14px;
+    margin-bottom: 5px;
+}
+
+.data-actions {
+    margin-top: 15px;
+}
+
+.dataset-actions .btn {
+    margin-left: 2px;
+    margin-right: 2px;
+}
+
+.gd-column-view-container {
+    padding: 4px;
+    margin-bottom: 8px;
+}
+
+.gd-column-view-name-value {
+    width: 90%;
+    display: inline;
+}
+
+.gd-column-view-move-icon, .gd-column-view-expand-icon {
+    font-size: 120%;
+    margin-right: 10px;
+    margin-top: 9px;
+    margin-left: 4px;
+}
+
+.gd-column-view-type-container {
+    padding-top: 9px;
+}
+
+.gd-column-view-options-container {
+    padding-top: 9px;
+}
+.gd-column-view-container .checkbox {
+    margin-bottom: 0;
+    margin-top: 0;
+}
+
+.gd-dataset-actions {
+    padding: 10px 0 10px 0;
+}
+.modal{
+    overflow:hidden;
+    outline: 0!important;
+}
+.gd-column-editor {
+    height: 200px !important;
+    margin: 4px 0 4px 0;
+}
+
+.gd-column-view-body {
+    margin: 4px 0 4px 0;
+}
+ul.column-list{
+    overflow: auto;
+    max-height: 200px;
+}

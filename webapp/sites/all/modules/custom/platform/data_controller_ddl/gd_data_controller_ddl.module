@@ -1,0 +1,193 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+function gd_data_controller_ddl_initialize_column_name_preparer($datasourceName, $columnPrefixName) {
+    $environment_metamodel = data_controller_get_environment_metamodel();
+
+    $datasource = $environment_metamodel->getDataSource($datasourceName);
+    $datasourceQueryHandler = DataSourceQueryFactory::getInstance()->getHandler($datasource->type);
+
+    $maximumColumnNameLength = $datasourceQueryHandler->getMaximumEntityNameLength();
+    // reducing length taken by additions to table name
+    $maximumColumnNameLength -= 3; // constraint prefixes (pk_, uk_ and fk_)
+    $maximumColumnNameLength -= strlen(GD_NamingConvention::$PREFIX_NAME__DATASET); // dataset name prefix
+    $maximumColumnNameLength -= GD_NamingConvention::$LENGTH_NAME__DATASET; // length of generated dataset name
+    $maximumColumnNameLength -= 1; // delimiter after table uniqid-related prefix
+    $maximumColumnNameLength -= strlen(StarSchemaNamingConvention::$SUFFIX__FACTS); // to support foreign keys for 'facts' table
+
+    return new ColumnNamePreparer($maximumColumnNameLength, $columnPrefixName);
+}
+
+function gd_data_controller_ddl_initialize_columns(DatasetMetaData $newLogicalDataset) {
+    $columnNamePreparer = NULL;
+
+    foreach ($newLogicalDataset->getColumns(FALSE) as $newLogicalColumn) {
+        $isNew = !isset($newLogicalColumn->name);
+
+        // converting all primitive types to star schema-based
+        $newLogicalColumn->type->logicalApplicationType = (($newLogicalColumn->type->getReferencedDatasetName() == NULL) && isset($newLogicalColumn->type->applicationType))
+            ? NameSpaceHelper::addNameSpace(NAME_SPACE__STAR_SCHEMA, $newLogicalColumn->type->applicationType)
+            : NULL;
+
+        if ($isNew) {
+            if (!isset($columnNamePreparer)) {
+                $columnNamePreparer = gd_data_controller_ddl_initialize_column_name_preparer(
+                    $newLogicalDataset->datasourceName, GD_NamingConvention::$PREFIX_NAME__COLUMN);
+            }
+
+            $columnNamePreparer->prepareMetaDataColumn($newLogicalDataset, $newLogicalColumn, $newLogicalColumn->publicName);
+        }
+    }
+}
+
+function gd_data_controller_ddl_get_dataset_by_logical_dataset(MetaModel $metamodel, DatasetMetaData $logicalDataset) {
+    $cubeName = $logicalDataset->name;
+    $cube = $metamodel->getCube($cubeName);
+
+    return $metamodel->getDataset($cube->factsDatasetName);
+}
+
+function gd_data_controller_ddl_create_dataset(DatasetMetaData $newLogicalDataset) {
+    $metamodel = data_controller_get_metamodel();
+    $dataStructureController = data_controller_ddl_get_instance();
+
+    gd_data_controller_ddl_initialize_columns($newLogicalDataset);
+
+    StarSchemaCubeMetaData::registerFromDataset($metamodel, $newLogicalDataset);
+    StarSchemaCubeMetaData::initializeFromDataset($metamodel, $newLogicalDataset);
+
+    $newDataset = gd_data_controller_ddl_get_dataset_by_logical_dataset($metamodel, $newLogicalDataset);
+
+    $dataStructureController->createDatasetStorage(
+        $newDataset,
+        array(
+            new CreateStarSchemaStorageObserver($newLogicalDataset),
+            new GD_CreateDatasetStorageObserver($newLogicalDataset),
+            new CreateFunctionDateDimensionObserver($newLogicalDataset),
+            new FormulaExpressionObserver()));
+
+    // registering logical dataset
+    $newLogicalDataset->markAsComplete();
+    $metamodel->registerDataset($newLogicalDataset);
+}
+
+function gd_data_controller_ddl_modify_dataset(DatasetMetaData $newLogicalDataset) {
+    $metamodel = data_controller_get_metamodel();
+    $dataStructureController = data_controller_ddl_get_instance();
+
+    gd_data_controller_ddl_initialize_columns($newLogicalDataset);
+
+    $modifiedMetaModel = new ModifiedDatasetMetaModel($metamodel);
+    StarSchemaCubeMetaData::registerFromDataset($modifiedMetaModel, $newLogicalDataset);
+    StarSchemaCubeMetaData::initializeFromDataset($modifiedMetaModel, $newLogicalDataset);
+
+    $newDataset = gd_data_controller_ddl_get_dataset_by_logical_dataset($modifiedMetaModel, $newLogicalDataset);
+
+    $dataStructureController->modifyDatasetStorage(
+        $newDataset,
+        array(
+            new ModifyStarSchemaStorageObserver($newLogicalDataset),
+            new GD_ModifyDatasetStorageObserver($newLogicalDataset),
+            new ModifyFunctionDateDimensionObserver($newLogicalDataset),
+            new FormulaExpressionObserver(),
+            new ModifyUIMetaDataObserver()));
+}
+
+function gd_data_controller_ddl_truncate_dataset($logicalDatasetName) {
+    $metamodel = data_controller_get_metamodel();
+    $dataStructureController = data_controller_ddl_get_instance();
+
+    $logicalDataset = $metamodel->getDataset($logicalDatasetName);
+
+    $dataset = gd_data_controller_ddl_get_dataset_by_logical_dataset($metamodel, $logicalDataset);
+
+    $dataStructureController->truncateDatasetStorage(
+        $dataset->name,
+        array(
+            new TruncateStarSchemaStorageObserver($logicalDataset),
+            new GD_TruncateDatasetStorageObserver($logicalDataset)));
+}
+
+function gd_data_controller_ddl_enable_dataset($dataset_nid) {
+    $environment_metamodel = data_controller_get_environment_metamodel();
+    $metamodel = data_controller_get_metamodel();
+    $dataStructureController = data_controller_ddl_get_instance();
+
+    // ***** building logical dataset
+    // loading dataset node
+    $datasetNode = node_load($dataset_nid);
+    // loading column nodes
+    $columnNodes = gd_column_get_columns_4_dataset($dataset_nid, LOAD_ENTITY, INCLUDE_UNPUBLISHED);
+    // preparing data source
+    $datasourceName = get_node_field_value($datasetNode, 'field_dataset_datasource', 0, 'value', TRUE);
+    $datasource = $environment_metamodel->getDataSource($datasourceName);
+    // generating logical dataset using corresponding dataset & columns nodes
+    $logicalDataset = GD_DatasetMetaModelLoaderHelper::prepareDataset($metamodel, $datasetNode, $columnNodes, $datasource);
+
+    // ***** building physical dataset
+    StarSchemaCubeMetaData::registerFromDataset($metamodel, $logicalDataset);
+    StarSchemaCubeMetaData::initializeFromDataset($metamodel, $logicalDataset);
+
+    $dataset = gd_data_controller_ddl_get_dataset_by_logical_dataset($metamodel, $logicalDataset);
+
+    $dataStructureController->enableDataset(
+        $dataset->name,
+        array(
+            new GD_ModifyDatasetStorageObserver($logicalDataset)));
+}
+
+function gd_data_controller_ddl_disable_dataset($logicalDatasetName) {
+    $metamodel = data_controller_get_metamodel();
+    $dataStructureController = data_controller_ddl_get_instance();
+
+    $originalLogicalDataset = $metamodel->getDataset($logicalDatasetName);
+
+    $newLogicalDataset = clone $originalLogicalDataset;
+    $newLogicalDataset->used = FALSE;
+
+    $originalDataset = gd_data_controller_ddl_get_dataset_by_logical_dataset($metamodel, $originalLogicalDataset);
+
+    $dataStructureController->disableDataset(
+        $originalDataset->name,
+        array(
+            new ModifyStarSchemaStorageObserver($newLogicalDataset),
+            new GD_ModifyDatasetStorageObserver($newLogicalDataset),
+            new ModifyUIMetaDataObserver()));
+}
+
+function gd_data_controller_ddl_drop_dataset($logicalDatasetName) {
+    $metamodel = data_controller_get_metamodel();
+    $dataStructureController = data_controller_ddl_get_instance();
+
+    $originalLogicalDataset = $metamodel->getDataset($logicalDatasetName);
+
+    $newLogicalDataset = clone $originalLogicalDataset;
+    $newLogicalDataset->used = FALSE;
+
+    $originalDataset = gd_data_controller_ddl_get_dataset_by_logical_dataset($metamodel, $originalLogicalDataset);
+
+    $dataStructureController->dropDatasetStorage(
+        $originalDataset->name,
+        array(
+            new ModifyStarSchemaStorageObserver($newLogicalDataset),
+            new GD_ModifyDatasetStorageObserver($newLogicalDataset),
+            new ModifyUIMetaDataObserver()));
+}

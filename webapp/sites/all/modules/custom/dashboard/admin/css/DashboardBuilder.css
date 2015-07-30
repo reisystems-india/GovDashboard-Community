@@ -1,0 +1,222 @@
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#dashboardConfigButtons {
+    margin-top: 20px;
+}
+
+#dashboardName {
+    width: 285px;
+}
+
+#viewDashboardLink {
+    margin-left: 10px;
+    line-height: 2.3em;
+}
+
+#dashboardReportList {
+    min-height: 25px;
+}
+
+#dashboardReportsActions {
+    margin-top: 10px;
+}
+
+#dashboardLinkForm {
+    width: 315px;
+}
+
+#dashboardEditorContainer div.well{
+    height: 250px;
+}
+
+div.govdb-cnvs-cntr {
+    margin-left: auto;
+    margin-right: auto;
+    width: 982px;
+    font-size: 12px;
+}
+
+div.govdb-cnvs {
+    margin-top: 15px;
+    width: 982px;
+    box-shadow: 0 1px 5px #A29E93;
+    background: #F9F8F9;
+    padding: 9px;
+}
+
+div.govdb-cnvs div.govdb-grd > div.ui-resizable-handle {
+    border-bottom: 5px double #E17D20;
+}
+
+div.govdb-grd {
+    height: 600px;
+    background: url(/sites/all/themes/custom/govdash_core/smartclient/images/grid-thick.png) repeat;
+}
+
+
+button.dsb-act-btn {
+    font-size: 14px;
+    line-height: 19px;
+    margin-left: 5px;
+}
+
+span.dsb-cnf-btn {
+    width: 74px;
+    height: 25px;
+    line-height: 25px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+div.dsb-rpt-lst-item {
+    display: inline;
+}
+
+div.dsb-frm {
+    padding: 8px;
+    width:265px;
+    display: none;
+    border: 1px solid rgba(0,0,0,.15);
+    border-radius: 4px;
+    margin: 2px 0 0;
+    background-color: #fff;
+    box-shadow: 0 6px 12px rgba(0,0,0,.175);
+    z-index: 1000;
+}
+
+h5.dsb-frm-hdr {
+    margin-top: 0;
+    word-break: break-all;
+}
+
+div.dsb-act-btn-cntr {
+    margin-top: 10px;
+}
+
+div.dsb-flt-cstm-vals-cntr {
+    margin-top: 10px;
+}
+
+div.dsb-flt-cstm-vals-itm {
+    padding: 5px;
+}
+
+span.dsb-flt-cstm-vals-itm-txt {
+    margin-left: 5px;
+    word-wrap: break-word;
+}
+
+span.dsb-flt-cstm-vals-itm-rmv {
+    cursor: pointer;
+}
+
+input.bldr-flt-frm-slt-txt {
+    margin-top: 8px;
+}
+
+div.dsb-flt-frm-cntr {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+div.dsb-flt-cstm-cntr div.dsb-flt-cstm-vals-frm {
+    margin-left: 0;
+    margin-right: 0;
+    margin-bottom: 5px;
+}
+
+div.dsb-flt-cstm-vals-frm label.control-label {
+    margin-left: 5px;
+}
+
+ul.dsb-widget-context li span {
+    margin-right: 10px;
+}
+
+button.dsb-cnf-btn {
+    position:relative;
+}
+
+div.dsb-flt-act-cntr {
+    margin-top: 10px;
+}
+
+div.dsb-dsply-frm h5 {
+    margin-bottom: 5px;
+    padding-bottom: 5px;
+}
+
+div.dsb-dsply-frm div.checkbox {
+    margin-left: 10px;
+}
+.bottomButtons{
+    margin-top: 15px;
+    overflow: hidden;
+}
+.modal{
+    overflow:hidden;
+    outline: 0!important;
+}
+button.rpt-flt-act-btn:first-child, button.dsb-flt-act-btn:first-child{
+    margin-right:5px;
+}
+
+#dashboardFiltersForm .dsb-act-btn.dsb-flt-act-btn.btn.btn-primary{margin-right: 0}
+
+#dashboardLinkForm .dsb-lnk-stp-frm .lst-cntr .lst-vw, #dashboardFiltersForm  .dsb-flt-frm .lst-vw {
+overflow-y: auto;
+overflow-x: hidden;
+}
+
+div#dashboardFiltersForm, #dashboardFiltersForm, #dashboardReportsForm, #dashboardLinkForm{
+overflow-y: auto;
+overflow-x: hidden;
+max-height: 500px;
+min-height: 90px;
+}
+
+/* For Chrome & Firefox */
+#dashboardFiltersForm{left: 122px !important}
+#dashboardLinkForm{left: 209px !important}
+#dashboardDisplayForm{left: 292px !important}
+
+/* For ie */
+#dashboardFiltersForm{left: 122px \9\0 !important}
+#dashboardLinkForm{left: 207px \9\0 !important}
+#dashboardDisplayForm{left: 290px \9\0 !important}
+
+/* For ie 10 and ie 11 */
+@media all and (-ms-high-contrast:none)
+{
+    #dashboardLinkForm{left: 207px  !important}
+    #dashboardDisplayForm{left: 290px  !important}
+
+    *::-ms-backdrop,  #dashboardLinkForm{left: 206px  !important}
+    *::-ms-backdrop,  #dashboardDisplayForm{left: 289px  !important}
+}
+
+#dashboardReportsForm .lst-itm-val, #dashboardReportsForm  .row {
+    cursor: default;
+}
+
+#dashboardReportsForm .lst-itm-val:hover:after{
+    content:"";
+    display:none;
+}

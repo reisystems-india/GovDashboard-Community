@@ -1,0 +1,69 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+function data_controller_mssql_dp_datasource_option_definitions() {
+    $items[MSSQLDataSource::TYPE] = array(
+        'server' => array('publicName' => 'Server', 'required' => TRUE),
+        'database' => array('publicName' => 'Database', 'required' => TRUE),
+        'schema' => array('publicName' => 'Schema'),
+        'username' => array('publicName' => 'User Name', 'required' => FALSE),
+        'password' => array('publicName' => 'Password', 'datatype' => PasswordDataTypeHandler::DATA_TYPE, 'required' => FALSE));
+
+    return $items;
+}
+
+function data_controller_mssql_dp_datasource() {
+    $items[MSSQLDataSource::TYPE] = array(
+        'extensions' => array(
+            'maximumEntityNameLength' => 'MSSQLMaximumEntityNameLengthImpl',
+
+            'concatenateValues' => 'FunctionConcatenatedValuesImpl',
+            'formatWildcardValue' => 'DefaultFormatWildcardValueImpl',
+            'formatDateValue' => 'MSSQLFormatDateValueImpl',
+
+            'initializeConnection' => 'MSSQLInitializeConnectionImpl',
+            'executeStatement' => 'PDOExecuteStatementImpl',
+            'executeQueryStatement' => 'PDOExecuteQueryStatementImpl',
+			'executeQueryStatement_callback' => 'MSSQLQueryStatementExecutionCallback',
+
+            'startTransaction' => 'MSSQLStartTransactionStatementImpl',
+            'commitTransaction' => 'MSSQLCommitTransactionStatementImpl',
+            'rollbackTransaction' => 'MSSQLRollbackTransactionStatementImpl',
+
+            'datasourceOwner' => 'SchemaDataSourceOwnerImpl'
+        )
+    );
+
+    return $items;
+}
+
+function data_controller_mssql_dp_datasource_query() {
+    $items[MSSQLDataSource::TYPE] = array(
+        'classname' => 'DefaultSQLDataSourceQueryHandler',
+        'extensions' => array(
+            'adjustRequest' => 'MSSQLQueryRequestAdjusterImpl',
+
+            'applyPagination' => 'MSSQLApplyPaginationImpl'
+        )
+    );
+
+    return $items;
+}

@@ -1,0 +1,1340 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+define('NODE_TYPE_DASHBOARD', 'dashboard');
+
+/**
+ * Implements hook_xautoload()
+ *
+ * @param \Drupal\xautoload\Adapter\LocalDirectoryAdapter $adapter
+ */
+function gd_dashboard_xautoload($adapter) {
+    $adapter->add('GD','lib');
+}
+
+/**
+ * Implements hook_gd_sync_entities()
+ *
+ * @return array
+ */
+function gd_dashboard_gd_sync_entities () {
+    $items['dashboard'] = array(
+        'export' => array(
+            'class' => 'DashboardExport',
+            'weight' => 0
+        ),
+        'import' => array(
+            'class' => 'DashboardImport',
+            'weight' => 0
+        )
+    );
+
+    return $items;
+}
+
+/**
+ * Implements hook_services_resources()
+ *
+ * @return array
+ */
+function gd_dashboard_services_resources () {
+    $resource = array();
+    require 'resources/dashboard.resource.inc';
+
+    return $resource;
+}
+
+/**
+ * Implements hook_gd_security_exceptions()
+ */
+function gd_dashboard_gd_security_exceptions () {
+    $items = array();
+    $items[] = '/^dashboard\/report\/print/i';
+    $items[] = '/^dashboard\/([0-9]+)\/export/i';
+    return $items;
+}
+
+/**
+ * Implementation of hook_menu().
+ *
+ * @return array
+ */
+function gd_dashboard_menu () {
+    $items = array();
+
+    $items['admin/config/govdashboard/dashboard'] = array(
+        'title' => 'Dashboard Settings',
+        'description' =>  'Configure global dashboard settings',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('gd_dashboard_admin_settings_form'),
+        'file' => 'gd_dashboard.admin.inc',
+        'access arguments' => array('administer site configuration')
+    );
+
+    $items['public/dashboard/%gd_dashboard/framed'] = array(
+        'page callback' => 'gd_dashboard_page_public_framed',
+        'page arguments' => array(2),
+        'access callback' => TRUE,
+        'type' => MENU_CALLBACK,
+        'file' => 'gd_dashboard.pages.php'
+    );
+
+    // page callback function used in gd module also
+    $items['public/dashboard/%gd_dashboard/filter/data.json'] = array(
+        'page callback' => 'gd_dashboard_get_filter_data',
+        'page arguments' => array(2),
+        'access callback' => TRUE,
+        'type' => MENU_CALLBACK
+    );
+
+    $items['public/dashboard/%gd_dashboard/report/%'] = array(
+        'title' => 'Dashboard Report',
+        'page callback' => 'gd_dashboard_report_view',
+        'page arguments' => array(2, 4),
+        'access callback' => TRUE,
+        'type' => MENU_CALLBACK,
+        'file' => 'gd_dashboard.pages.php'
+    );
+
+    // page callback function used in gd module also
+    $items['public/dashboard/%gd_dashboard/data'] = array(
+        'page callback' => 'gd_dashboard_ext_get_paging_data',
+        'page arguments' => array(2),
+        'access callback' => TRUE,
+        'type' => MENU_CALLBACK
+    );
+
+    $items['public/dashboard/%gd_dashboard'] = array(
+        'page callback' => 'gd_dashboard_page',
+        'page arguments' => array(2),
+        'access callback' => TRUE,
+        'type' => MENU_CALLBACK,
+        'file' => 'gd_dashboard.pages.php'
+    );
+
+    $items['public/dashboard/%gd_dashboard/export'] = array(
+        'page callback' => 'gd_dashboard_page_public_report_export',
+        'page arguments' => array(2),
+        'access callback' => TRUE,
+        'type' => MENU_CALLBACK,
+        'file' => 'gd_dashboard.pages.php'
+    );
+
+    $items['public/dashboards'] = array(
+        'title' => 'Dashboards',
+        'page callback' => 'gd_dashboard_page_index',
+        'access callback' => TRUE,
+        'type' => MENU_CALLBACK,
+        'file' => 'gd_dashboard.pages.php'
+    );
+
+    $items['dashboard/report/print'] = array(
+        'page callback' => 'gd_dashboard_report_print',
+        'access callback' => TRUE,
+        'type' => MENU_CALLBACK,
+        'file' => 'gd_dashboard.pages.php'
+    );
+
+    $items['dashboard/report/preview'] = array(
+        'title' => 'Dashboard Report Preview',
+        'page callback' => 'gd_dashboard_report_page_preview',
+        'access callback' => 'gd_dashboard_access',
+        'type' => MENU_CALLBACK,
+        'file' => 'gd_dashboard.pages.php'
+    );
+
+    $items['dashboard/%gd_dashboard/export'] = array(
+        'page callback' => 'gd_dashboard_page_export',
+        'access callback' => TRUE,
+        'page arguments' => array(1),
+        'type' => MENU_CALLBACK,
+        'file' => 'gd_dashboard.pages.php'
+    );
+
+    // page callback function used in gd module also
+    $items['dashboard/%gd_dashboard/filter/data.json'] = array(
+        'page callback' => 'gd_dashboard_get_filter_data',
+        'page arguments' => array(1),
+        'access callback' => 'gd_dashboard_access',
+        'type' => MENU_CALLBACK
+    );
+
+    $items['dashboard/%gd_dashboard/report/%'] = array(
+        'title' => 'Dashboard Report',
+        'page callback' => 'gd_dashboard_report_view',
+        'page arguments' => array(1, 3),
+        'access callback' => 'gd_dashboard_access',
+        'type' => MENU_CALLBACK,
+        'file' => 'gd_dashboard.pages.php'
+    );
+
+    $items['dashboard/%gd_dashboard'] = array(
+        'page callback' => 'gd_dashboard_page',
+        'page arguments' => array(1),
+        'access callback' => 'gd_dashboard_access',
+        'type' => MENU_CALLBACK,
+        'file' => 'gd_dashboard.pages.php'
+    );
+
+    $items['dashboards'] = array(
+        'title' => 'Dashboards',
+        'page callback' => 'gd_dashboard_page_index',
+        'access callback' => 'gd_dashboard_access',
+        'type' => MENU_CALLBACK,
+        'file' => 'gd_dashboard.pages.php'
+    );
+
+    return $items;
+}
+
+function gd_dashboard_access() {
+    return user_is_logged_in();
+}
+
+/**
+ * @param $dashboardNode
+ * @return bool
+ */
+function gd_dashboard_access_view ( $dashboardNode ) {
+    global $user;
+
+    gd_datasource_set_active(get_node_field_value($dashboardNode,'field_dashboard_datasource'));
+
+    if ( gd_account_user_is_admin() ) {
+        return true;
+    } else if ( $user->uid ) {
+        if ( gd_datasource_is_property(get_node_field_value($dashboardNode,'field_dashboard_datasource'), 'personal') ) {
+            return $dashboardNode->uid == $user->uid;
+        }
+
+        // is public
+        if ( get_node_field_value($dashboardNode,'field_dashboard_public') ) {
+            return true;
+        }
+
+        // check if user is datamart admin of dashboard
+        if ( gd_account_user_is_datasource_admin($user,get_node_field_value($dashboardNode,'field_dashboard_datasource')) ) {
+            return true;
+        }
+
+        // check if user has view privileges for dashboard
+        return gd_account_user_is_dashboard_viewer($user,$dashboardNode->nid);
+
+    } else {
+        // anonymous access
+        if ( gd_dashboard_get_setting('public') && get_node_field_value($dashboardNode,'field_dashboard_public') ) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+}
+
+function gd_dashboard_get_by_uuid ( $uuid, $datasourceName = null ) {
+
+    if ( !$datasourceName ) {
+        $datasourceName = gd_datasource_get_active();
+    }
+
+    $result = null;
+
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node');
+    $query->propertyCondition('type', NODE_TYPE_DASHBOARD);
+    $query->fieldCondition('field_dashboard_datasource', 'value', $datasourceName);
+    $query->fieldCondition('field_dashboard_uuid', 'value', $uuid);
+    $query->addTag('DANGEROUS_ACCESS_CHECK_OPT_OUT');
+
+    $entities = $query->execute();
+
+    if ( !empty($entities['node']) ) {
+        $nid = null;
+        foreach ( $entities['node'] as $n ) {
+            $nid = $n->nid;
+        }
+        $result = node_load($nid);
+    }
+
+    return $result;
+}
+
+/**
+ * Report content type wrapper for node_load
+ *
+ * @param null $id
+ * @return bool|mixed
+ */
+function gd_dashboard_load ( $id ) {
+
+    $node = gd_dashboard_get_by_nid($id);
+    if ( !$node && !($node = gd_dashboard_get_by_alias($id)) ) {
+        return false;
+    }
+
+    if ( $node->type == NODE_TYPE_DASHBOARD && $node->status == NODE_PUBLISHED ) {
+        return $node;
+    } else {
+        return false;
+    }
+}
+
+function gd_dashboard_is_public ( $dashboardNode ) {
+    return (bool) get_node_field_value($dashboardNode,'field_dashboard_public');
+}
+
+/**
+ * Dashboard content type wrapper for node_save
+ *
+ * @param $dashboardNode
+ */
+function gd_dashboard_save ( $dashboardNode ) {
+    $dashboardNode->field_dashboard_changed[$dashboardNode->language][0]['value'] = time();
+    node_save($dashboardNode);
+}
+
+/**
+ * Dashboard content type wrapper for node_delete
+ *
+ * @param $nid
+ * @param bool $unpublishOnly
+ * @return bool
+ */
+function gd_dashboard_delete ( $nid, $unpublishOnly = true ) {
+    $dashboard = gd_dashboard_load($nid);
+
+    if (!$dashboard) {
+        return false;
+    }
+
+    if ($unpublishOnly) {
+        $dashboard->status = NODE_NOT_PUBLISHED;
+        gd_dashboard_save($dashboard);
+    } else {
+        node_delete($nid);
+    }
+
+    return true;
+}
+
+function gd_dashboard_find_by_tags ( $tags, $datasourceName = null ) {
+
+    $vocabulary = taxonomy_vocabulary_machine_name_load('tags');
+    if ( !$vocabulary ) {
+        return null;
+    }
+
+    if ( !is_array($tags) ) {
+        $termNames = array($tags);
+    } else {
+        $termNames = $tags;
+    }
+
+    $query = new EntityFieldQuery;
+    $query->entityCondition('entity_type', 'taxonomy_term');
+    $query->propertyCondition('name', $termNames,'IN');
+    $query->propertyCondition('vid', $vocabulary->vid);
+    $result = $query->execute();
+    if ( !empty($result['taxonomy_term']) ) {
+        $termIds = array_keys($result['taxonomy_term']);
+    } else {
+        return null;
+    }
+
+    $result = null;
+
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node');
+    $query->propertyCondition('type', NODE_TYPE_DASHBOARD)
+        ->propertyCondition('status', NODE_PUBLISHED);
+
+    $query->fieldCondition('field_dashboard_tags', 'tid', $termIds);
+    $query->addTag('DANGEROUS_ACCESS_CHECK_OPT_OUT');
+
+    if ( $datasourceName ) {
+        $query->fieldCondition('field_dashboard_datasource', 'value', $datasourceName);
+    }
+
+    $entities = $query->execute();
+
+    if ( !empty($entities['node']) ) {
+        $result = node_load_multiple(array_keys($entities['node']));
+    } else {
+        return $entities;
+    }
+
+    return $result;
+}
+
+/**
+ * @param bool $load
+ * @param null $datasourceName
+ * @param bool $publishOnly
+ * @return array
+ */
+function gd_dashboard_findall_by_datasource ( $load = false, $datasourceName = null, $publishOnly = true ) {
+
+    if ( !$datasourceName ) {
+        $datasourceName = gd_datasource_get_active();
+    }
+
+    $result = array();
+
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node');
+    $query->propertyCondition('type', NODE_TYPE_DASHBOARD);
+    $query->fieldCondition('field_dashboard_datasource', 'value', $datasourceName);
+    $query->propertyOrderBy('title');
+
+    if ( $publishOnly ) {
+        $query->propertyCondition('status', NODE_PUBLISHED);
+    }
+
+    $query->addTag('DANGEROUS_ACCESS_CHECK_OPT_OUT');
+
+    $entities = $query->execute();
+
+    if ( !empty($entities['node']) ) {
+        $nids = array();
+        foreach ( $entities['node'] as $n ) {
+            $nids[] = $n->nid;
+        }
+
+        if ( !$load ) {
+            $result = $nids;
+        } else {
+            $result = node_load_multiple($nids);
+        }
+    }
+
+    return $result;
+}
+
+function gd_dashboard_get_groups ( $nid ) {
+    $dashboard = node_load($nid);
+    $groups = array();
+
+    $viewGroups = GD\Security\Authorization\Helper\DrupalHelper::findRoles(array('entityType'=>'dashboard','entityId'=>$dashboard->nid,'operation'=>'view'));
+    foreach ( $viewGroups as $group ) {
+        $groups[$group->rid] = $group;
+    }
+
+    $adminGroups = GD\Security\Authorization\Helper\DrupalHelper::findRoles(array('entityType'=>'datasource','entityId'=>get_node_field_value($dashboard,'field_dashboard_datasource'),'operation'=>'admin'));
+    foreach ( $adminGroups as $group ) {
+        $groups[$group->rid] = $group;
+    }
+
+    return array_values($groups);
+}
+
+function gd_dashboard_get_by_nid ( $nid ) {
+    $node = node_load($nid);
+    if ( !$node || $node->type != NODE_TYPE_DASHBOARD || $node->status != NODE_PUBLISHED ) {
+        return NULL;
+    }
+    return $node;
+}
+
+function gd_dashboard_get_by_alias ( $alias ) {
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node');
+    $query->propertyCondition('type', NODE_TYPE_DASHBOARD);
+    $query->fieldCondition('field_dashboard_alias','value',$alias);
+    $query->addTag('DANGEROUS_ACCESS_CHECK_OPT_OUT');
+
+    $entities = $query->execute();
+
+    if ( !empty($entities['node']) ) {
+        $nids = array();
+        foreach ($entities['node'] as $n) {
+            $nids[] = $n->nid;
+        }
+
+        return node_load($nids[0]);
+    }
+
+    return null;
+}
+
+function gd_dashboard_get_dashboards ( $load = false, $datasourceName = null ) {
+    $result = array();
+
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node');
+    $query->propertyCondition('status', NODE_PUBLISHED);
+    $query->propertyCondition('type', NODE_TYPE_DASHBOARD);
+
+    if ( isset($datasourceName) ) {
+        $query->fieldCondition('field_dashboard_datasource', 'value', $datasourceName);
+    }
+
+    $query->addTag('DANGEROUS_ACCESS_CHECK_OPT_OUT');
+
+    $entities = $query->execute();
+
+    if (!empty($entities['node'])) {
+        $nodes = node_load_multiple(array_keys($entities['node']));
+
+        // remove dashboards that are in un-published datasources
+        foreach ( $nodes as $nid => $node ) {
+            if ( gd_datasource_find(get_node_field_value($node,'field_dashboard_datasource')) ) {
+                $result[$nid] = $node;
+            }
+        }
+
+        if ( !$load ) {
+            $result = array_keys($result);
+        }
+    }
+
+    return $result;
+}
+
+/**
+ * @param bool $load
+ * @return array
+ */
+function gd_dashboard_get_dashboards_public ( $load = false ) {
+    $result = array();
+
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node');
+    $query->propertyCondition('status', NODE_PUBLISHED);
+    $query->propertyCondition('type', NODE_TYPE_DASHBOARD);
+    $query->fieldCondition('field_dashboard_public','value',1);
+    $query->addTag('DANGEROUS_ACCESS_CHECK_OPT_OUT');
+
+    $entities = $query->execute();
+
+    if (!empty($entities['node'])) {
+        $nids = array();
+        foreach ($entities['node'] as $n) {
+            $nids[] = $n->nid;
+        }
+
+        if (!$load) {
+            $result = $nids;
+        } else {
+            $result = node_load_multiple($nids);
+        }
+    }
+
+    return $result;
+}
+
+/**
+ * @param $dashboard
+ * @param bool $load
+ * @return array
+ */
+function gd_dashboard_get_reports ( $dashboard, $load = false ) {
+    $result = array();
+    if ( !empty($dashboard->field_dashboard_reports[$dashboard->language][0]['nid']) ) {
+        $nids = array();
+        foreach ( $dashboard->field_dashboard_reports[$dashboard->language] as $item ) {
+            $nids[] = $item['nid'];
+        }
+
+        if (!$load) {
+            $result = $nids;
+        } else {
+            $result = node_load_multiple($nids);
+        }
+    }
+    return $result;
+}
+
+function gd_dashboard_get_current() {
+    $current = null;
+    if ( !empty($_GET['id']) ) {
+        $current = gd_dashboard_load($_GET['id']);
+    }
+    return $current;
+}
+
+/**
+ * Implements hook_library
+ */
+function gd_dashboard_library() {
+    $libraries['GD_Dashboard_View'] = array(
+        'title'   => 'GovDashboard Dashboard View',
+        'website' => 'https://govdashboard.com',
+        'version' => '0.1',
+        'js' => array(
+            drupal_get_path('module', 'gd_dashboard') . '/js/apps/Int.js' => array('weight' => 0),
+            drupal_get_path('module', 'gd_dashboard') . '/js/dashboard.js' => array('weight' => 0),
+            drupal_get_path('module', 'gd_dashboard') . '/js/ReportView.js' => array('weight' => 0),
+            drupal_get_path('module', 'gd_dashboard') . '/js/ReportMenu.js' => array('weight' => 0),
+            drupal_get_path('module','gd').'/js/dashboard/dashboardPrint.js' => array('weight' => 0)
+        ),
+        'dependencies' => array(
+            array('gd','GD_JS'),
+            array('gd','GD_Filter_View'),
+        )
+    );
+
+    return $libraries;
+}
+
+/**
+ * @param $dashboard
+ */
+function gd_dashboard_ext ( $dashboard ) {
+    $event = new DefaultEvent();
+
+    ob_start();
+
+    $response = new stdClass();
+    $response->status = new stdClass();
+    $response->status->code = 200;
+    $response->status->message = 'OK';
+
+    if ( gd_ext_access() ) {
+        gd_datasource_set_active(get_node_field_value($dashboard,'field_dashboard_datasource'));
+
+        $DashboardConfig = new GD_DashboardConfig($dashboard,$_REQUEST);
+
+        $ext = new stdClass();
+        $ext->id = $DashboardConfig->id;
+        $ext->title = $DashboardConfig->title;
+        $ext->width = $DashboardConfig->width;
+        $ext->height = intval($DashboardConfig->height)+30;
+        $ext->export = $DashboardConfig->isExportable();
+        $ext->print = $DashboardConfig->isPrintable();
+        $ext->filters = $DashboardConfig->getFilters();
+
+        $ext->items = array();
+        foreach ( $DashboardConfig->items as $item ) {
+            if ( $item->type == 'report' ) {
+                $reportNode = node_load($item->content);
+                $options = array('external' => TRUE);
+                $ReportConfig = null;
+                $filters = array();
+                try {
+                    $html = $DashboardConfig->getItemReportView($item, $options);
+                    $table = $DashboardConfig->getItemTableView($item, $options);
+                    $filters = array();
+                    $ReportConfig = GD_ReportConfigFactory::getInstance()->getConfig($reportNode);
+                    foreach ( $ReportConfig->getFilters() as $report_filter ) {
+
+                        // only add those that are without value and are not in dashboard filter list
+                        $keep_report_filter = true;
+                        if (!empty($ext->filters)) {
+                            foreach ( $ext->filters as $dashboard_filter ) {
+                                if ( $dashboard_filter->name == $report_filter->name ) {
+                                    $keep_report_filter = false;
+                                }
+                            }
+                        }
+
+                        if ( $keep_report_filter && !empty($report_filter->operator) ) {
+                            $keep_report_filter = false;
+                        }
+
+                        if ( $keep_report_filter ) {
+                            $filters[] = $report_filter;
+                        }
+                    }
+                } catch (Exception $e) {
+                    //  When we can't even generate a report config
+                    $html = $DashboardConfig->getWarningItemView($reportNode, $item, $options);
+                    $table = $DashboardConfig->getWarningItemView($reportNode, $item, $options);
+                }
+
+                $ext->items[] = array(
+                    'type' => $item->type,
+                    'display' => isset($ReportConfig) ? $ReportConfig->getDisplayType() : null,
+                    'id' => $item->content,
+                    'title' => $reportNode->title,
+                    'alias' => get_node_field_value($reportNode,'field_report_alias'),
+                    'position' => $item->position,
+                    'size' => $item->size,
+                    'header'=>$html->header,
+                    'footer'=>$html->footer,
+                    'html' => $html->body,
+                    'table' => $table->body,
+                    'filters' => $filters
+                );
+            } else if ( $item->type == 'text' ) {
+                $html = $DashboardConfig->getItemTextView($item);
+                $ext->items[] = array(
+                    'type' => $item->type,
+                    'position' => $item->position,
+                    'size' => $item->size,
+                    'html' => $html
+                );
+            } else if ( $item->type == 'image' ) {
+                $html = $DashboardConfig->getItemImageView($item);
+                $ext->items[] = array(
+                    'type' => $item->type,
+                    'position' => $item->position,
+                    'size' => $item->size,
+                    'html' => $html
+                );
+            }
+        }
+
+        $ext->breadcrumbs = BreadcrumbFactory::parseBreadcrumbs($DashboardConfig);
+    } else {
+        $ext = null;
+        $response->status->code = 403;
+        $response->status->message = 'Forbidden';
+    }
+
+    $response->data = $ext;
+
+    module_invoke_all('gd_ext_response_alter',$response);
+
+    echo ob_get_contents();
+
+    if (isset($_SESSION['messages'])) {
+        foreach ($_SESSION['messages']['error'] as $error) {
+            LogHelper::log_error($error);
+        }
+        $response->status->code = 500;
+        $response->status->message = $_SESSION['messages']['error'];
+        unset($_SESSION['messages']);
+    }
+
+    echo \GD\Utility\Json::getPayload($response,(isset($_GET['callback']))?$_GET['callback']:null);
+
+    if (isset($dashboard->nid)) {
+        $event->type = 1; // see gd_health_monitoring_database_install() for more details
+        $event->owner = $dashboard->nid;
+
+        EventRecorderFactory::getInstance()->record($event);
+    }
+
+    drupal_exit();
+}
+
+function gd_dashboard_ext_get_paging_data ( $dashboard ) {
+    ob_start();
+
+    $results = NULL;
+    $reportId = !empty($_GET['reportId']) ? $_GET['reportId'] : NULL;
+    $filters = !empty($_GET['filter']) ? $_GET['filter'] : NULL;
+    $orderBy = !empty($_GET['orderBy']) ? $_GET['orderBy'] : NULL;
+    $offset = !empty($_GET['offset']) ? $_GET['offset'] : NULL;
+    $limit = !empty($_GET['limit']) ? $_GET['limit'] : NULL;
+    $DashboardConfig = new GD_DashboardConfig($dashboard);
+    gd_datasource_set_active($DashboardConfig->getDatasource());
+    $results = gd_dashboard_get_paging_data($DashboardConfig, $reportId, $filters, $orderBy, $offset, $limit);
+
+    if (isset($_SESSION['messages'])) {
+        foreach ($_SESSION['messages']['error'] as $error) {
+            LogHelper::log_error($error);
+        }
+        $response = new stdClass();
+        $response->code = 500;
+        $response->message = $_SESSION['messages']['error'];
+        unset($_SESSION['messages']);
+        drupal_add_http_header('Content-Type', 'application/json');
+        echo json_encode($results);
+    } else {
+        if ( isset($_GET['callback']) ) {
+            echo \GD\Utility\Json::getPayload($results,$_GET['callback']);
+        } else {
+            if ( $DashboardConfig->isPublic() && arg(0) == 'public' ) {
+                drupal_add_http_header('Cache-Control','no-transform,public,max-age=3600,s-maxage=3600');
+                drupal_add_http_header('Expires',gmdate('D, d M Y H:i:s \G\M\T', time() + 3600));
+            }
+            echo \GD\Utility\Json::getPayload($results);
+        }
+    }
+
+    drupal_exit();
+}
+
+function gd_dashboard_get_paging_data ( GD_DashboardConfig $DashboardConfig, $reportId, $filters = array(), $orderBy = null, $offset = 0, $limit = null ) {
+
+    $ReportConfig = null;
+    foreach ( $DashboardConfig->getReports() as $id => $report ) {
+        if ( $reportId == $id ) {
+            $ReportConfig = GD_ReportConfigFactory::getInstance()->getConfig($report);
+            break;
+        }
+    }
+
+    if ( $ReportConfig == null ) {
+        throw new IllegalArgumentException('Incoming report id does not belong to incoming dashboard');
+    } else {
+        if (isset($_REQUEST['columns'])) {
+            $ReportConfig->setColumns($_REQUEST['columns']);
+        }
+
+        $DashboardConfig->updateReportConfig($ReportConfig);
+        return _gd_report_get_paging_table_data($ReportConfig, $filters, $orderBy, $offset, $limit);
+    }
+}
+
+/**
+ * @param $dashboard
+ */
+function gd_dashboard_get_filter_data ( $dashboard ) {
+    $result = null;
+    $response = new stdClass();
+    $response->status = new stdClass();
+
+    try {
+        $DashboardConfig = new GD_DashboardConfig($dashboard);
+        gd_datasource_set_active($DashboardConfig->getDatasource());
+        $query = $_REQUEST['query'];
+        if ( trim($query) == '' ) {
+            $query = '*';
+        }
+
+        if ( substr($query, -1) != '*' ) {
+            $query = $query.'*';
+        }
+        $reports = $DashboardConfig->getReports();
+        foreach ($reports as $report) {
+            $rConfig = $DashboardConfig->getReportConfig($report->nid);
+            $column = $rConfig->getColumnByFilterName($_REQUEST['filter']);
+            if (isset($column)) {
+                $options = array(
+                    'parameters' => array()
+                );
+                if (!empty($_REQUEST['appliedFilters'])) {
+                    foreach ($_REQUEST['appliedFilters'] as $filter) {
+                        $fc = $rConfig->getColumnByFilterName($filter['name']);
+                        if (isset($fc) && $fc->name != $column->name) {
+                            $options['parameters'][$fc->name] = OperatorFactory::getInstance()->initiateHandler($filter['operator'], $filter['value']);
+                        }
+                    }
+                }
+                $result = gd_report_lookup_column($rConfig, $column->name, $query, isset($_REQUEST['offset']) ? $_REQUEST['offset'] : 0, isset($_REQUEST['limit']) ? $_REQUEST['limit'] : null, $options);
+                break;
+            }
+        }
+
+        if (isset($_SESSION['messages'])) {
+            foreach ($_SESSION['messages']['error'] as $error) {
+                LogHelper::log_error($error);
+            }
+            $response->status->code = 500;
+            $response->status->message = $_SESSION['messages']['error'];
+            unset($_SESSION['messages']);
+        } else {
+            $response->status->code = 200;
+            $response->status->message = 'OK';
+            $response->data = $result;
+
+            if ( !isset($_GET['callback']) && $DashboardConfig->isPublic() && arg(0) == 'public' ) {
+                drupal_add_http_header('Cache-Control','no-transform,public,max-age=3600,s-maxage=3600');
+                drupal_add_http_header('Expires',gmdate('D, d M Y H:i:s \G\M\T', time() + 3600));
+            }
+        }
+
+    } catch (Exception $e) {
+        $response->status->code = 500;
+        $response->status->message = 'Exception';
+        $response->status->exception = json_encode($e);
+    }
+
+    module_invoke_all('gd_ext_response_alter',$response);
+    echo \GD\Utility\Json::getPayload($response,$_GET['callback']);
+    drupal_exit();
+}
+
+/**
+ * Check if the dashboard name is unique.
+ * Returns true if dashboard $name is unique.
+ *
+ * @param $name
+ * @param null $datasourceName
+ * @return bool
+ */
+function gd_dashboard_name_isunique ( $name, $datasourceName = null ) {
+
+    if ( !$datasourceName ) {
+        $datasourceName = gd_datasource_get_active();
+    }
+
+    // dashboard name unique?
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node');
+    $query->propertyCondition('status', NODE_PUBLISHED);
+    $query->propertyCondition('type', NODE_TYPE_DASHBOARD);
+    $query->propertyCondition('title', $name, '=');
+    $query->fieldCondition('field_dashboard_datasource', 'value', $datasourceName);
+    $query->addTag('DANGEROUS_ACCESS_CHECK_OPT_OUT');
+
+    $entities = $query->execute();
+
+    if (!empty($entities)) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
+/**
+ * @return null
+ */
+function gd_dashboard_get_settings () {
+    $defaults = array (
+        'public' => 1,
+        'export' => 0,
+        'print' => 0,
+        'export_tool_path' => '/usr/local/bin/wkhtmltopdf',
+        'export_log_path' => '/dev/null',
+        'export_header_path' => '/sites/all/modules/custom/dashboard/templates/pdf-header.html',
+        'export_footer_path' => '/sites/all/modules/custom/dashboard/templates/pdf-footer.html'
+    );
+    $settings = variable_get('gd_dashboard_config',array());
+    return array_merge($defaults,$settings); // to retrieve newly added settings
+}
+
+/**
+ * @param $name
+ * @return null
+ */
+function gd_dashboard_get_setting ( $name ) {
+    $settings = gd_dashboard_get_settings();
+    if ( isset($settings[$name]) ) {
+        return $settings[$name];
+    }
+    LogHelper::log_debug('missing dashboard setting: '.$name);
+    return NULL;
+}
+
+/**
+ * Creates an api object given a node
+ *
+ * @param $node
+ * @param $options
+ * @return StdClass
+ */
+function gd_dashboard_create_api_object_from_node ( $node, $options ) {
+    $api_object = new StdClass();
+
+    if ( isset($node->nid) ) {
+        $api_object->id = $node->nid;
+    }
+
+    $api_object->name = $node->title;
+
+    $api_object->alias = get_node_field_value($node,'field_dashboard_alias');
+    $api_object->uuid = get_node_field_value($node,'field_dashboard_uuid');
+
+    // description
+    if ( !empty($node->field_dashboard_desc) ) {
+        $api_object->description = $node->field_dashboard_desc[$node->language][0]['value'];
+    }
+
+    // alias
+    if ( !empty($node->field_dashboard_alias) ) {
+        $api_object->alias = $node->field_dashboard_alias[$node->language][0]['value'];
+    }
+
+    // config
+    if ( !empty($node->field_dashboard_config) ) {
+        $api_object->config = json_decode($node->field_dashboard_config[$node->language][0]['value']);
+    }
+
+    // public flag
+    if ( !empty($node->field_dashboard_public) && isset($node->field_dashboard_public[$node->language][0]['value']) ) {
+        $api_object->public = $node->field_dashboard_public[$node->language][0]['value'];
+    }
+
+    // dates
+    $api_object->created = date(GD_DATETIME_FORMAT_API,$node->created);
+
+    $changed = get_node_field_int_value($node, 'field_dashboard_changed');
+    if (isset($changed)) {
+        $api_object->changed = date(GD_DATETIME_FORMAT_API, $changed);
+    }
+    else {
+        $api_object->changed = $api_object->created;
+    }
+
+    // author info
+    if ( isset($node->uid) ) {
+        $account = user_load($node->uid);
+
+        $api_object->author = new stdClass();
+        if ( $account ) {
+            $api_object->author->uid = $account->uid;
+            $api_object->author->name = $account->name;
+            $api_object->author->email = $account->mail;
+        }
+    }
+
+    // datasource
+    if ( !empty($node->field_dashboard_datasource) ) {
+        $datasource = gd_datasource_get(get_node_field_value($node,'field_dashboard_datasource'));
+        $api_object->datasource = new stdClass();
+        $api_object->datasource->name = $datasource->name;
+        $api_object->datasource->publicName = $datasource->publicName;
+    }
+
+    // report info
+    if ( in_array('reports',$options['fields']) ) {
+        if ( !empty($node->field_dashboard_reports) ) {
+            $metadata = data_controller_get_metamodel();
+
+            $api_object->reports = array();
+            $api_object->datasets = array();
+            $datasetNames = array();
+
+            $report_node_ids = array();
+            foreach ( $node->field_dashboard_reports[$node->language] as $item ) {
+                $report_node_ids[] = $item['nid'];
+            }
+            $report_nodes = node_load_multiple($report_node_ids);
+            foreach ( $report_nodes as $report_node ) {
+                $api_object_report = new stdClass();
+                $api_object_report->id = $report_node->nid;
+                $api_object_report->title = $report_node->title;
+
+                if ( !empty($report_node->field_report_dataset_sysnames[$report_node->language]) ) {
+                    foreach ( $report_node->field_report_dataset_sysnames[$report_node->language] as $field_report_dataset_sysname ) {
+                        $dataset = $metadata->findDataset($field_report_dataset_sysname['value']);
+
+                        if ( $dataset ) {
+                            $d = new stdClass();
+                            $d->name = $dataset->name;
+                            $d->publicName = $dataset->publicName;
+                            $api_object_report->datasets[] = $d;
+
+                            if ( !in_array($dataset->name,$datasetNames) ) {
+                                $api_object->datasets[] = $d;
+                                $datasetNames[] = $dataset->name;
+                            }
+                        }
+                    }
+                }
+
+                $api_object->reports[] = $api_object_report;
+            }
+
+        } else {
+            $api_object->reports = array();
+            $api_object->datasets = array();
+        }
+    }
+
+    if ( in_array('filters',$options['fields']) ) {
+        $DashboardConfig = new GD_DashboardConfig($node);
+        $filters = $DashboardConfig->getFilters();
+        if ( $filters ) {
+            //  Inject the column information into the filter so that we can do look-ups
+            foreach ( $DashboardConfig->reports as $report ) {
+                $config = GD_ReportConfigFactory::getInstance()->getConfig($report);
+                foreach ( $filters as $filter ) {
+                    $column = $config->getColumnByFilterName($filter->name);
+                    if ( $column ) {
+                        $filter->column = $column;
+                    }
+                }
+            }
+            $api_object->config->filters = $filters;
+        }
+    }
+
+    if (in_array('tags', $options['fields'])) {
+        $api_object->tags = array();
+        if (!empty($node->field_dashboard_tags)) {
+            foreach($node->field_dashboard_tags[$node->language] as $tag) {
+                $api_object->tags[] = $tag['tid'];
+            }
+        }
+    }
+
+    // load up drilldowns
+    if ( in_array('drilldowns',$options['fields']) && !empty($api_object->config->drilldowns) ) {
+        $updatedDrilldowns = array();
+        foreach ( $api_object->config->drilldowns as $drilldown ) {
+
+            // replace objects if they exist
+            if ( !empty($drilldown->report->id) ) {
+                $drilldown->report = $drilldown->report->id;
+            }
+            if ( !empty($drilldown->column->id) ) {
+                $drilldown->column = $drilldown->column->id;
+            }
+            if ( !empty($drilldown->dashboard->id) ) {
+                $drilldown->dashboard = $drilldown->dashboard->id;
+            }
+
+            // if report no longer exists in dashboard, exclude
+            $report = null;
+            foreach ( $node->field_dashboard_reports[$node->language] as $item ) {
+                if ( $item['nid'] == $drilldown->report ) {
+                    // load report
+                    $report = gd_report_get_by_nid($drilldown->report);
+                }
+            }
+            if ( !$report ) {
+                continue;
+            }
+
+            $ReportConfig = GD_ReportConfigFactory::getInstance()->getConfig($report);
+            $drilldown->report = new stdClass();
+            $drilldown->report->id = $report->nid;
+            $drilldown->report->name = $report->title;
+
+            $column = $ReportConfig->getColumn($drilldown->column);
+            if ( isset($column) ) {
+                $drilldown->column = new stdClass();
+                $drilldown->column->id = $column->name;
+
+                $details = $ReportConfig->options['column_details'];
+                foreach ($details as $detail) {
+                    if ($column->name == $detail->name) {
+                        $drilldown->column->name = $detail->publicName;
+                        break;
+                    }
+                }
+
+                // custom name from report
+                $config = $ReportConfig->getConfig();
+                foreach ($config['columnConfigs'] as $c) {
+                    if ( $c['columnId'] == $column->name && !empty($c['displayName']) ) {
+                        $drilldown->column->name = $c['displayName'];
+                        break;
+                    }
+                }
+            } else {
+                $columnName = $drilldown->column;
+                $drilldown->column = new stdClass();
+                $drilldown->column->id = $columnName;
+                $drilldown->column->name = $columnName;
+                $drilldown->column->invalid = TRUE;
+            }
+
+            // load dashboard
+            $dashboard = gd_dashboard_get_by_nid($drilldown->dashboard);
+            //  If the node being used in the drilldown no longer exists
+            if ( $dashboard ) {
+                $drilldown->dashboard = new stdClass();
+                $drilldown->dashboard->id = $dashboard->nid;
+                $drilldown->dashboard->name = $dashboard->title;
+            } else {
+                $drilldown->dashboard = new stdClass();
+                $drilldown->dashboard->id = NULL;
+                $drilldown->dashboard->name = NULL;
+                $drilldown->dashboard->invalid = TRUE;
+            }
+
+            $drilldown->id = count($updatedDrilldowns);
+            $updatedDrilldowns[] = $drilldown;
+        }
+
+        $api_object->config->drilldowns = $updatedDrilldowns;
+    }
+
+    // load group info
+    $api_object->groups = array();
+    $api_object->users = array();
+    foreach ( gd_dashboard_get_groups($node->nid) as $group ) {
+        $api_object_group = new stdClass();
+
+        if ( isset($group->rid) ) {
+            $api_object_group->id = $group->rid;
+        }
+
+        if ( isset($group->name) ) {
+            $api_object_group->name = $group->name;
+        }
+
+        // get users in a group
+        $users = array();
+        if ( isset($group->rid) ) {
+            $users = gd_account_group_get_members($group->rid,LOAD_ENTITY);
+        }
+
+        foreach ( $users as $account ) {
+            $api_object_group_user = new stdClass();
+            $api_object_group_user->id = $account->uid;
+            $api_object_group_user->mail = $account->mail;
+            $api_object_group_user->firstname = $account->firstname;
+            $api_object_group_user->lastname = $account->lastname;
+            $api_object_group_user->fullname = $account->fullname;
+            $api_object->users[$account->uid] = $api_object_group_user;
+        }
+        array_push($api_object->groups,$api_object_group);
+    }
+
+    // remove array keys
+    $api_object->users = array_values($api_object->users);
+
+
+    if ( in_array('css', $options['fields']) ) {
+        if ( !empty($node->field_dashboard_custom_view[$node->language]) ) {
+            $api_object->customView = $node->field_dashboard_custom_view[$node->language][0]['value'];
+        }
+    }
+
+    return $api_object;
+}
+
+/**
+ * @param $dashboard
+ * @param null $dashboardNode
+ * @return null|StdClass
+ */
+function gd_dashboard_create_node_from_api_object ( $dashboard, $dashboardNode = null ) {
+
+    if ( !isset($dashboardNode) ) {
+        $dashboardNode = new StdClass();
+        $dashboardNode->type = NODE_TYPE_DASHBOARD;
+        $dashboardNode->language = LANGUAGE_NONE;
+        node_object_prepare($dashboardNode);
+
+        $dashboardNode->field_dashboard_uuid[$dashboardNode->language][0]['value'] = \GD\Utility\Uuid::generate();
+    }
+
+    if ( isset($dashboard->name) ) {
+        $dashboardNode->title = $dashboard->name;
+    }
+
+    if ( isset($dashboard->description) ) {
+        $dashboardNode->field_dashboard_desc[$dashboardNode->language][0]['value'] = $dashboard->description;
+    }
+
+    //  Only set public if allowed
+    if ( gd_dashboard_get_setting('public') ) {
+        $dashboardNode->field_dashboard_public[$dashboardNode->language][0]['value'] = isset($dashboard->public) ? (int) $dashboard->public : 0;
+    } else {
+        $dashboardNode->field_dashboard_public[$dashboardNode->language][0]['value'] = 0;
+    }
+
+    if ( isset($dashboard->datasource) ) {
+        $dashboardNode->field_dashboard_datasource[$dashboardNode->language][0]['value'] = is_array($dashboard->datasource) ? $dashboard->datasource['name'] : $dashboard->datasource;
+    }
+
+    if ( isset($dashboard->reports) ) {
+        $dashboardNode->field_dashboard_reports[$dashboardNode->language] = array();
+        foreach ( $dashboard->reports as $r ) {
+            $dashboardNode->field_dashboard_reports[$dashboardNode->language][] = array('nid' => $r['id']);
+        }
+    }
+
+    if ( isset($dashboard->customView) ) {
+        $dashboardNode->field_dashboard_custom_view[$dashboardNode->language][0]['value'] = $dashboard->customView;
+    }
+
+    if ( isset($dashboard->tags) ) {
+        $dashboardNode->field_dashboard_tags[$dashboardNode->language] = array();
+        foreach ( $dashboard->tags as $tid ) {
+            $dashboardNode->field_dashboard_tags[$dashboardNode->language][] = array('tid' => $tid);
+        }
+    }
+
+    if ( isset($dashboard->config) && isset($dashboard->reports) ) {
+
+        /**
+         * Update config to remove filters and links that reference reports
+         * no longer in this dashboard or unpublished
+         */
+
+        /**
+         * pre load for efficiency
+         */
+        $dashboardReportNids = array();
+        foreach ( $dashboard->reports as $r ) {
+            $dashboardReportNids[$r['id']] = $r['id'];
+        }
+        $dashboardReportNodes = gd_report_load_multiple($dashboardReportNids);
+
+        $dashboardReportConfigs = array();
+        foreach ( $dashboardReportNodes as $reportNode ) {
+            $dashboardReportConfigs[$reportNode->nid] = GD_ReportConfigFactory::getInstance()->getConfig($reportNode);
+        }
+
+        // update filters
+        $updated_filters = array();
+        foreach ( $dashboard->config['filters'] as $f ) {
+            $found = false;
+            foreach ( $dashboardReportNodes as $reportNode ) {
+                if ( $dashboardReportConfigs[$reportNode->nid]->getColumnByFilterName($f['name']) ) {
+                    $found = true;
+                }
+            }
+            if ( $found ) {
+                $updated_filters[] = $f;
+            }
+        }
+        $dashboard->config['filters'] = $updated_filters;
+
+        // update drilldowns
+        $updated_drilldowns = array();
+        foreach ( $dashboard->config['drilldowns'] as $d ) {
+            foreach ( $dashboardReportNodes as $reportNode ) {
+                if ( $d['report'] == $reportNode->nid ) {
+                    foreach ( $d['filters'] as $k => $f ) {
+                        $add = false;
+                        foreach ( $dashboardReportConfigs[$reportNode->nid]->getFilters() as $f2 ) {
+                            if ( $f == $f2->name && $f2->exposed ) {
+                                $add = true;
+                                break;
+                            }
+                        }
+
+                        if ( !$add ) {
+                            unset($d['filters'][$k]);
+                        }
+                    }
+                }
+            }
+            // reset filter array keys due to possible unset
+            $d['filters'] = array_values($d['filters']);
+            $updated_drilldowns[] = $d;
+        }
+        $dashboard->config['drilldowns'] = $updated_drilldowns;
+
+        // save it
+        $dashboardNode->field_dashboard_config[$dashboardNode->language][0]['value'] = json_encode($dashboard->config);
+    }
+
+    return $dashboardNode;
+}
+
+/**
+ * Implements hook_gd_health_medic_symptoms().
+ *
+ * @return array
+ */
+function gd_dashboard_gd_health_medic_symptoms() {
+    $items = array();
+
+    $items[] = array(
+        'className' => '\GD\Health\Medic\Symptom\Dashboard\MissingDatasourceSymptom'
+    );
+
+    return $items;
+}
+
+/**
+ * Implements hook_gd_health_medic_treatments().
+ *
+ * @return array
+ */
+function gd_dashboard_gd_health_medic_treatments() {
+    $items = array();
+
+    $items['DashboardDelete'] = array(
+        'className' => '\GD\Health\Medic\Treatment\Dashboard\DeleteDashboardTreatment',
+        'weight' => 100
+    );
+
+    return $items;
+}

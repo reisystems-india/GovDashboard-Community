@@ -1,0 +1,168 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+/**
+ * Defines what URLs do not keep the session active
+ *
+ * @return array
+ */
+function gd_timeout_keep_alive_exceptions() {
+    $exceptions = &drupal_static(__FUNCTION__, NULL);
+    if (!isset($exceptions)) {
+        $exceptions = (array) module_invoke_all('gd_timeout_keep_alive_exceptions');
+
+        $exceptions[] = '/timeout\/lastActive/i';
+        $exceptions[] = '/timeout\/keepAlive/i';
+
+        // allow modifications
+        drupal_alter('gd_timeout_exceptions', $exceptions);
+    }
+
+    return $exceptions;
+}
+
+/**
+ * Defines which pages are not subjected session timeout
+ *
+ * @return array
+ */
+function gd_timeout_page_exceptions() {
+    $exceptions = &drupal_static(__FUNCTION__, NULL);
+    if (!isset($exceptions)) {
+        $exceptions = (array) module_invoke_all('gd_timeout_page_exceptions');
+        // allow modifications
+        drupal_alter('gd_timeout_exceptions', $exceptions);
+    }
+
+    return $exceptions;
+}
+
+function gd_timeout_init() {
+    if (!isset($_SESSION) || !user_is_logged_in()) return;
+
+    $keepAlive = true;
+    //  Update last active variable in session
+    foreach ( gd_timeout_keep_alive_exceptions() as $pattern ) {
+        if ( preg_match($pattern,$_GET['q']) === 1 ) {
+            $keepAlive = false;
+        }
+    }
+
+    if ($keepAlive) {
+        $_SESSION['session_last_active'] = round(microtime(true) * 1000);
+    }
+
+    //  TODO Pull this out of init and put in page alter or another hook
+    foreach ( gd_timeout_page_exceptions() as $pattern ) {
+        if ( preg_match($pattern,$_GET['q']) === 1 ) {
+            return;
+        }
+    }
+
+    $config = variable_get('gd_timeout_config');
+    //  Limit in seconds
+    $limit = $config['session_limit'] * 60;
+    drupal_add_js(array( 'timeout' => array(
+        'countdown_timer' => $config['countdown_timer'],
+        'session_last_active' => $_SESSION['session_last_active'],
+        'session_limit' => $limit,
+        'session_countdown' => $limit * (2/3),
+    )), 'setting');
+
+    drupal_add_library('gd_timeout','GD_Timeout',TRUE);
+}
+
+function gd_timeout_menu() {
+    $items = array();
+
+    $items['admin/config/govdashboard/timeout'] = array(
+        'title' => 'Session Timeout Settings',
+        'description' =>  'Configure global session timeout settings.',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('gd_timeout_admin_settings_form'),
+        'file' => 'gd_timeout.admin.inc',
+        'access arguments' => array('administer site configuration')
+    );
+
+    $items['timeout'] = array(
+        'page callback' => 'gd_timeout_session_timeout',
+        'access callback' => TRUE,
+    );
+
+    $items['timeout/lastActive'] = array(
+        'page callback' => 'gd_timeout_get_last_active',
+        'access callback' => TRUE,
+    );
+
+    $items['timeout/keepAlive'] = array(
+        'page callback' => 'gd_timeout_keep_alive',
+        'access callback' => TRUE,
+    );
+
+    return $items;
+}
+
+function gd_timeout_session_timeout() {
+    $config = variable_get('gd_timeout_config');
+    module_invoke_all('gd_session_timeout');
+
+    $destination = $_GET['destination'];
+    session_destroy();
+    drupal_set_message('Your session has expired due to inactivity (>' . $config['session_limit'] . ' mins). Please login again.', 'warning');
+    $options = array();
+    if (isset($destination)) {
+        $options['query'] = array('destination'=>$destination);
+    }
+    drupal_goto('user/login', $options);
+}
+
+function gd_timeout_keep_alive() {
+    $_SESSION['session_last_active'] = round(microtime(true) * 1000);
+    drupal_json_output($_SESSION['session_last_active']);
+}
+
+function gd_timeout_get_last_active() {
+    $lastActive = !empty($_SESSION['session_last_active']) ? $_SESSION['session_last_active'] : NULL;
+    drupal_json_output($lastActive);
+}
+
+function gd_timeout_library() {
+    $libraries = array();
+
+    $libraries['GD_Timeout'] = array(
+        'title'   => 'GovDashboard Timeout',
+        'website' => 'https://govdashboard.com',
+        'version' => '0.1',
+        'js' => array(
+            drupal_get_path('module','gd_timeout').'/js/jquery.idletimer.js' => array('scope' => 'footer'),
+            drupal_get_path('module','gd_timeout').'/js/jquery.idletimeout.js' => array('scope' => 'footer'),
+            drupal_get_path('module','gd_timeout').'/js/gd_timeout.js' => array('scope' => 'footer')
+        ),
+        'css' => array(
+            drupal_get_path('module','gd_timeout').'/css/timeout_style.css' => array()
+        ),
+        'dependencies' => array(
+            array('gd','bootstrap')
+        )
+    );
+
+    return $libraries;
+}

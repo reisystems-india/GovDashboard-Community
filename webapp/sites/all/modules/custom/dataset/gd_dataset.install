@@ -1,0 +1,128 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+/**
+ * Populating UUID field
+ */
+function gd_dataset_update_7105() {
+    // checking that new fields exist. Checking just one of them
+    if (field_info_field('field_dataset_uuid') == NULL) {
+        throw new DrupalUpdateException(t("'Dataset' content type configuration had not been deployed successfully"));
+    }
+
+    require_once drupal_get_path('module', 'gd').'/lib/GD/Utility/Uuid.php';
+
+    $dataset_nids = db_select('node', 'n')
+      ->fields('n', array('nid'))
+      ->condition('type', NODE_TYPE_DATASET)
+      ->orderBy('nid', 'ASC')
+      ->execute();
+
+    $nids = array();
+    foreach ($dataset_nids as $dataset_nid) {
+       $nids[] = $dataset_nid->nid;
+    }
+
+    $nid_count = count($nids);
+    $i = 0;
+    $batch_size = 10;
+    $batch = array();
+    while ( $i < $nid_count ) {
+        $batch[] = $nids[$i];
+        if ( $i % $batch_size == 0 ) {
+            $nodes = node_load_multiple($batch);
+            foreach ($nodes as $node) {
+                $uuid = get_node_field_value($node, 'field_dataset_uuid');
+                if ( empty($uuid) ) {
+                    $node->field_dataset_uuid[$node->language][0]['value'] = \GD\Utility\Uuid::generate();
+                    node_save($node);
+                }
+            }
+            $batch = array();
+        }
+        $i++;
+    }
+
+    if ( !empty($batch) ) {
+        $nodes = node_load_multiple($batch);
+        foreach ($nodes as $node) {
+            $uuid = get_node_field_value($node, 'field_dataset_uuid');
+            if ( empty($uuid) ) {
+                $node->field_dataset_uuid[$node->language][0]['value'] = \GD\Utility\Uuid::generate();
+                node_save($node);
+            }
+        }
+    }
+ }
+
+
+/**
+ * Copying field_dataset_datamart to field_dataset_datasource
+ */
+function gd_dataset_update_7106 ( &$sandbox ) {
+    // checking that new fields exist. Checking just one of them
+    if (field_info_field('field_dataset_datasource') == NULL) {
+        throw new DrupalUpdateException(t("'Dataset' content type missing field 'field_dataset_datasource'"));
+    }
+
+    if (!isset($sandbox['total'])) {
+        $sandbox['total'] = db_select('node', 'n')->condition('type', NODE_TYPE_DATASET)->countQuery()->execute()->fetchField();
+        $sandbox['progress'] = 0;
+        $sandbox['current_dataset_nid'] = 0;
+    }
+
+    $result = db_select('node', 'n')
+        ->fields('n', array('nid'))
+        ->condition('type', NODE_TYPE_DATASET, '=')
+        ->condition('nid', $sandbox['current_dataset_nid'], '>')
+        ->range(0, 20)
+        ->orderBy('nid', 'ASC')
+        ->execute();
+
+    $datasetNodeIds = array();
+    foreach ( $result as $row ) {
+        $datasetNodeIds[] = $row->nid;
+    }
+    $datasetNodes = node_load_multiple($datasetNodeIds);
+
+    $datamartNodeIds = array();
+    foreach ( $datasetNodes as $datasetNode ) {
+        $datamartNodeId = get_node_field_node_ref($datasetNode,'field_dataset_datamart');
+        $datamartNodeIds[$datamartNodeId] = $datamartNodeId;
+    }
+    $datamartNodes = node_load_multiple($datamartNodeIds);
+
+    foreach ( $datasetNodes as $datasetNode ) {
+        $datamartNodeId = get_node_field_node_ref($datasetNode,'field_dataset_datamart');
+        $datasourceName = get_node_field_value($datasetNode,'field_dataset_datasource');
+        if ( empty($datasourceName) && !empty($datamartNodes[$datamartNodeId]) ) {
+            $datasetNode->field_dataset_datasource[$datasetNode->language][0]['value'] = get_node_field_value($datamartNodes[$datamartNodeId],'field_datamart_sysname');
+            node_save($datasetNode);
+        }
+
+        $sandbox['progress']++;
+        $sandbox['current_dataset_nid'] = $datasetNode->nid;
+    }
+
+    $sandbox['#finished'] = ($sandbox['progress'] == $sandbox['total'])
+        ? 1
+        : ($sandbox['progress'] / $sandbox['total']);
+}

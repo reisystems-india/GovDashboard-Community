@@ -1,0 +1,71 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+function data_controller_mysql_dp_datasource_option_definitions() {
+    $items[MySQLDataSource::TYPE] = array(
+        'host' => array('publicName' => 'Host', 'required' => TRUE),
+        'port' => array('publicName' => 'Port', 'required' => FALSE),
+        'database' => array('publicName' => 'Database', 'required' => TRUE),
+        'username' => array('publicName' => 'User Name', 'required' => TRUE),
+        'password' => array('publicName' => 'Password', 'datatype' => PasswordDataTypeHandler::DATA_TYPE, 'required' => TRUE));
+
+    return $items;
+}
+
+function data_controller_mysql_dp_datasource() {
+    $items[MySQLDataSource::TYPE] = array(
+        'extensions' => array(
+            'maximumEntityNameLength' => 'MySQLMaximumEntityNameLengthImpl',
+
+            'concatenateValues' => 'FunctionConcatenatedValuesImpl',
+            'formatWildcardValue' => 'DefaultFormatWildcardValueImpl',
+            'formatDateValue' => 'MySQLFormatDateValueImpl',
+            'formatRegularExpression' => 'DefaultFormatRegularExpressionValueImpl',
+            'formatNotRegularExpression' => 'DefaultFormatNotRegularExpressionValueImpl',
+
+            'initializeConnection' => 'MySQLInitializeConnectionImpl',
+            'executeStatement' => 'PDOExecuteStatementImpl',
+            'executeQueryStatement' => 'PDOExecuteQueryStatementImpl',
+            'executeQueryStatement_callback' => 'MySQLQueryStatementExecutionCallback',
+
+            'startTransaction' => 'DefaultStartTransactionStatementImpl',
+            'commitTransaction' => 'DefaultCommitTransactionStatementImpl',
+            'rollbackTransaction' => 'DefaultRollbackTransactionStatementImpl',
+
+            'datasourceOwner' => 'DatabaseDataSourceOwnerImpl'
+        )
+    );
+
+    return $items;
+}
+
+function data_controller_mysql_dp_datasource_query() {
+    $items[MySQLDataSource::TYPE] = array(
+        'classname' => 'DefaultSQLDataSourceQueryHandler',
+        'extensions' => array(
+            'adjustRequest' => 'NoQueryRequestAdjusterImpl',
+
+            'applyPagination' => 'DefaultApplyPaginationImpl'
+        )
+    );
+
+    return $items;
+}

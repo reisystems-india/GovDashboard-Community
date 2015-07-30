@@ -1,0 +1,31 @@
+; Copyright 2014 REI Systems, Inc.
+; 
+; This file is part of GovDashboard.
+; 
+; GovDashboard is free software: you can redistribute it and/or modify
+; it under the terms of the GNU General Public License as published by
+; the Free Software Foundation, either version 3 of the License, or
+; (at your option) any later version.
+; 
+; GovDashboard is distributed in the hope that it will be useful,
+; but WITHOUT ANY WARRANTY; without even the implied warranty of
+; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+; GNU General Public License for more details.
+; 
+; You should have received a copy of the GNU General Public License
+; along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+
+name = "UI Meta Data"
+description = "Prepares Meta Data in format suitable for UI"
+package = GovDashboard - Platform
+version = 7.x-1.x
+core = 7.x
+
+files[] = controller/observer/ModifyUIMetaDataObserver.php
+files[] = metamodel/metadata/DatasetUIMetaData.php
+files[] = metamodel/metadata/DataTypeUIMetaData.php
+files[] = metamodel/assembler/AbstractDatasetUIMetaDataGenerator.php
+files[] = metamodel/assembler/DatasetUIMetaDataGenerator.php
+files[] = metamodel/assembler/CubeUIMetaDataGenerator.php
+files[] = metamodel/assembler/DatasetUIMetaDataAssembler.php
+files[] = metamodel/assembler/DataTypeUIMetaDataAssembler.php

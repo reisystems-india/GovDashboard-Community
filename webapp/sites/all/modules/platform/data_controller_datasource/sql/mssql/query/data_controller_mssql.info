@@ -1,0 +1,35 @@
+; Copyright 2014 REI Systems, Inc.
+; 
+; This file is part of GovDashboard.
+; 
+; GovDashboard is free software: you can redistribute it and/or modify
+; it under the terms of the GNU General Public License as published by
+; the Free Software Foundation, either version 3 of the License, or
+; (at your option) any later version.
+; 
+; GovDashboard is distributed in the hope that it will be useful,
+; but WITHOUT ANY WARRANTY; without even the implied warranty of
+; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+; GNU General Public License for more details.
+; 
+; You should have received a copy of the GNU General Public License
+; along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+
+name = "Microsoft SQL Server integration"
+description = "Integrates Data Controller with Microsoft SQL Server database"
+package = REI Dashboard Platform (Adapter)
+version = 7.x-2.x
+core = 7.x
+
+dependencies[] = data_controller_sql
+
+files[] = datasource/MSSQLDataSource.php
+files[] = datasource/handler/impl/MSSQLExecuteQueryStatementImpl.php
+files[] = datasource/handler/impl/MSSQLInitializeConnectionImpl.php
+files[] = datasource/handler/impl/MSSQLApplyPaginationImpl.php
+files[] = datasource/handler/impl/MSSQLFormatDateValueImpl.php
+files[] = datasource/handler/impl/MSSQLMaximumEntityNameLengthImpl.php
+files[] = datasource/handler/impl/MSSQLStartTransactionStatementImpl.php
+files[] = datasource/handler/impl/MSSQLCommitTransactionStatementImpl.php
+files[] = datasource/handler/impl/MSSQLRollbackTransactionStatementImpl.php
+files[] = datasource/handler/impl/MSSQLQueryRequestAdjusterImpl.php

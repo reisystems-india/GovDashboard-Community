@@ -1,0 +1,108 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+/**
+ * Implements hook_menu()
+ *
+ * @return array
+ */
+function gd_account_admin_menu () {
+
+    $items = array();
+
+    $items['cp/account2'] = array(
+        'page callback' => 'gd_account_admin_page_index',
+        'access callback' => 'gd_admin_permissions',
+        'type' => MENU_CALLBACK
+    );
+
+    return $items;
+}
+
+//  TODO Need to be configuration setting not blanket access for all admins. Example: Allow certain roles access to User controls
+function gd_account_admin_access() {
+    $allowed = ( gd_account_user_is_admin() || gd_account_user_is_any_datasource_admin() );
+    drupal_alter('gd_account_admin_access', $allowed);
+
+    return $allowed;
+}
+
+/**
+ * Implements hook_gd_admin_sections()
+ *
+ * @return array
+ */
+function gd_account_admin_gd_admin_sections () {
+
+    $items['account'] =  array(
+        'name' => 'account',
+        'title' => 'Account',
+        'class' => 'AccountSection',
+        'access' => 'gd_account_admin_access',
+        'weight' => 99
+    );
+
+    return $items;
+}
+
+// Implements hook_library()
+function gd_account_admin_library() {
+
+    $libraries['GD_Admin_AccountSection'] = array(
+        'title'   => 'GD Admin - Account Section',
+        'version' => '',
+        'js' => array(
+            drupal_get_path('module','gd_account_admin').'/js/AccountSection.js' => array()
+        ),
+        'css' => array (
+            drupal_get_path('module','gd_account_admin').'/css/AccountSection.css' => array('weight'=>1,'group'=>CSS_THEME)
+        ),
+        'dependencies' => array(
+            array('gd_admin', 'GD_Admin')
+        )
+    );
+
+    $libraries['GD_Admin_AccountSection_Builder'] = array(
+        'title'   => 'GD Admin - Account Section - Builder',
+        'version' => '',
+        'js' => array(
+            drupal_get_path('module','gd_account_admin').'/js/builder/AccountUserForm.js' => array()
+        ),'dependencies' => array(
+            array('gd_account_admin', 'GD_Admin_AccountSection'),
+            array('gd','bootstrapMultiselect')
+        )
+    );
+
+    return $libraries;
+}
+
+/**
+ * @return array
+ */
+function gd_account_admin_page_default () {
+    drupal_add_library('gd_account_admin','GD_Admin_AccountSection');
+
+    return gd_admin_page_default();
+}
+
+function gd_account_admin_page_index () {
+    return gd_account_admin_page_default();
+}

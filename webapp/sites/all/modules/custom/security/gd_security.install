@@ -1,0 +1,145 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+/**
+ * Implements hook_schema().
+ */
+function gd_security_schema() {
+
+    $schema['gd_role_permission'] = array(
+        'description' => 'Identifies which role/operation pairs a user must possess for a specific entity.',
+        'fields' => array(
+            'entityId' => array(
+                'description' => 'The entity this record affects.',
+                'type' => 'varchar',
+                'length' => 50,
+                'not null' => true
+            ),
+            'entityType' => array(
+                'description' => 'The entity type this record affects.',
+                'type' => 'varchar',
+                'length' => 50,
+                'not null' => true
+            ),
+            'roleId' => array(
+                'description' => "The role a user must possess to gain this row's privileges on the entity.",
+                'type' => 'int',
+                'unsigned' => true,
+                'not null' => true
+            ),
+            'operation' => array(
+                'description' => 'The operation the user role is granted permission.',
+                'type' => 'varchar',
+                'length' => 50,
+                'not null' => true
+            )
+        ),
+        'primary key' => array('entityId', 'entityType', 'roleId', 'operation')
+    );
+
+    return $schema;
+}
+
+/**
+ * Creating and populating role permission table.
+ *
+ * This can be removed once all systems are using govdash version >= 1.22
+ */
+function gd_security_update_7103 () {
+
+    // schema was created after the module was, so gd_security_schema will only run on install
+    if (!db_table_exists('gd_role_permission')) {
+        $schema['gd_role_permission'] = array(
+            'description' => 'Identifies which role/operation pairs a user must possess for a specific entity.',
+            'fields' => array(
+                'entityId' => array(
+                    'description' => 'The entity this record affects.',
+                    'type' => 'varchar',
+                    'length' => 50,
+                    'not null' => true
+                ),
+                'entityType' => array(
+                    'description' => 'The entity type this record affects.',
+                    'type' => 'varchar',
+                    'length' => 50,
+                    'not null' => true
+                ),
+                'roleId' => array(
+                    'description' => "The role a user must possess to gain this row's privileges on the entity.",
+                    'type' => 'int',
+                    'unsigned' => true,
+                    'not null' => true
+                ),
+                'operation' => array(
+                    'description' => 'The operation the user role is granted permission.',
+                    'type' => 'varchar',
+                    'length' => 50,
+                    'not null' => true
+                )
+            ),
+            'primary key' => array('entityId', 'entityType', 'roleId', 'operation')
+        );
+        db_create_table('gd_role_permission', $schema['gd_role_permission']);
+    }
+
+    // just in case it was already populated
+    $sql = "SELECT COUNT(*) AS rowCount FROM {gd_role_permission} ";
+    $result = db_query($sql);
+    if ( $result->fetchColumn() ) {
+        return;
+    }
+
+    // copy permissions to new table
+    $sql  = "SELECT A.*, N.type ";
+    $sql .= "FROM {node_access} A ";
+    $sql .= "LEFT JOIN {node} N ON N.nid = A.nid ";
+    $sql .= "WHERE A.gid > 4";
+
+    $result = db_query($sql);
+
+    foreach ( $result as $record ) {
+        if ( $record->type == 'datamart' && $record->grant_update == 1 ) {
+
+            $sql  = "INSERT INTO {gd_role_permission} (roleId,entityId,entityType,operation) ";
+            $sql .= "VALUES ( :roleId, :entityId, :entityType, :operation )";
+
+            $bindings = array(
+                ':roleId' => $record->gid,
+                ':entityId' => $record->nid,
+                ':entityType' => 'datasource',
+                ':operation' => 'admin'
+            );
+            db_query($sql,$bindings);
+
+        } else if ( $record->type == 'dashboard' && $record->grant_view == 1 ) {
+            $sql  = "INSERT INTO {gd_role_permission} (roleId,entityId,entityType,operation) ";
+            $sql .= "VALUES ( :roleId, :entityId, :entityType, :operation )";
+
+            $bindings = array(
+                ':roleId' => $record->gid,
+                ':entityId' => $record->nid,
+                ':entityType' => 'dashboard',
+                ':operation' => 'view'
+            );
+            db_query($sql,$bindings);
+        }
+    }
+}

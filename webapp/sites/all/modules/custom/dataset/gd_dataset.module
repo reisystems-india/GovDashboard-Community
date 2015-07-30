@@ -1,0 +1,899 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+// $Id$
+
+define('NODE_TYPE_DATASET', 'dataset');
+
+define('DEFAULT_MIN_COLUMN_COUNT', 1);
+define('DEFAULT_MAX_COLUMN_COUNT', 256);
+
+/**
+ * Implements hook_xautoload()
+ *
+ * @param \Drupal\xautoload\Adapter\LocalDirectoryAdapter $adapter
+ */
+function gd_dataset_xautoload($adapter) {
+    $adapter->add('GD','lib');
+}
+
+/**
+ * Implements hook_services_resources()
+ *
+ * @return array
+ */
+function gd_dataset_services_resources () {
+    $resource = array();
+    require 'resources/dataset.resource.inc';
+
+    return $resource;
+}
+
+/**
+ * Implements hook_gd_sync_entities()
+ *
+ * @return array
+ */
+function gd_dataset_gd_sync_entities () {
+    $items['dataset'] = array(
+        'export' => array(
+            'class' => 'DatasetExport',
+            'weight' => -20
+        ),
+        'import' => array(
+            'class' => 'DatasetImport',
+            'weight' => -20
+        )
+    );
+
+    $items['measure'] = array(
+        'export' => array(
+            'class' => 'MeasureExport',
+            'weight' => -10
+        ),
+        'import' => array(
+            'class' => 'MeasureImport',
+            'weight' => -10
+        )
+    );
+
+    return $items;
+}
+
+/**
+ * Implements hook_menu().
+ */
+function gd_dataset_menu () {
+    $items = array();
+
+    $items['dataset/%/template'] = array(
+        'page callback' => 'gd_dataset_template_file_download',
+        'page arguments' => array(1),
+        'access callback' => 'user_is_logged_in',
+        'access arguments' => array('view', 1),
+    );
+
+    return $items;
+}
+
+/**
+ * Dataset content type wrapper for node_load
+ *
+ * @param null $id
+ * @param null $vid
+ * @param bool $reset
+ * @return bool|mixed|null
+ */
+function gd_dataset_load ( $id = null, $vid = null, $reset = false ) {
+
+    if ( is_numeric($id) ) {
+        $node = node_load($id, $vid, $reset);
+    } else {
+        $node = gd_dataset_load_by_sysname($id);
+    }
+
+    if ( !$node ) {
+        return null;
+    }
+
+    if ( $node->type == NODE_TYPE_DATASET && $node->status == NODE_PUBLISHED ) {
+        return $node;
+    } else {
+        return null;
+    }
+}
+
+function gd_dataset_load_by_sysname ( $sysname ) {
+
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node');
+    $query->propertyCondition('type', NODE_TYPE_DATASET);
+    $query->fieldCondition('field_dataset_sysname', 'value', $sysname);
+    $query->addTag('DANGEROUS_ACCESS_CHECK_OPT_OUT');
+    $entities = $query->execute();
+
+    if ( !empty($entities['node']) ) {
+        return node_load(array_shift($entities['node'])->nid);
+    } else {
+        return null;
+    }
+}
+
+/**
+ * @param $alias
+ * @return bool|mixed|null
+ */
+function gd_dataset_load_by_alias ( $alias ) {
+
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node');
+    $query->propertyCondition('type', NODE_TYPE_DATASET);
+    $query->fieldCondition('field_dataset_alias', 'value', $alias);
+    $query->addTag('DANGEROUS_ACCESS_CHECK_OPT_OUT');
+    $entities = $query->execute();
+
+    if ( !empty($entities['node']) ) {
+        return node_load(array_shift($entities['node'])->nid);
+    } else {
+        return null;
+    }
+}
+
+/**
+ * @param null $datasourceName
+ * @return array
+ */
+function gd_dataset_findall_by_datasource ( $load = false, $datasourceName = null, $publishOnly = true ) {
+
+    if ( !$datasourceName ) {
+        $datasourceName = gd_datasource_get_active();
+    }
+
+    $result = array();
+
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node');
+    if ( $publishOnly ) {
+        $query->propertyCondition('status', NODE_PUBLISHED);
+    }
+    $query->propertyCondition('type', NODE_TYPE_DATASET);
+    $query->fieldCondition('field_dataset_datasource', 'value', $datasourceName);
+    $query->addTag('DANGEROUS_ACCESS_CHECK_OPT_OUT');
+
+    $entities = $query->execute();
+
+    if ( !empty($entities['node']) ) {
+        $nids = array();
+        foreach ( $entities['node'] as $n ) {
+            $nids[] = $n->nid;
+        }
+
+        if ( !$load ) {
+            $result = $nids;
+        } else {
+            $result = node_load_multiple($nids);
+        }
+    }
+
+    return $result;
+}
+
+/**
+ * @param $datasetName
+ * @return null|string
+ * @throws GD\Common\Exception\UnsupportedOperationException
+ */
+function gd_dataset_find_datasource_name ( $datasetName ) {
+
+    // 1. see if name of datasource name exists in datasetName
+    $namespace = NameSpaceHelper::findNameSpace($datasetName);
+    if ( !empty($namespace) ) {
+        return $namespace;
+    }
+
+    // 2. convert physical dataset name to logical dataset name
+    $logicalDatasetName = StarSchemaNamingConvention::findFactsOwner($datasetName);
+
+    $datasetNode = gd_dataset_load_by_sysname(isset($logicalDatasetName)?$logicalDatasetName:$datasetName);
+    if ( $datasetNode ) {
+        return get_node_field_value($datasetNode,'field_dataset_datasource');
+    }
+
+    return null;
+}
+
+function gd_dataset_get_datasource_name ( $datasetName ) {
+    $datasourceName = gd_dataset_find_datasource_name($datasetName);
+    if ( !isset($datasourceName) ) {
+        throw new \GD\Common\Exception\UnsupportedOperationException('Cannot find datasource name based on dataset name.');
+    }
+    return $datasourceName;
+}
+
+/**
+ * @param $datasetName
+ */
+function gd_dataset_template_file_download ( $datasetName ) {
+    try {
+        $datasourceName = gd_dataset_find_datasource_name($datasetName);
+        if ( !isset($datasourceName) ) {
+            throw new ServicesException('Datasource not found', 404);
+        }
+
+        gd_datasource_set_active($datasourceName);
+
+        $metamodel = data_controller_get_metamodel();
+        $dataset = $metamodel->findDataset($datasetName);
+
+        if ( !$dataset ) {
+            throw new ServicesException(t('Not found'),404);
+        }
+
+        if ( !gd_account_user_is_admin() && !gd_account_user_is_datasource_admin(NULL,gd_datasource_get_active()) ) {
+            throw new ServicesException('Forbidden', 403);
+        }
+
+        $format = 'txt';
+        if ( !empty($_GET['f']) ) {
+            if ( $_GET['f'] == 'csv' ) {
+                $format = 'csv';
+            }
+        }
+
+        $dataQueryController = data_controller_get_instance();
+        $dataset = $dataQueryController->getDatasetMetaData($datasetName);
+
+        $names = gd_dataset_get_file_column_names($dataset);
+        $header = array();
+        foreach ( $names as $name ) {
+            $header[] = '"' . str_replace('"', '""', $name) . '"';
+        }
+
+        if ( $format == 'csv' ) {
+            header('Content-type: text/csv; utf-8');
+            header('Content-Disposition: attachment;filename="' . $dataset->publicName . '.csv"');
+        }
+        echo implode(',', $header) . "\n";
+        drupal_exit();
+
+    } catch ( Exception $e ) {
+        LogHelper::log_error($e);
+        drupal_not_found();
+        return;
+    }
+}
+
+function gd_dataset_get_file_column_names ( $dataset ) {
+
+    $names = array();
+    foreach ( $dataset->columns as $column ) {
+        if ( $column->persistence == ColumnMetaData::PERSISTENCE__STORAGE_CREATED ) {
+            $names[$column->columnIndex] = $column->source != null ? $column->source : $column->publicName;
+        }
+    }
+
+    return $names;
+}
+
+function gd_dataset_get_column_metadata ( $datasetName, $columnName ) {
+    $dataQueryController = data_controller_get_instance();
+    $dataset = $dataQueryController->getDatasetMetaData($datasetName);
+    return $dataset->getColumn($columnName);
+}
+
+/**
+ *
+ * dataset - column dataset name
+ * column - column id
+ * query - string filter
+ * sort - result sorting
+ *
+ * @param object $params
+ * @param bool $smartclient
+ * @return array
+ */
+function gd_dataset_get_column_values ( $params, $smartclient = true ) {
+
+    if ( empty($params->generic) ) {
+        $result = gd_data_controller_query_lookup_by_ui_metadata($params->dataset, $params->column, $params->query, $params->offset, $params->limit);
+    } else {
+        $result = array();
+        $dataQueryController = data_controller_get_instance();
+        $result['data'] = $dataQueryController->queryDataset($params->dataset, $params->column, null, $params->sort, $params->offset, $params->limit, NULL, new SingleColumnResultFormatter($params->column));
+    }
+
+    if ( !$smartclient ) {
+        return $result['data'];
+    } else {
+        $data = array();
+        if (isset($result['data'])) {
+            foreach ( $result['data'] as $r ) {
+                $data[] = array('name' => $r);
+            }
+        }
+
+        return $data;
+    }
+}
+
+/**
+ * @param $datasetName
+ * @param bool $load
+ * @param bool $publishOnly
+ * @return array
+ */
+function gd_dataset_get_datafiles ( $datasetName, $load = false, $publishOnly = true ) {
+
+    $query = new EntityFieldQuery();
+    $query = $query->entityCondition('entity_type', 'node')
+            ->propertyCondition('type', 'datafile')
+            ->fieldCondition('field_datafile_dataset_sysname', 'value', $datasetName, '=')
+            ->propertyOrderBy('created', 'DESC');
+
+    if ( $publishOnly ) {
+        $query->propertyCondition('status', NODE_PUBLISHED);
+    }
+
+    $query->addTag('DANGEROUS_ACCESS_CHECK_OPT_OUT');
+
+    $entities = $query->execute();
+
+    return _gd_dataset_get_result_from_entities($entities, $load);
+}
+
+/**
+ * @param $datasetName
+ * @param bool $load
+ * @return bool|mixed
+ */
+function gd_dataset_get_datafile_first ( $datasetName, $load = false ) {
+    $query = new EntityFieldQuery();
+    $query = $query->entityCondition('entity_type', 'node')
+            ->propertyCondition('status', NODE_PUBLISHED)
+            ->propertyCondition('type', 'datafile')
+            ->fieldCondition('field_datafile_dataset_sysname', 'value', $datasetName, '=')
+            ->propertyOrderBy('nid', 'ASC');
+
+    $query->addTag('DANGEROUS_ACCESS_CHECK_OPT_OUT');
+
+    $entities = $query->execute();
+
+    $n = current($entities['node']);
+
+    if ( !$load ) {
+        return $n->nid;
+    } else {
+        return node_load($n->nid);
+    }
+}
+
+/**
+ * @param $datasetName
+ * @param bool $load
+ * @return bool|mixed
+ */
+function gd_dataset_get_datafile_last ( $datasetName, $load = false ) {
+    $query = new EntityFieldQuery();
+    $query = $query->entityCondition('entity_type', 'node')
+            ->propertyCondition('status', NODE_PUBLISHED)
+            ->propertyCondition('type', 'datafile')
+            ->fieldCondition('field_datafile_dataset_sysname', 'value', $datasetName, '=')
+            ->propertyOrderBy('nid', 'DESC');
+
+    $query->addTag('DANGEROUS_ACCESS_CHECK_OPT_OUT');
+
+    $entities = $query->execute();
+
+    $n = current($entities['node']);
+
+    if ( !$load ) {
+        return $n->nid;
+    } else {
+        return node_load($n->nid);
+    }
+}
+
+/**
+ * Returns list of datasets in which provided dataset is used as lookup
+ *
+ * @param $dataset_sysname
+ * @return array
+ */
+function gd_dataset_get_related_datasets ( $dataset_sysname ) {
+    $related_datasets = array();
+    $metamodel = data_controller_get_metamodel();
+
+    foreach ( $metamodel->datasets as $dataset ) {
+        foreach ( $dataset->getColumns() as $column ) {
+            // if dataset name is set then dataset is referenced
+            if ($column->type->getReferencedDatasetName() == $dataset_sysname) {
+                $dataset_obj = new stdClass();
+                $dataset_obj->title = $dataset->publicName;
+                $dataset_obj->nid = $dataset->nid;
+                array_push($related_datasets, $dataset_obj);
+            }
+        }
+    }
+
+    return $related_datasets;
+}
+
+function gd_dataset_get_referenced ( $datasetName, $group = null ) {
+    global $user;
+
+    $result = array('datasets'=>array(),'reports'=>array(),'dashboards'=>array());
+
+    // datasets
+    if ( $group === null || $group === 'datasets' ) {
+        $metamodel = data_controller_get_metamodel();
+
+        // lookups
+        foreach ( $metamodel->datasets as $dataset ) {
+            foreach ( $dataset->getColumns() as $column ) {
+                // if dataset name is set then dataset is referenced
+                if ( $datasetName === $column->type->getReferencedDatasetName() ) {
+                    $result['datasets'][] = array('title' => $dataset->publicName, 'id' => $dataset->name);
+                }
+            }
+        }
+    }
+
+    // reports
+    if ( $group === null || $group === 'reports' ) {
+        foreach ( gd_dataset_get_reports($datasetName,LOAD_ENTITY) as $r ) {
+            $personal = gd_datasource_is_property(get_node_field_value($r,'field_report_datasource'), 'personal');
+            if (!$personal || gd_account_user_is_admin() || ($personal && $r->uid == $user->uid)) {
+                $result['reports'][] = array('title' => $r->title, 'id' => $r->nid);
+            }
+        }
+    }
+
+    // dashboards
+    if ( $group === null || $group === 'dashboards' ) {
+        foreach ( gd_dataset_get_dashboards($datasetName,LOAD_ENTITY) as $d ) {
+            $personal = gd_datasource_is_property(get_node_field_value($d,'field_dashboard_datasource'), 'personal');
+            if (!$personal || gd_account_user_is_admin() || ($personal && $d->uid == $user->uid)) {
+                $result['dashboards'][] = array('title' => $d->title, 'id' => $d->nid);
+            }
+        }
+    }
+
+    return $result;
+}
+
+/**
+ * @param $datasetName
+ * @param bool $load
+ * @param bool $publishOnly
+ * @return array
+ */
+function gd_dataset_get_reports ( $datasetName, $load = false, $publishOnly = true ) {
+
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node');
+    $query->propertyCondition('type', NODE_TYPE_REPORT);
+    $query->fieldCondition('field_report_dataset_sysnames', 'value', $datasetName);
+
+    if ( $publishOnly ) {
+        $query->propertyCondition('status', NODE_PUBLISHED);
+    }
+
+    $query->addTag('DANGEROUS_ACCESS_CHECK_OPT_OUT');
+
+    $entities = $query->execute();
+
+    return _gd_dataset_get_result_from_entities($entities, $load);
+}
+
+/**
+ * @param $datasetName
+ * @param bool $load
+ * @return array
+ */
+function gd_dataset_get_dashboards ( $datasetName, $load = false ) {
+
+    $reports = gd_dataset_get_reports($datasetName,!LOAD_ENTITY);
+
+    $result = array();
+    if ( !empty($reports) ) {
+        foreach ( $reports as $rid ) {
+
+            // get nids for all dashboards
+            $query = new EntityFieldQuery();
+            $query->entityCondition('entity_type', 'node');
+            $query->propertyCondition('status', NODE_PUBLISHED);
+            $query->propertyCondition('type', NODE_TYPE_DASHBOARD);
+            $query->fieldCondition('field_dashboard_reports', 'nid', $rid);
+            $query->addTag('DANGEROUS_ACCESS_CHECK_OPT_OUT');
+
+            $entities = $query->execute();
+            $result = array_merge($result, _gd_dataset_get_result_from_entities($entities, $load));
+        }
+    }
+
+    return $result;
+}
+
+/**
+ * @param $entities
+ * @param bool $load
+ * @return array
+ */
+function _gd_dataset_get_result_from_entities ( $entities, $load = true ) {
+    $result = array();
+
+    if ( !empty($entities['node']) ) {
+        if ( !$load ) {
+            foreach ( $entities['node'] as $n ) {
+                $result[$n->nid] = $n->nid;
+            }
+        } else {
+            $result = node_load_multiple(array_keys($entities['node']));
+        }
+    }
+
+    return $result;
+}
+
+function gd_dataset_unpublish ( $datasetName ) {
+
+    // find datasets
+    $metadata = data_controller_get_metamodel();
+    $dataset = $metadata->getDataset($datasetName);
+
+    if ( !isset($dataset->nid) ) {
+        throw new Exception('Dataset cannot be deleted. Unsupported.');
+    }
+
+    gd_datasource_set_active($dataset->datasourceName);
+
+    $referenced = gd_dataset_get_referenced($datasetName);
+
+    // datasets
+    if ( !empty($referenced['datasets']) ) {
+        throw new Exception('Dataset cannot be deleted. There are linked datasets.');
+    }
+
+    // find reports, automatically takes care of dashboards
+    if ( !empty($referenced['reports']) ) {
+        throw new Exception('Dataset cannot be deleted. There are reports using it.');
+    }
+
+    gd_data_controller_ddl_disable_dataset($datasetName);
+}
+
+function gd_dataset_publish($dataset_nid) {
+    gd_data_controller_ddl_enable_dataset($dataset_nid);
+}
+
+/**
+ * @param $data
+ * @return DatasetMetaData
+ * @throws Exception
+ */
+function gd_dataset_create ( $data, $datasourceName ) {
+    drupal_set_time_limit(BIGGER_PHP_TIME_OUT);
+
+    // prepares the metadata object for the next step.  metadata has to be of type RecordMetaData
+    $datasetName = GD_NamingConvention::generateDatasetName();
+    $dataset = new DatasetMetaData();
+    $dataset->initializeFrom($data);
+    $dataset->name = $datasetName;
+    $dataset->datasourceName = $datasourceName;
+    $dataset->sourceType = StarSchemaDatasetSourceTypeHandler::SOURCE_TYPE;
+    $dataset->source = $datasetName;
+
+    MetaModelFactory::getInstance()->startGlobalModification();
+    try {
+        $transaction = db_transaction();
+        try {
+            gd_data_controller_ddl_create_dataset($dataset);
+            if ( isset($data->datafile) ) {
+                gd_dataset_data_create($dataset,$data->datafile);
+            }
+        } catch (Exception $e) {
+            $transaction->rollback();
+            throw $e;
+        }
+    } catch (Exception $e) {
+        MetaModelFactory::getInstance()->finishGlobalModification(false);
+        throw $e;
+    }
+    MetaModelFactory::getInstance()->finishGlobalModification(true);
+
+    return $dataset;
+}
+
+/**
+ * @param DatasetMetaData $metadata
+ */
+function gd_dataset_update ( DatasetMetaData $metadata ) {
+    gd_data_controller_ddl_modify_dataset($metadata);
+}
+
+/**
+ * @param DatasetMetaData $dataset
+ * @param $datafile_nid
+ */
+function gd_dataset_data_create ( DatasetMetaData $dataset, $datafile_nid ) {
+    $datafileNode = node_load($datafile_nid);
+    $datafileNode->status = NODE_PUBLISHED;
+    // update datafile to point to dataset
+    $datafileNode->field_datafile_dataset_sysname[$datafileNode->language][0]['value'] = $dataset->name;
+    node_save($datafileNode);
+
+    // insert the data
+    gd_dataset_update_data($dataset,$datafileNode,'create');
+}
+
+/**
+ * @param DatasetMetaData $dataset
+ * @param $datafileNode
+ * @param string $operation
+ * @return array
+ */
+function gd_dataset_update_data ( DatasetMetaData $dataset, $datafileNode, $operation = 'append' ) {
+    list($lineCount, $insertedRecordCount, $updatedRecordCount, $deletedRecordCount) = gd_dataset_uploader_store_dataset_data($datafileNode->nid);
+
+    // update dataset record count
+    $fileAction = null;
+    if ( $operation == 'replace' ) {
+        $fileAction = 'replace';
+        // change status of previous datafiles
+        $datafiles = gd_dataset_get_datafiles($dataset->name,true);
+        foreach ( $datafiles as $df ) {
+            $df->field_datafile_status[$df->language][0]['value'] = 'inactive';
+            node_save($df);
+        }
+    } else if ( $operation == 'create' ) {
+        $fileAction = 'initial';
+    } else {
+        // this will be append operation
+        $fileAction = 'append';
+    }
+
+    // add info to datafile node
+    $datafileNode->field_datafile_records[$datafileNode->language][0]['value'] = $lineCount;
+    $datafileNode->field_datafile_action[$datafileNode->language][0]['value'] = $fileAction;
+    $datafileNode->field_datafile_status[$datafileNode->language][0]['value'] = 'active';
+    node_save($datafileNode);
+
+    // if there is a dataset nid, update it's record count
+    if ( isset($dataset->nid) ) {
+        $datasetNode = node_load($dataset->nid);
+        if ( $operation == 'create' || $operation == 'replace' ) {
+            $datasetNode->field_dataset_records[$datasetNode->language][0]['value'] = $insertedRecordCount - $deletedRecordCount;
+        } else {
+            $datasetNode->field_dataset_records[$datasetNode->language][0]['value'] += $insertedRecordCount - $deletedRecordCount;
+        }
+        node_save($datasetNode);
+    }
+
+    return array($lineCount, $insertedRecordCount, $updatedRecordCount, $deletedRecordCount);
+}
+
+
+/**
+ * Form callback that returns updated previews for data
+ *
+ * @param $form
+ * @param $form_state
+ * @return array
+ */
+function gd_dataset_header_callback ( $form, $form_state ) {
+    $commands = array();
+
+    $commands[] = ajax_command_replace('#dataset-preview-wrapper', $form['preview']['data']['#prefix'] . $form['preview']['data']['#markup'] . $form['preview']['data']['#suffix']);
+
+    $i = 0;
+    foreach ( $form_state['dataset']->config->metadata->columns as $column ) {
+        $commands[] = ajax_command_replace('#dataset-column-preview-wrapper-' . $i, $form['columns'][$i]['preview']['#prefix'] . $form['columns'][$i]['preview']['#markup'] . $form['columns'][$i]['preview']['#suffix']);
+        $i++;
+    }
+
+    // FIXME - hard coded for only header preview errors
+    if ( !empty($_SESSION['messages']) ) {
+        $commands[] = ajax_command_data('#ajax_checkbox_value', 'form_state_value_select', (int) $form_state['values']['checkbox']);
+        $commands[] = ajax_command_replace('#preview_messages', theme('status_messages'));
+    }
+
+    return array('#type' => 'ajax', '#commands' => $commands);
+}
+
+/**
+ * @param GD_DatasetConfig $config
+ * @param null $column
+ * @return string
+ */
+function gd_dataset_preview ( GD_DatasetConfig $config, $column = null ) {
+    $table = array();
+
+    $table['header'] = array();
+    $i = 0;
+    $pos = 0;
+    foreach ( $config->metadata->columns as $c ) {
+        $table['header'][$c->name]['field'] = $c->name;
+        $table['header'][$c->name]['data'] = $c->publicName;
+
+        if ( !empty($column) ) {
+            if ( $c->name != $column ) {
+                unset($table['header'][$c->name]);
+            } else {
+                $pos = $i;
+            }
+        }
+
+        $i++;
+    }
+
+    if ( !$config->datafile->field_datafile_hasheader[$config->datafile->language][0]['value'] ) {
+        $table['header'] = array();
+    }
+
+    $table['rows'] = array();
+    $row_count = 0;
+    if ( isset($config->preview) ) {
+        foreach ( $config->preview as $row ) {
+            $table['rows'][$row_count]['data'] = array();
+            $col_count = 0;
+            foreach ( $row as $col ) {
+                $table['rows'][$row_count]['data'][] = $col;
+
+                if ( !empty($column) && $col_count != $pos ) {
+                    if ( $i != $pos ) {
+                        unset($table['rows'][$row_count]['data'][$col_count]);
+                    }
+                }
+
+                $col_count++;
+            }
+            $row_count++;
+        }
+    }
+
+    return theme('table', $table);
+}
+
+function gd_dataset_name_isunique ( $name, $datasourceName = null ) {
+
+    if ( $datasourceName ) {
+        gd_datasource_set_active($datasourceName);
+    }
+
+    $metamodel = data_controller_get_metamodel();
+
+    foreach ( $metamodel->datasets as $dataset ) {
+        if ( strcasecmp($dataset->publicName, $name) == 0 ) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/**
+ * Used for dataset data preview table.
+ *
+ * Mirrored functionality with report formatting. Separated because reports
+ * may have additional formatting capabilities.
+ *
+ *
+ * @param $value
+ * @param $config
+ * @param bool $raw
+ * @return float|null|string
+ */
+function gd_dataset_data_formatter ( $value, $config, $raw = FALSE ) {
+    if ( $value === null || empty($config) ) { return $value; }
+    $type = $config->applicationType;
+    $scale = isset($config->scale) ? $config->scale : null;
+    if ( in_array($type,array('integer','standard','number','currency','percent','percentage')) ) {
+        $value = (double)$value; // cast to double prevents inaccurate rounding
+        if ( $type == 'integer' ) {
+            return number_format($value,0);
+        } else if ( $type == 'standard' || $type == 'number' ) {
+            if ( !isset($scale) ) {
+                // count decimals
+                $scale = GD\Utility\Math::getPrecision($value);
+            }
+            return number_format($value,$scale);
+        } else if ( $type == 'currency' ) {
+            if ( !isset($scale) ) {
+                $scale = 2;
+            }
+            return $raw ? number_format($value, $scale, '.', '') : ('$' . number_format($value, $scale));
+        } else if ( $type == 'percent' || $type == 'percentage' ) {
+            $value = $value * 100;
+            if ( !isset($scale) ) {
+                $scale = 0;
+            }
+            return $raw ? number_format($value, $scale, '.', '') : (number_format($value, $scale).'%');
+        } else if ( $type == 'mdy' ) {
+            if ( !empty($value) ) {
+                return date('m/d/Y', strtotime($value));
+            } else {
+                return null;
+            }
+        }
+    } else if ( $type == 'ymd' ) {
+        if ( !empty($value) ) {
+            return date('Y-m-d', strtotime($value));
+        } else {
+            return null;
+        }
+    } else if ( $type == 'month' ) {
+        if ( !empty($value) ) {
+            return date('M Y', strtotime($value));
+        } else {
+            return null;
+        }
+    } else if ( $type == 'quarter' ) {
+        if ( !empty($value) ) {
+            $quarters = array('01'=>'Q1','02'=>'Q1','03'=>'Q1','04'=>'Q2','05'=>'Q2','06'=>'Q2','07'=>'Q3','08'=>'Q3','09'=>'Q3','10'=>'Q4','11'=>'Q4','12'=>'Q4');
+            return $quarters[date('m', strtotime($value))] . ' ' . date('Y', strtotime($value));
+        } else {
+            return null;
+        }
+    } else if ( $type == 'image' ) {
+        if ( !empty($value) ) {
+            return '<img src="'.$value.'" alt="" />';
+        } else {
+            return null;
+        }
+    } else if ( $type == 'link' ) {
+        if ( !empty($value) ) {
+            return '<a href="'.$value.'" target="_blank" title="external link">'.$value.'</a>';
+        } else {
+            return null;
+        }
+    }
+    return $value;
+}
+
+/**
+ * Implements hook_gd_health_medic_symptoms().
+ *
+ * @return array
+ */
+function gd_dataset_gd_health_medic_symptoms() {
+    $items = array();
+
+    $items[] = array(
+        'className' => '\GD\Health\Medic\Symptom\Dataset\MissingDatasourceSymptom'
+    );
+
+    return $items;
+}
+
+/**
+ * Implements hook_gd_health_medic_treatments().
+ *
+ * @return array
+ */
+function gd_dataset_gd_health_medic_treatments() {
+    $items = array();
+
+    $items['DatasetDelete'] = array(
+        'className' => '\GD\Health\Medic\Treatment\Dataset\DeleteDatasetTreatment',
+        'weight' => 100
+    );
+
+    return $items;
+}

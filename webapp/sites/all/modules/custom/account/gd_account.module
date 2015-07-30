@@ -1,0 +1,586 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+/**
+ * Implementation of hook_menu().
+ */
+function gd_account_menu () {
+    $items = array();
+
+    $items['admin/config/govdashboard/account'] = array(
+        'title' => "Account Settings",
+        'description' => "Govdashboard Account Configuration and Settings",
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('gd_account_settings_create_form'),
+        'access arguments' => array('administer site configuration')
+    );
+
+    $items['account_datamart_barchart'] = array(
+        'title' => "Account and Topic Bar Chart",
+        'description' => "Govdashboard Account and Topic Bar Chart",
+        'page callback' => 'gd_account_settings_barchart',
+        'access callback' => 'gd_account_page_access',
+        'type' => MENU_CALLBACK
+    );
+
+    $items['account_datamart_dialchart_user'] = array(
+        'title' => "Account and Topic Dial Chart User",
+        'description' => "Govdashboard Account and Topic Dial Chart User",
+        'page callback' => 'gd_account_settings_dialchart_user',
+        'access callback' => 'gd_account_page_access',
+        'type' => MENU_CALLBACK
+    );
+
+    $items['account_datamart_dialchart_datamart'] = array(
+        'title' => "Account and Topic Dial Chart Topics",
+        'description' => "Govdashboard Account and Topic Dial Chart topics",
+        'page callback' => 'gd_account_settings_dialchart_datamart',
+        'access callback' => 'gd_account_page_access',
+        'type' => MENU_CALLBACK
+    );
+
+    $items['account_datamart_statistics_charts'] = array(
+        'title' => "Account and Topic Dial Charts",
+        'description' => "Govdashboard Account and Topic Dial Charts",
+        'page callback' => 'gd_account_settings_statistics_charts',
+        'access callback' => 'gd_account_page_access',
+        'type' => MENU_CALLBACK
+    );
+
+    $items['account_datamart_create_datamart'] = array(
+        'title' => "Create a new Topic",
+        'description' => "Govdashboard Create New topic",
+        'page callback' => 'gd_account_settings_create_datamart',
+        'access callback' => 'gd_account_page_access',
+        'type' => MENU_CALLBACK
+    );
+
+    $items['account_datamart_edit_datamart'] = array(
+        'title' => "Edit a Topic",
+        'description' => "Govdashboard Edit a topic",
+        'page callback' => 'gd_account_settings_edit_datamart',
+        'access callback' => 'gd_account_page_access',
+        'type' => MENU_CALLBACK
+    );
+
+    $items['user/welcome-user'] = array(
+        'page callback' => 'gd_account_welcome_user_page',
+        'access callback' => 'gd_account_page_access',
+        'type' => MENU_CALLBACK
+    );
+
+    $items['user/welcome-admin'] = array(
+        'page callback' => 'gd_account_welcome_admin_page',
+        'access callback' => 'gd_account_page_access',
+        'type' => MENU_CALLBACK
+    );
+
+    $items['user/profile'] = array(
+        'page callback' => 'gd_account_user_profile_page',
+        'access callback' => 'gd_account_page_access',
+        'type' => MENU_CALLBACK
+    );
+
+    return $items;
+}
+
+function gd_account_page_access() {
+    return user_is_logged_in();
+}
+
+function gd_account_welcome_admin_page() {
+    global $user;
+
+    if ( !gd_account_user_is_admin() ) {
+        return MENU_ACCESS_DENIED;
+    }
+
+    ob_start();
+    drupal_add_library('gd', 'bootstrap');
+    drupal_add_css(drupal_get_path('module', 'gd_account') . '/css/welcome.css');
+    print '<div class="container">';
+    print '<h1>Welcome ' . (!isset($user->name) ? 'Admin <a tabindex="3000" href="changeInfo">change information</a>' : $user->name) . '</h1>';
+    print '<div class="welcome-instructions-1">';
+    print '<h2 class="steps-title" tabindex="3000">Step 1: Add Topics</h2>';
+    print '<div class="steps-contents" tabindex="3000">Add topics to help organize your information.</div>';
+    print '</div>';
+    print '<div class="welcome-instructions-2">';
+    print '<h2 class="steps-title" tabindex="3000">Step 2: Add Users</h2>';
+    print '<div class="steps-contents" tabindex="3000">Create users and grant access to GovDashboard.</div>';
+    print '</div>';
+    print '<div class="welcome-instructions-3">';
+    print '<img alt="Intro Graphic" src="/sites/all/themes/custom/govdash_core/images/intro/intro-cp-icon.png">';
+    print '</div>';
+    print '<div class="welcome-instructions-4">';
+    print '<h2 class="steps-title" tabindex="3000">Step 3: Add Groups for User Access</h2>';
+    print '<div class="steps-contents" tabindex="3000">Create Groups and manage access privileges for your users.</div>';
+    print '</div>';
+    print '<div class="welcome-instructions-5">';
+    print '<span class="field-content"><a href="/cp/account" class="btn btn-warning btn-lg" tabindex="3000">Get Started</a></span>';
+    print '</div>';
+    print '</div>';
+    $page = array(
+        '#show_messages' => false,
+        '#theme' => 'page',
+        '#type' => 'page',
+        'content' => array(
+            'system_main' => array(
+                '#markup' => ob_get_clean()
+            )
+        ),
+        'post_header' => array(
+            '#markup' => ''
+        ),
+        'pre_content' => array(
+            '#markup' => ''
+        )
+    );
+
+    return $page;
+}
+
+function gd_account_welcome_user_page() {
+    global $user;
+
+    ob_start();
+    drupal_add_library('gd', 'bootstrap');
+    drupal_add_css(drupal_get_path('module', 'gd_account') . '/css/welcome.css');
+    print '<div class="container">';
+    print '<h1>Welcome ' . (!isset($user->name) ? 'User <a tabindex="3000" href="changeInfo">change information</a>' : $user->name) . '</h1>';
+    print '<div class="welcome-instructions-1">';
+    print '<h2 class="steps-title" tabindex="3000">Step 1: Upload Your Data</h2>';
+    print '<div class="steps-contents" tabindex="3000">Upload and manage all your datasets, organized by topic.</div>';
+    print '</div>';
+    print '<div class="welcome-instructions-2">';
+    print '<h2 class="steps-title" tabindex="3000">Step 2: Create Reports</h2>';
+    print '<div class="steps-contents" tabindex="3000">Create visualizations from your data.</div>';
+    print '</div>';
+    print '<div class="welcome-instructions-3">';
+    print '<img alt="Intro Graphic" src="/sites/all/themes/custom/govdash_core/images/intro/intro-vdb-icon.png">';
+    print '</div>';
+    print '<div class="welcome-instructions-4">';
+    print '<h2 class="steps-title" tabindex="3000">Step 3: Assemble Dashboards</h2>';
+    print '<div class="steps-contents" tabindex="3000">Add and organize your reports in dashboard using simple drag and drop interface.</div>';
+    print '</div>';
+    print '<div class="welcome-instructions-5">';
+    print '<span class="field-content"><a href="/cp" class="btn btn-warning btn-lg" tabindex="3000">Get Started</a></span>';
+    print '</div>';
+    print '</div>';
+    $page = array(
+        '#show_messages' => false,
+        '#theme' => 'page',
+        '#type' => 'page',
+        'content' => array(
+            'system_main' => array(
+                '#markup' => ob_get_clean()
+            )
+        ),
+        'post_header' => array(
+            '#markup' => ''
+        ),
+        'pre_content' => array(
+            '#markup' => ''
+        )
+    );
+
+    return $page;
+}
+
+function gd_account_user_profile_page () {
+    global $user;
+    gd_account_user_add_fields($user);
+    ob_start();
+    drupal_add_library('gd', 'bootstrap');
+    drupal_add_css(drupal_get_path('module', 'gd_account') . '/css/userProfile.css');
+    print '<div class="container">';
+    print '<h1>Profile</h1>';
+    print '<div class="user-profile-container">';
+    print '<span tabindex="3000">Update any of your personal information below, or change your password.</span><br/><br/>';
+    print '<div><strong tabindex="3000">E-mail Address: </strong><a tabindex="3000" href="mailto:' . $user->mail . '">' . $user->mail . '</a></div>';
+    print '<div><strong tabindex="3000">Full Name: </strong><span tabindex="3000">' . (isset($user->fullname) ? $user->fullname : 'NA') . '</span></div>';
+    print '<a tabindex="3000" href="/user/changeInfo">Change Information</a>';
+    print '<h2>Password</h2>';
+    print '<a tabindex="3000" href="/user/changePassword">Change Password</a>';
+    print '</div>';
+    print '</div>';
+
+    $page = array(
+        '#show_messages' => false,
+        '#theme' => 'page',
+        '#type' => 'page',
+        'content' => array(
+            'system_main' => array(
+                '#markup' => ob_get_clean()
+            )
+        ),
+        'post_header' => array(
+            '#markup' => ''
+        ),
+        'pre_content' => array(
+            '#markup' => ''
+        )
+    );
+
+    return $page;
+}
+
+
+
+/**
+ * Implementation of hook_theme().
+ */
+
+function gd_account_theme() {
+    return array(
+        'account_settings_barchart' => array(
+            'path' => drupal_get_path('module', 'gd_account') . '/templates',
+            'template' => 'account-settings-barchart'
+        ),
+        'account_settings_dialchart_user' => array(
+            'path' => drupal_get_path('module', 'gd_account') . '/templates',
+            'template' => 'account-settings-dialchart-user'
+        ),
+        'account_settings_dialchart_datamart' => array(
+            'path' => drupal_get_path('module', 'gd_account') . '/templates',
+            'template' => 'account-settings-dialchart-datamart'
+        ),
+        'account_settings_statistics_charts' => array(
+            'path' => drupal_get_path('module', 'gd_account') . '/templates',
+            'template' => 'account-settings-statistics-charts'
+        ),
+        'account_settings_create_datamart' => array(
+            'path' => drupal_get_path('module', 'gd_account') . '/templates',
+            'template' => 'account-settings-create-datamart'
+        ),
+        'account_settings_edit_datamart' => array(
+            'path' => drupal_get_path('module', 'gd_account') . '/templates',
+            'template' => 'account-settings-edit-datamart'
+        )
+    );
+}
+
+/**
+ * Implementation of hook_form().
+ */
+function gd_account_settings_create_form($form, &$form_state) {
+    $form = array();
+
+    $form['account_settings_packtype'] = array(
+        '#type' => 'radios',
+        '#title' => t('Package Type'),
+        '#description' => t('Select the type of Package'),
+        '#default_value' => variable_get('account_settings_packtype', 'trial'),
+        '#options' => array(
+            'trial' => t('Trial Package'),
+            'regular' => t('Regular Package'),
+        ),
+        '#required' => TRUE,
+    );
+
+    $form['account_settings_fname'] = array(
+        '#type' => 'textfield',
+        '#title' => t('First Name'),
+        '#default_value' => variable_get('account_settings_fname', ''),
+        '#description' => t('Account Holder First Name'),
+        '#required' => TRUE,
+    );
+    $form['account_settings_lname'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Last Lame'),
+        '#description' => t('Account Holder Last Name'),
+        '#default_value' => variable_get('account_settings_lname', ''),
+        '#required' => TRUE,
+    );
+    $form['account_settings_email'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Email'),
+        '#description' => t('Account Holder Email Address'),
+        '#default_value' => variable_get('account_settings_email', ''),
+        '#required' => TRUE,
+    );
+    $form['account_settings_sales_email'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Sales Team Email'),
+        '#description' => t('Sales Team Email Address'),
+        '#default_value' => variable_get('account_settings_sales_email', ''),
+        '#required' => TRUE,
+    );
+
+    $form['account_settings_maxrecords'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Maximum Records Allowed'),
+        '#default_value' => variable_get('account_settings_maxrecords', ''),
+        '#description' => t('Maximum number of Records'),
+        '#required' => TRUE,
+    );
+    $form['account_settings_maxusers'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Maximum Users Allowed'),
+        '#default_value' => variable_get('account_settings_maxusers', ''),
+        '#description' => t('Maximum number of Users'),
+        '#required' => TRUE,
+    );
+    $form['account_settings_maxdms'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Maximum Topics Allowed'),
+        '#default_value' => variable_get('account_settings_maxdms', ''),
+        '#description' => t('Maximum number of Topics'),
+        '#required' => TRUE,
+    );
+
+    $form['account_settings_activate'] = array(
+        '#type' => 'radios',
+        '#title' => t('Activate or Deactivate this Account'),
+        '#description' => t('Select one option'),
+        '#default_value' => variable_get('account_settings_activate', 'activate'),
+        '#options' => array(
+            'activate' => t('Activate'),
+            'deactivate' => t('Deactivate'),
+        ),
+        '#required' => TRUE,
+    );
+    $form['account_settings_activation'] = array(
+        '#type' => 'date',
+        '#title' => t('Activation Date'),
+        '#description' => t('Activation Date'),
+        '#default_value' => variable_get('account_settings_activation', ''),
+        '#required' => TRUE,
+    );
+    $form['account_settings_expiry'] = array(
+        '#type' => 'date',
+        '#title' => t('Expiry Date'),
+        //'#default_value' => array('year' => 2007, 'month' => 2, 'day' => 15),
+        '#description' => t('Date the account will expire or deactivate'),
+        '#default_value' => variable_get('account_settings_expiry', ''),
+        '#required' => TRUE,
+    );
+    $form['#submit'][] = 'gd_account_settings_create_form_submit';
+
+    return system_settings_form($form);
+}
+
+function gd_account_settings_create_form_validate($form, &$form_state) {
+    $max_rec = $form_state['values']['account_settings_maxrecords'];
+    $max_usr = $form_state['values']['account_settings_maxusers'];
+    $max_dms = $form_state['values']['account_settings_maxdms'];
+
+    if (!is_numeric($max_rec)) {
+        form_set_error('account_settings_maxrecords', t('You must enter an integer for Maximum Records.'));
+    } else if ($max_rec <= 0) {
+        form_set_error('account_settings_maxrecords', t('Maximum Records must be positive.'));
+    }
+
+    if (!is_numeric($max_rec)) {
+        form_set_error('account_settings_maxusers', t('You must enter an integer for Maximum Users.'));
+    } else if ($max_usr <= 0) {
+        form_set_error('account_settings_maxusers', t('Maximum Users must be positive.'));
+    }
+
+    if (!is_numeric($max_dms)) {
+        form_set_error('account_settings_maxdms', t('You must enter an integer for Maximum Topics.'));
+    } else if ($max_dms <= 0) {
+        form_set_error('account_settings_maxdms', t('Maximum Topics must be positive.'));
+    }
+}
+
+function gd_account_settings_create_form_submit($form, &$form_state) {
+    drupal_set_message(t('The form has been submitted and mail has been sent.'));
+    //If successful in creating/updating form send mail to notify sales team
+    $activeyr = $form_state['values']['account_settings_activation']['month'] . "/" . $form_state['values']['account_settings_activation']['day'] . "/" . $form_state['values']['account_settings_activation']['year'];
+    $expyr = $form_state['values']['account_settings_expiry']['month'] . "/" . $form_state['values']['account_settings_expiry']['day'] . "/" . $form_state['values']['account_settings_expiry']['year'];
+
+    $to = variable_get('account_settings_sales_email', '');
+    $subject = "GovDashboard Account Setup";
+    $body = "A new account has been setup or modified for ".str_replace(array('https://','http://','/'),'',GOVDASH_HOST)." \n\n Please review the following information:
+           \n Package Type:" . $form_state['values']['account_settings_packtype'] .
+      " \n Account User First name:" . $form_state['values']['account_settings_fname'] .
+      " \n Account User Last name:" . $form_state['values']['account_settings_lname'] .
+      " \n Account User Email:" . $form_state['values']['account_settings_email'] .
+      " \n Maximum Records Allowed:" . $form_state['values']['account_settings_maxrecords'] .
+      " \n Maximum Users Allowed:" . $form_state['values']['account_settings_maxusers'] .
+      " \n Maximum Topics Allowed :" . $form_state['values']['account_settings_maxdms'] .
+      " \n Activation Date:" . $activeyr .
+      " \n Expiry Date:" . $expyr;
+
+    //If the value of max records is changed then reset the alert frequency
+    if ($form_state['values']['account_settings_maxrecords'] != variable_get('account_settings_maxrecords', '')) {
+        variable_set("account_settings_email_alert_rec_limit", date("m/d/Y", strtotime("-15 days")));
+        variable_set("account_settings_email_alert_90per", '');
+    }
+
+    $key = "govdash_new_account_setup";
+    gd_account_notify($key, $to, $subject, $body);
+    watchdog('account setup', 'New or Existing Account changed');
+}
+
+
+function gd_account_settings_barchart() {
+    print theme('account_settings_barchart');
+    drupal_exit();
+}
+
+function gd_account_settings_dialchart_user() {
+    print theme('account_settings_dialchart_user');
+    drupal_exit();
+}
+
+function gd_account_settings_dialchart_datamart() {
+    print theme('account_settings_dialchart_datamart');
+    drupal_exit();
+}
+
+function gd_account_settings_statistics_charts() {
+    print theme('account_settings_statistics_charts');
+    drupal_exit();
+}
+
+function gd_account_settings_create_datamart() {
+    print theme('account_settings_create_datamart');
+    drupal_exit();
+}
+
+function gd_account_settings_edit_datamart() {
+    print theme('account_settings_edit_datamart');
+    drupal_exit();
+}
+
+
+/**
+ * Preprocessor for the template page
+ */
+function template_preprocess_account_settings_barchart ( &$vars ) {
+
+    $datasources = gd_account_user_get_datasources();
+
+    $sql = "
+    SELECT
+    Datamart.nid,
+    Datamart.title AS publicName,
+    DatamartSysnameLookup.field_datamart_sysname_value AS name,
+    COALESCE(SUM(DatasetRecordsLookup.field_dataset_records_value ), 0) as totalRecords
+    FROM node Datamart
+    LEFT JOIN field_data_field_datamart_sysname DatamartSysnameLookup ON Datamart.nid = DatamartSysnameLookup.entity_id
+    LEFT JOIN field_data_field_dataset_datasource DatasetDatasourceLookup ON DatamartSysnameLookup.field_datamart_sysname_value = DatasetDatasourceLookup.field_dataset_datasource_value
+    LEFT JOIN node Dataset ON Dataset.nid = DatasetDatasourceLookup.entity_id
+    LEFT JOIN field_data_field_dataset_records DatasetRecordsLookup ON DatasetRecordsLookup.entity_id = Dataset.nid
+    WHERE Datamart.type = :type AND Datamart.status = :status AND ( Dataset.status = :status OR ISNULL(Dataset.status) )
+    GROUP BY Datamart.nid";
+
+    $result = db_query($sql, array(':type' => 'datamart', ':status' => 1));
+
+    $datamarts_list = array();
+    $datamarts_record_counts = array();
+    $datamarts_links = array();
+
+    foreach ( $datasources as $datasource ) {
+        $datasource->records = null;
+        if ( isset($datasource->nid) ) {
+            foreach ($result as $record) {
+                if ( $record->name == $datasource->name ) {
+                    $datasource->records = $record->totalRecords;
+                    $datasource->publicName = $record->publicName;
+                }
+            }
+        }
+
+        $datamarts_list[] = $datasource->publicName;
+        $datamarts_record_counts[] = (int) $datasource->records;
+        $datamarts_links[] = array("title" => $datasource->publicName, "url" => '/account_datamart_edit_datamart?datasource=' . $datasource->name);
+    }
+
+    $vars['datamarts_list_js'] = json_encode($datamarts_list);
+    $vars['datamarts_record_counts_js'] = json_encode($datamarts_record_counts);
+    $vars['datamarts_links_js'] = json_encode($datamarts_links);
+}
+
+
+/**
+ * Preprocessor for the template page
+ */
+
+function template_preprocess_account_settings_dialchart_user(&$vars) {
+    /**
+     * Get Active users
+     */
+    $sql = "SELECT count(uid) as active_count FROM {users} WHERE status = 1 AND uid NOT IN (0,1)";
+    $result = db_query($sql);
+    $active_users = 0;
+    foreach ($result as $record) {
+        $active_users = $record->active_count;
+    }
+    $vars['user_chart']['max'] = variable_get('account_settings_maxusers', '');
+    $vars['user_chart']['active'] = $active_users;
+    $vars['user_chart']['calculated'] = $active_users;
+
+    // don't want the dial to spin past the max..
+    if ($vars['user_chart']['active'] > $vars['user_chart']['max']) {
+        $vars['user_chart']['calculated'] = $vars['user_chart']['max'];
+    }
+}
+
+function template_preprocess_account_settings_dialchart_datamart(&$vars) {
+    /**
+     * Get Active Datamarts
+     */
+    $datasources = gd_datasource_get_all();
+    $active_datamarts = count($datasources);
+
+    $vars['datamart_chart']['max'] = variable_get('account_settings_maxdms', '');
+    $vars['datamart_chart']['active'] = $active_datamarts;
+    $vars['datamart_chart']['calculated'] = $active_datamarts;
+
+    // don't want the dial to spin past the max..
+    if ($vars['datamart_chart']['active'] > $vars['datamart_chart']['max']) {
+        $vars['datamart_chart']['calculated'] = $vars['datamart_chart']['max'];
+    }
+}
+
+function gd_account_notify($key,$to,$subject,$body) {
+    $bypass = false;
+    drupal_alter('gd_account_create_notification_bypass', $bypass);
+
+    if (!$bypass) {
+        $module = 'gd_account';
+        $language = language_default();
+        $params = array();
+        $send = FALSE;
+
+        $message = drupal_mail($module, $key, $to, $language, $params, $from = NULL, $send);
+        $message['subject'] = $subject;
+        $message['body'] = array();
+        $message['body'][] = "$body";
+
+        // Retrieve the responsible implementation for this message.
+        $system = drupal_mail_system($module, $key);
+
+        // Format the message body.
+        $message = $system->format($message);
+
+        // Send e-mail.
+        if ( $message['result'] = $system->mail($message) ) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    return false;
+}

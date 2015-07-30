@@ -1,0 +1,60 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+function gd_health_monitoring_database_install() {
+    $metamodel = data_controller_get_metamodel();
+
+    $dataStructureController = data_controller_ddl_get_instance();
+    // creating 'event types' table
+    $eventTypeDatasetName = NameSpaceHelper::addNameSpace(DATASOURCE_NAME__HEALTH_MONITORING, 'hm_event_types');
+    $eventTypeDataset = $metamodel->getDataset($eventTypeDatasetName);
+    $dataStructureController->createDatasetStorage($eventTypeDataset);
+    // creating 'trails' table
+    $trailDatasetName = NameSpaceHelper::addNameSpace(DATASOURCE_NAME__HEALTH_MONITORING, 'hm_trails');
+    $trailDataset = $metamodel->getDataset($trailDatasetName);
+    $dataStructureController->createDatasetStorage($trailDataset);
+
+    $dataManipulationController = data_controller_dml_get_instance();
+    // inserting initial records into 'event types' table
+    $recordsHolder = new IndexedRecordsHolder();
+    // preparing 'Dashboard Preparation' event record
+    $recordInstance = $recordsHolder->initiateRecordInstance();
+    $recordInstance->initializeFrom(array(1, 'Dashboard Preparation', 1));
+    $recordsHolder->registerRecordInstance($recordInstance);
+    // preparing 'Report Query Execution' event record
+    $recordInstance = $recordsHolder->initiateRecordInstance();
+    $recordInstance->initializeFrom(array(10, 'Report Query Execution', 1));
+    $recordsHolder->registerRecordInstance($recordInstance);
+    // preparing 'Object Created' event record
+    $recordInstance = $recordsHolder->initiateRecordInstance();
+    $recordInstance->initializeFrom(array(100, 'Object Created', 1));
+    $recordsHolder->registerRecordInstance($recordInstance);
+    // preparing 'Object Updated' event record
+    $recordInstance = $recordsHolder->initiateRecordInstance();
+    $recordInstance->initializeFrom(array(101, 'Object Updated', 1));
+    $recordsHolder->registerRecordInstance($recordInstance);
+    // preparing 'Object Deleted' event record
+    $recordInstance = $recordsHolder->initiateRecordInstance();
+    $recordInstance->initializeFrom(array(102, 'Object Deleted', 1));
+    $recordsHolder->registerRecordInstance($recordInstance);
+    // pushing the batch to the server
+    $dataManipulationController->insertDatasetRecordBatch($eventTypeDatasetName, $recordsHolder);
+}

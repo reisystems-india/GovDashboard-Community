@@ -1,0 +1,49 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+define('NODE_TYPE_DATAMART', 'datamart');
+
+/**
+ * Implements hook_services_resources()
+ *
+ * @return array
+ */
+function gd_datamart_services_resources () {
+    $resource = array();
+    require 'resources/datamart.resource.inc';
+
+    return $resource;
+}
+
+function gd_datamart_get_datamarts($loadNodes = LOAD_ENTITY_ID_ONLY, $publishedOnly = PUBLISHED_ONLY) {
+    return execute_entity_query_4_node_type(NODE_TYPE_DATAMART, $loadNodes, $publishedOnly);
+}
+
+function gd_datamart_find_datamart_by_name($datamart_sysname) {
+    $query = prepare_entity_query_4_node_type(NODE_TYPE_DATAMART, INCLUDE_UNPUBLISHED);
+    $query->fieldCondition('field_datamart_sysname', 'value', $datamart_sysname);
+    $entities = $query->execute();
+
+    $nodes = process_entity_query_result($entities, LOAD_ENTITY);
+    $node = reset($nodes);
+
+    return ($node === FALSE) ? NULL : $node;
+}

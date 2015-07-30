@@ -1,0 +1,12 @@
+test_case_name,name,uri,fiscal_year,report_date,submitted_on,amount_a,amount_b,percent,quantity,ratio,branch_id,leaf_id
+
+basic,Fidelity,http://www.fidelity.com,2012,12/31/2012,01/06/2014,"$100,000.00","$0.11",15%,2,0.25,0,
+basic,Fidelity,http://www.fidelity.com,2013,12/31/2013,01/07/2014,"$200,000.00","$1.11",25%,2,0.05,0,
+basic,Fidelity,http://www.fidelity.com,2014,12/31/2014,01/08/2014,"$300,000.00","$2.11",55%,2,0.25,0,
+basic,Fidelity,http://www.fidelity.com,2015,12/31/2015,01/09/2014,"$400,000.00","$3.11",45%,2,0.45,0,
+
+basic,"REI Systems, Inc.",http://www.reisystems.com,2012,09/30/2012,06/01/2014,"$111,000.00","$1.01",,50,0.01,1,1
+basic,"REI Systems, Inc.",http://www.reisystems.com,2013,09/30/2013,07/01/2014,"$222,000.00","$2.02",,100,0.01,1,1
+basic,"REI Systems, Inc.",http://www.reisystems.com,2014,09/30/2014,08/01/2014,"$333,000.00","$3.03",,1000,0.01,1,1
+basic,"REI Systems, Inc.",http://www.reisystems.com,2015,09/30/2015,09/01/2014,"$444,000.00","$4.04",,1,0.03,1,1
+basic,"REI Systems, Inc.",http://www.reisystems.com,2016,09/30/2016,10/01/2014,"$0.10","$5.05",,,0.03,1,1

@@ -1,0 +1,386 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+define('ENTITY_TYPE_DATASOURCE', 'datasource');
+
+/**
+ * Implements hook_xautoload()
+ *
+ * @param \Drupal\xautoload\Adapter\LocalDirectoryAdapter $adapter
+ */
+function gd_datasource_xautoload($adapter) {
+    $adapter->add('GD','lib');
+}
+
+/**
+ * Implements hook_menu
+ *
+ * @return array
+ */
+function gd_datasource_menu () {
+    $items = array();
+
+    $items['admin/structure/govdashboard/datasource'] = array(
+        'title' => 'GovDashboard Datasources',
+        'description' =>  'Datasource List',
+        'page callback' => 'gd_datasource_page_admin_index',
+        'access arguments' => array('administer site configuration'),
+        'file' => 'gd_datasource.admin.php',
+    );
+
+    $items['admin/structure/govdashboard/datasource/ds/%'] = array(
+        'title' => 'Datasource Info',
+        'page callback' => 'gd_datasource_page_admin_retrieve',
+        'page arguments' => array(5),
+        'access arguments' => array('administer site configuration'),
+        'file' => 'gd_datasource.admin.php'
+    );
+
+    return $items;
+}
+
+/**
+ * Implements hook_services_resources()
+ *
+ * @return array
+ */
+function gd_datasource_services_resources () {
+    $resource = array();
+    require 'resources/datasource.resource.inc';
+    return $resource;
+}
+
+/**
+ * @param $input
+ * @return null
+ * @throws InvalidArgumentException
+ * @throws Exception
+ */
+function gd_datasource_create ( $input ) {
+
+    if ( empty($input['publicName']) ) {
+        throw new InvalidArgumentException('Topic name is required.');
+    }
+
+    $node = new StdClass();
+    $node->type = NODE_TYPE_DATAMART;
+    $node->language = LANGUAGE_NONE;
+    node_object_prepare($node);
+
+    $node->title = $input['publicName'];
+    $node->field_datamart_desc[$node->language][0]['value'] = isset($input['description']) ? $input['description'] : '';
+
+    // preparing database name prefix
+    $serverConfig = Environment::getInstance()->getConfigurationSection('Server');
+    $databaseNamePrefix = isset($serverConfig['Name']) ? $serverConfig['Name'] : '';
+    if ($databaseNamePrefix != '') {
+        $databaseNamePrefix = strtolower($databaseNamePrefix) . '_';
+    }
+    // preparing database name
+    $databaseNameSuffix = isset($input['database']) ? $input['database'] : GD_NamingConvention::generateDataMartName();
+    $databaseName = $databaseNamePrefix . $databaseNameSuffix;
+
+    // preparing connection options
+    $options = array('database' => $databaseName);
+    $node->field_datamart_options[$node->language][0]['value'] = json_encode($options);
+
+    // preparing data source name
+    $datasourceName = NULL;
+    if (isset($input['name'])) {
+        $datasourceName = $input['name'];
+    }
+    else {
+        $datasourceName = $databaseNameSuffix;
+    }
+    $node->field_datamart_sysname[$node->language][0]['value'] = $datasourceName;
+    // referencing parent configuration
+    $node->field_datamart_parent_sysname[$node->language][0]['value'] = DrupalDatabaseEnvironmentMetaModelGenerator::$DATASOURCE_NAME__DEFAULT;
+
+    $node->status = NODE_NOT_PUBLISHED;
+    node_save($node);
+
+    EnvironmentMetaModelFactory::getInstance()->startGlobalModification();
+    try {
+        $environment_metamodel = data_controller_get_environment_metamodel();
+        // because the node in not in published status we need to manually register the dataset in the environment meta model
+        $datasource = GD_DataMartMetaModelLoaderHelper::prepareDataSource($environment_metamodel, $node);
+        GD_DataMartMetaModelLoaderHelper::finalizeDataSourcePreparation($environment_metamodel, $datasource);
+
+        // invoke data controller and create the database
+        $dataStructureController = data_controller_ddl_get_instance();
+        $dataStructureController->createDatabase($datasource->name);
+
+        // assume all went well
+        $node->status = NODE_PUBLISHED;
+
+        // save the status
+        node_save($node);
+    } catch ( Exception $e ) {
+        EnvironmentMetaModelFactory::getInstance()->finishGlobalModification(false);
+        throw $e;
+    }
+    EnvironmentMetaModelFactory::getInstance()->finishGlobalModification(true);
+
+    return $datasource->name;
+}
+
+function gd_datasource_drop($datasourceName) {
+    EnvironmentMetaModelFactory::getInstance()->startGlobalModification();
+    try {
+        $environment_metamodel = data_controller_get_environment_metamodel();
+        $datasource = $environment_metamodel->getDataSource($datasourceName);
+
+        if (!isset($datasource->nid)) {
+            throw new IllegalStateException(t('%datasourceName data source is not a data mart', array('%datasourceName' => $datasource->publicName)));
+        }
+
+        $datasourceNode = node_load($datasource->nid);
+        if ($datasourceNode === FALSE) {
+            throw new IllegalStateException(t(
+                'Could not find %nodeId node for %datasourceName data source',
+                array(
+                    '%nodeId' => $datasource->nid,
+                    '%datasourceName' => $datasource->publicName)));
+        }
+
+        $dataStructureController = data_controller_ddl_get_instance();
+        $dataStructureController->dropDatabase($datasourceName);
+
+        $datasourceNode->status = NODE_NOT_PUBLISHED;
+        node_save($datasourceNode);
+    }
+    catch ( Exception $e ) {
+        EnvironmentMetaModelFactory::getInstance()->finishGlobalModification(false);
+        throw $e;
+    }
+    EnvironmentMetaModelFactory::getInstance()->finishGlobalModification(true);
+}
+
+/**
+ * Returns the active datasource
+ */
+function gd_datasource_find_active () {
+    $datasourceName = null;
+    if ( !empty($GLOBALS['datasource']) ) {
+        $datasourceName = $GLOBALS['datasource'];
+    }
+
+    return $datasourceName;
+}
+
+/**
+ * Returns the active datasource
+ */
+function gd_datasource_get_active () {
+    $datasourceName = gd_datasource_find_active();
+    if (!isset($datasourceName)) {
+        throw new Exception('GetActive: Missing Data Source');
+    }
+
+    return $datasourceName;
+}
+
+/**
+ * Sets the active datasource
+ *
+ * @param $datasourceName
+ */
+function gd_datasource_set_active ( $datasourceName ) {
+
+    if ( empty($datasourceName) ) {
+        throw new Exception('SetActive: Missing Datasource');
+    }
+
+    $activeDatasourceName = null;
+    if ( !empty($GLOBALS['datasource']) ) {
+        $activeDatasourceName = $GLOBALS['datasource'];
+    }
+
+    if ( $activeDatasourceName != $datasourceName ) {
+        $GLOBALS['datasource'] = $datasourceName;
+        module_invoke_all('gd_set_active_datasource', $datasourceName);
+    }
+}
+
+/**
+ * @return array
+ */
+function gd_datasource_get_all () {
+    $EnvironmentMetaModel = data_controller_get_environment_metamodel();
+    $datasources = $EnvironmentMetaModel->getDataSources();
+    $results = array();
+    foreach ( $datasources as $datasourceName => $datasource ) {
+        // skip over system datasources
+        if ( !$datasource->isPublic() ) {
+            continue;
+        }
+        $results[$datasourceName] = gd_datasource_get_ui_metadata($datasource);
+    }
+    return $results;
+}
+
+function gd_datasource_get ( $datasourceName ) {
+    $EnvironmentMetaModel = data_controller_get_environment_metamodel();
+    return gd_datasource_get_ui_metadata($EnvironmentMetaModel->getDataSource($datasourceName));
+}
+
+/**
+ * @param $datasourceName
+ * @return null|stdClass
+ */
+function gd_datasource_find ( $datasourceName ) {
+    $EnvironmentMetaModel = data_controller_get_environment_metamodel();
+    return gd_datasource_get_ui_metadata($EnvironmentMetaModel->findDataSource($datasourceName));
+}
+
+function gd_datasource_is_published ( $datasourceName ) {
+    return (bool) gd_datasource_find($datasourceName);
+}
+
+/**
+ * Add additional information for a node based datasource
+ *
+ * @param $datasource
+ */
+function gd_datasource_get_ui_metadata ( $datasource ) {
+
+    if ( !$datasource ) {
+        return null;
+    }
+
+    $result = new stdClass();
+    $result->name = $datasource->name;
+    $result->publicName = $datasource->publicName;
+    $result->description = $datasource->description;
+    $result->type = $datasource->type;
+    $result->readonly = $datasource->readonly;
+
+    if ( $datasource->name === gd_datasource_find_active() ) {
+        $result->active = 1;
+    }
+
+    if (isset($datasource->draft)) {
+        $result->draft = 1;
+    }
+
+    // add additional information
+    if ( isset($datasource->nid) ) {
+        $node = node_load($datasource->nid);
+
+        $result->nid = $node->nid;
+
+        // author
+        $account = user_load($node->uid);
+
+        if ( $account ) {
+            $author = new stdClass();
+            $author->id = $account->uid;
+            $author->name = $account->fullname;
+            $author->email = $account->mail;
+
+            $result->author = $author;
+        }
+
+        // description
+        $result->publicName = $node->title;
+        $result->description = get_node_field_value($node,'field_datamart_desc');
+
+        // timestamps
+        $result->created = date(GD_DATETIME_FORMAT_API, $node->created);
+        $result->changed = date(GD_DATETIME_FORMAT_API, $node->changed);
+    }
+
+    return $result;
+}
+
+function gd_datasource_update ( $datasourceName, $input ) {
+
+    $datasource = gd_datasource_get($datasourceName);
+
+    if ( !isset($datasource->nid) ) {
+        throw new Exception('Operation not supported');
+    }
+
+    $datamartNode = node_load($datasource->nid);
+
+    if ( !empty($input['publicName']) ) {
+        $datamartNode->title = $input['publicName'];
+    }
+
+    if ( !empty($input['description']) ) {
+        $datamartNode->field_datamart_desc[$datamartNode->language][0]['value'] = $input['description'];
+    }
+
+    EnvironmentMetaModelFactory::getInstance()->startGlobalModification();
+    try {
+        node_save($datamartNode);
+    } catch (Exception $e) {
+        EnvironmentMetaModelFactory::getInstance()->finishGlobalModification(FALSE);
+        throw $e;
+    }
+    EnvironmentMetaModelFactory::getInstance()->finishGlobalModification(TRUE);
+}
+
+/**
+ * @param $datasourceName
+ * @throws Exception
+ */
+function gd_datasource_unpublish ( $datasourceName ) {
+
+    $datasource = gd_datasource_get($datasourceName);
+
+    if ( !$datasource ) {
+        return;
+    }
+
+    if ( !isset($datasource->nid) ) {
+        throw new Exception('Operation not supported');
+    }
+
+    $datamart = node_load($datasource->nid);
+    node_unpublish_action($datamart);
+    node_save($datamart);
+
+    if ( gd_datasource_get_active() == $datasource->name ) {
+        $datasources = gd_account_user_get_datasources();
+        gd_datasource_set_active($datasources[key($datasources)]->name);
+    }
+
+}
+
+/**
+ * @param $name
+ * @return bool
+ */
+function gd_datasource_name_is_unique ( $name ) {
+    foreach ( gd_datasource_get_all() as $datasource ) {
+        if ( $datasource->publicName == $name ) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function gd_datasource_is_property($name, $property) {
+    $environment_metamodel = data_controller_get_environment_metamodel();
+    $datasource = $environment_metamodel->findDataSource($name);
+    return isset($datasource) && isset($datasource->$property) && $datasource->$property === true;
+}

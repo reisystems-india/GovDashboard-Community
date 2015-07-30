@@ -1,0 +1,30 @@
+a {
+    color: #2a5a81;
+}
+
+.pagination>.active>a, .pagination>.active>span, .pagination>.active>a:hover, .pagination>.active>span:hover, .pagination>.active>a:focus, .pagination>.active>span:focus {
+    background-color: #2a5a81;
+    border-color: #2a5a81;
+    color: #fff;
+}
+
+.pagination > li > a, .pagination > li > span {
+    color: #2a5a81;
+}
+
+.pagination > .disabled > span, .pagination > .disabled > span:hover, .pagination > .disabled > span:focus, .pagination > .disabled > a, .pagination > .disabled > a:hover, .pagination > .disabled > a:focus {
+    color: #555555;
+}
+
+.btn-primary {
+    background-color: #275379;
+    border-color: #214565;
+}
+
+.alert-danger {
+    color: #762f2e;
+}
+
+.close {
+    opacity: .75;
+}

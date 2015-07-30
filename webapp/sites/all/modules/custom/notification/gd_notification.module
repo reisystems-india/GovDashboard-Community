@@ -1,0 +1,145 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+define("GD_NOTIFICATION_EMAIL", "email");
+define("GD_NOTIFICATION_SUPPORT", 0);
+define("GD_NOTIFICATION_NOTICE", 1);
+define("GD_NOTIFICATION_WARNING", 2);
+define("GD_NOTIFICATION_URGENT", 3);
+
+/**
+ * Implements hook_xautoload()
+ *
+ * @param \Drupal\xautoload\Adapter\LocalDirectoryAdapter $adapter
+ */
+function gd_notification_xautoload($adapter) {
+    $adapter->add('GD','lib');
+}
+
+function gd_notification_get_config() {
+    return variable_get('gd_notification_config', array(
+        'notifications' => TRUE
+    ));
+}
+
+function gd_notification_menu() {
+    $items = array();
+
+    $items['admin/config/govdashboard/notification'] = array(
+        'title' => 'Notification Settings',
+        'description' =>  'Configure global notification settings.',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('gd_notification_admin_settings_form'),
+        'file' => 'gd_notification.admin.inc',
+        'access arguments' => array('administer site configuration')
+    );
+
+    return $items;
+}
+
+function gd_notification_get_handlers() {
+    $handlers = &drupal_static(__FUNCTION__, NULL);
+    if (!isset($handlers)) {
+        $handlers = (array) module_invoke_all('gd_notification_register');
+
+        $handlers['default_email'] = array(
+            'name' => 'Default Email',
+            'type' => GD_NOTIFICATION_EMAIL,
+            'weight' => 0,
+            'factory' => '\GD\Notification\Factory\DefaultEmailNotificationFactory'
+        );
+
+        // order by weight
+        usort($handlers, function($a, $b) {
+            if ($a['weight'] == $b['weight']) {
+                return 0;
+            }
+            return ($a['weight'] < $b['weight']) ? -1 : 1;
+        });
+    }
+    return $handlers;
+}
+
+function gd_notification_send($configuration) {
+    $handlers = gd_notification_get_handlers();
+
+    $results = array();
+
+    foreach ($handlers as $handler) {
+        $results[$handler['name']] = $handler['factory']::getInstance()->getNotificationHandler()->send($configuration);
+    }
+
+    return $results;
+}
+
+function gd_notification_send_notification($to, $messageType, $subject, $message) {
+    $configuration = array(
+        'destination' => $to,
+        'type' => $messageType,
+        'subject' => $subject,
+        'message' => $message,
+    );
+
+    return gd_notification_send($configuration);
+}
+
+function gd_notification_send_group_notification($groupId, $messageType, $subject, $message) {
+    $members = gd_account_group_get_members($groupId);
+    $accounts = array();
+
+    foreach($members as $member) {
+        //  TODO Sanitize member
+        $accounts[] = $member;
+    }
+
+    $configuration = array(
+        'destination' => $accounts,
+        'type' => $messageType,
+        'subject' => $subject,
+        'message' => $message,
+    );
+
+    return gd_notification_send($configuration);
+}
+
+function gd_notification_send_system_notification($messageType, $subject, $message) {
+    $accounts = array();
+
+    $configuration = array(
+        'destination' => $accounts,
+        'type' => $messageType,
+        'subject' => $subject,
+        'message' => $message,
+    );
+
+    return gd_notification_send($configuration);
+}
+
+function gd_notification_send_support_notification($messageType, $subject, $message) {
+    $configuration = array(
+        'destination' => GD_NOTIFICATION_SUPPORT,
+        'type' => $messageType,
+        'subject' => $subject,
+        'message' => $message,
+    );
+
+    return gd_notification_send($configuration);
+}

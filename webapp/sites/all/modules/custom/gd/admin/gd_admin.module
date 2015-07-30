@@ -1,0 +1,281 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+/**
+ * Implements hook_menu()
+ * @return array
+ */
+function gd_admin_menu () {
+
+    $items = array();
+
+    $items['cp'] = array(
+        'page callback' => 'gd_admin_page_default',
+        'access callback' => 'gd_admin_permissions',
+        'type' => MENU_CALLBACK
+    );
+
+    return $items;
+}
+
+/**
+ * @return bool
+ */
+function gd_admin_permissions () {
+    return user_is_logged_in();
+}
+
+/**
+ * @param bool $refresh
+ * @return array
+ */
+function gd_admin_get_sections ($refresh = false) {
+    static $gd_admin_sections;
+    if ( !isset($gd_admin_sections) || $refresh ) {
+        $gd_admin_sections = module_invoke_all('gd_admin_sections');
+
+        $access = array();
+        foreach($gd_admin_sections as $section) {
+            if (isset($section['access']) && function_exists($section['access'])) {
+                if ($section['access']()) {
+                    $access[] = $section;
+                }
+            } else {
+                $access[] = $section;
+            }
+        }
+
+        $gd_admin_sections = $access;
+
+        // sort by weight
+        $weightSort = function ( &$sections ) use ( &$weightSort ) {
+            // apply a default value for weight
+            foreach ( $sections as $k => $v ) {
+                if ( !isset($sections[$k]['weight']) ) {
+                    $sections[$k]['weight'] = 0;
+                }
+            }
+
+            // sort the dashboard list by name
+            usort($sections, function($a, $b) {
+                if ( $a['weight'] == $b['weight'] ) {
+                    return 0;
+                }
+                return ($a['weight'] < $b['weight']) ? -1 : 1;
+            });
+
+            // look for subsections
+            foreach ( $sections as $k => $v ) {
+                if ( !empty($sections[$k]['sections']) ) {
+                    $weightSort($sections[$k]['sections']);
+                }
+            }
+        };
+
+        $weightSort($gd_admin_sections);
+    }
+    return $gd_admin_sections;
+}
+
+/**
+ * @return string
+ */
+function gd_admin_get_sections_js () {
+    $parseSections = function ( $sections ) use ( &$parseSections ) {
+        $sections_js = array();
+        foreach ( $sections as $section ) {
+            $init = array();
+
+            if ( !empty($section['widgets']) ) {
+                $widget_js = array();
+                foreach ( $section['widgets'] as $widget ) {
+                    $widget_js[] = 'GD.'.$widget['class'];
+                }
+                $init['widgets'] = '['.implode(',',$widget_js).']';
+            }
+
+            if ( !empty($section['sections']) ) {
+                $init['sections'] = $parseSections($section['sections']);
+            }
+
+            $init_js = array();
+            foreach ( $init as $k => $v ) {
+                $init_js[] = $k.':'.$v;
+            }
+
+            $sections_js[] = 'new GD.'.$section['class'].'({'.implode(',',$init_js).'})';
+            drupal_add_library('gd_'.$section['name'].'_admin','GD_Admin_'.$section['class']);
+        }
+
+        return '['.implode(',',$sections_js).']';
+    };
+
+    return $parseSections(gd_admin_get_sections());
+}
+
+function gd_admin_page_default () {
+
+    if ( !gd_datasource_find_active() ) {
+        if ( !empty($_GET['ds']) && gd_datasource_find($_GET['ds']) ) {
+            gd_datasource_set_active($_GET['ds']);
+        } else {
+            global $user;
+            $account = user_load($user->uid);
+            $datasource = gd_account_user_find_default_datasource($account);
+            if ( $datasource ) {
+                drupal_goto('cp',array('query'=>array('ds'=>$datasource->name)));
+            } else {
+                return MENU_NOT_FOUND;
+            }
+        }
+    }
+
+    drupal_add_library('gd_admin','GD_Admin');
+
+    drupal_add_library('gd_dataset_admin','GD_Admin_DatasetSection_Index'); // default view
+
+    $main = gd_admin_get_layout_page_default();
+
+    $main .= '
+        <script type="text/javascript">
+        <!--//--><![CDATA[//><!--
+        (function(global,$) {
+            global.GovdashAdmin = new GD.Admin({
+                '.gd_admin_get_init().'
+            });
+            global.GovdashAdmin.run();
+        })(typeof window === "undefined" ? this : window, jQuery);
+        //--><!]]>
+        </script>
+        ';
+
+    return array(
+        '#show_messages' => false,
+        '#type' => 'page',
+        '#theme' => 'page__cp',
+        'content' => array(
+            'system_main' => array(
+                '#markup' => $main
+            )
+        )
+    );
+}
+
+function gd_admin_get_layout_page_default () {
+    return '
+        <div id="gd-admin-container">
+            <div class="row" id="gd-admin-header"></div>
+            <div class="row" id="gd-admin-messages"></div>
+            <div class="row">
+                <div class="col-md-12" id="gd-admin-body"></div>
+            </div>
+            <div class="row" id="gd-admin-footer"></div>
+        </div>
+        ';
+}
+
+function gd_admin_get_init () {
+    // set user
+    global $user;
+
+    gd_account_user_add_fields($user, $user);
+
+    $js = '';
+
+    // token
+    $js .= 'token: "'.drupal_get_token('services').'",';
+
+    // env params
+    $js .= 'environment: { ';
+    $js .= '},';
+
+    // set list of datasource
+    $js .= 'datasources: '.json_encode(array_values(gd_account_user_get_datasources())).',';
+    $js .= 'activeDS: "'. gd_datasource_get_active() .'",';
+
+    $account = new StdClass();
+    $account->id = $user->uid;
+    $account->name = $user->name;
+    $account->email = $user->mail;
+    $account->firstname = $user->firstname;
+    $account->lastname = $user->lastname;
+    $account->fullname = $user->fullname;
+    $account->groups = $user->roles;
+
+    // Check if the user has instance admin access or the user is user number 1, set admin access to 1 else 0
+    if ( gd_account_user_is_admin($user) ) {
+        $account->type = 1;
+    } else {
+        $account->type = 0;
+    }
+    $js .= 'user: '.json_encode($account).',';
+
+    // set sections
+    $js .= 'sections: '.gd_admin_get_sections_js();
+
+    return $js;
+}
+
+// Implements hook_library()
+function gd_admin_library() {
+
+    $libraries['GD_Admin'] = array(
+        'title'   => 'GD Admin',
+        'version' => '',
+        'js' => array(
+            drupal_get_path('module','gd_admin').'/js/Admin.js' => array(),
+            drupal_get_path('module','gd_admin').'/js/Section.js' => array(),
+            drupal_get_path('module','gd_admin').'/js/datasource/DatasourceFactory.js' => array(),
+            drupal_get_path('module','gd_admin').'/js/datasource/Datasource.js' => array(),
+            drupal_get_path('module','gd_admin').'/js/datasource/DatasourceSelectView.js' => array(),
+            drupal_get_path('module','gd_admin').'/js/messaging/MessagingView.js' => array()
+        ),
+        'css' => array (
+            drupal_get_path('module','gd_admin').'/css/Admin.css' => array('weight'=>1,'group'=>CSS_THEME)
+        ),
+        'dependencies' => array(
+            array('gd', 'GD_JS')
+        )
+    );
+
+    $libraries['GD_Admin_Builder'] = array(
+        'title'   => 'GD Admin Builder',
+        'version' => '',
+        'js' => array(
+            drupal_get_path('module','gd_admin').'/js/builder/Builder.js' => array(),
+            drupal_get_path('module','gd_admin').'/js/builder/button/BuilderButton.js' => array(),
+            drupal_get_path('module','gd_admin').'/js/builder/button/BuilderConfigButton.js' => array(),
+            drupal_get_path('module','gd_admin').'/js/builder/component/list/BuilderListView.js' => array(),
+            drupal_get_path('module','gd_admin').'/js/builder/component/editor/BuilderCustomViewEditor.js' => array(),
+            drupal_get_path('module','gd_admin').'/js/builder/component/notifications/Notification.js' => array(),
+            drupal_get_path('module','gd_admin').'/js/builder/component/notifications/NotificationView.js' => array(),
+        ),
+        'css' => array (
+            drupal_get_path('module','gd_admin').'/css/Builder.css' => array('weight'=>1,'group'=>CSS_THEME)
+        ),
+        'dependencies' => array(
+            array('gd', 'ace'),
+            array('gd_admin', 'GD_Admin'),
+        )
+    );
+
+    return $libraries;
+}

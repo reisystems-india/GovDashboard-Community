@@ -1,0 +1,130 @@
+<?php
+
+/*
+ * Copyright 2014 REI Systems, Inc.
+ *
+ * This file is part of GovDashboard.
+ *
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+require_once(realpath(drupal_get_path('module', 'oauth_common')) . '/oauth_common.inc');
+
+define('VARIABLE_NAME__CACHE_URL', 'gd_cache_resources');
+
+function gd_cache_menu() {
+    $items = array();
+
+    $items['admin/config/govdashboard/cache'] = array(
+        'title' => 'Cache Settings',
+        'description' =>  'Cache settings for GovDashboard.',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('gd_cache_admin_settings'),
+        'file' => 'gd_cache.admin.php',
+        'access arguments' => array('administer site configuration'),
+    );
+
+    return $items;
+}
+
+function gd_cache_parse_resources($text) {
+    $resourceIds = NULL;
+
+    $rawResourceIds = isset($text) ? preg_split("/[\r\n]/", $text, NULL, PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE) : NULL;
+
+    // trimming each URL
+    if (isset($rawResourceIds)) {
+        for ($i = 0, $count = count($rawResourceIds); $i < $count; $i++) {
+            $resourceId = StringHelper::trim($rawResourceIds[$i]);
+            if (isset($resourceId)) {
+                $resourceIds[] = $resourceId;
+            }
+        }
+    }
+
+    return $resourceIds;
+}
+
+function gd_cache_cron() {
+    $adminUID = 1;
+
+    LogHelper::log_info(t("Warming-up cache for pages data using admin account"));
+
+    $selectedConsumer = NULL;
+    // looking for consumer key for current user
+    $consumers = oauth_common_user_consumers($adminUID);
+    if (isset($consumers)) {
+        foreach ($consumers as $consumer) {
+            if ($consumer->context == 'data_api') {
+                $selectedConsumer = $consumer;
+                break;
+            }
+        }
+    }
+    if (!isset($selectedConsumer->key)) {
+        LogHelper::log_warn("Admin user does not have any registered OAuth consumer keys for 'Data API' context");
+        return;
+    }
+
+    // looking for list of resources
+    $resourceIds = gd_cache_parse_resources(variable_get(VARIABLE_NAME__CACHE_URL));
+
+    $pageCount = $errorPageCount = 0;
+    if (isset($resourceIds)) {
+        $scheme = ($_SERVER['SERVER_PORT'] == 443) ? 'https' : 'http';
+        $baseURI = $scheme . '://' . $_SERVER['HTTP_HOST'] . ':' . $_SERVER['SERVER_PORT'];
+
+        $curlProxy = new CURLProxy($baseURI);
+
+        // preparing initial request which redirects to terms and conditions
+        $handler = $curlProxy->initializeHandler('GET', '/', array('oauth_consumer_key' => $consumer->key));
+        // ignoring SSL verification
+        curl_setopt($handler->ch, CURLOPT_SSL_VERIFYHOST, FALSE);
+        curl_setopt($handler->ch, CURLOPT_SSL_VERIFYPEER, FALSE);
+        // supporting a session
+        $cookie = '';
+        curl_setopt($handler->ch, CURLOPT_COOKIEJAR, $cookie);
+        curl_setopt($handler->ch, CURLOPT_COOKIEFILE, $cookie);
+
+        $executor = new SingleCURLHandlerExecutor($handler);
+        // returning terms and conditions
+        $executor->execute();
+
+        // TODO. Move the following code to DHS repository accepting terms and conditions
+        curl_setopt($handler->ch, CURLOPT_URL, $baseURI . '/terms/agreed');
+        curl_setopt($handler->ch, CURLOPT_REFERER, $baseURI . '/terms');
+        try {
+            $executor->execute();
+        }
+        catch (Exception $e) {}
+
+        // processing all resources
+        foreach ($resourceIds as $index => $resourceId) {
+            curl_setopt($handler->ch, CURLOPT_URL, $baseURI . $resourceId);
+            try {
+                $executor->execute();
+            }
+            catch (Exception $e) {
+                LogHelper::log_error($e);
+                $errorPageCount++;
+            }
+
+            $pageCount++;
+        }
+    }
+
+    LogHelper::log_info(t(
+        'Touched @pageCount page(s). Errors: @errorPageCount',
+        array('@pageCount' => $pageCount, '@errorPageCount' => $errorPageCount)));
+}

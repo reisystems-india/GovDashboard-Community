@@ -1,0 +1,205 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+require_once('common/lib/drupal/EntityQueryHelper.php');
+require_once('common/lib/drupal/NodeFieldHelper.php');
+require_once('common/comparator/SortHelper.php');
+require_once('common/object/manipulation/PaginationHelper.php');
+require_once('common/pattern/singleton/AbstractSingleton.php');
+
+function data_controller_init() {
+    // initializing environment configuration
+    Environment::getInstance();
+}
+
+/**
+ * @return DataQueryController
+ */
+function data_controller_get_instance() {
+    return DataQueryControllerProxy::getInstance();
+}
+
+/**
+ * @return EnvironmentMetaModel
+ */
+function data_controller_get_environment_metamodel() {
+    return EnvironmentMetaModelFactory::getInstance()->getMetaModel();
+}
+
+/**
+ * @return MetaModel
+ */
+function data_controller_get_metamodel() {
+    return MetaModelFactory::getInstance()->getMetaModel();
+}
+
+
+function data_controller_dp_data_type() {
+    $items[StringDataTypeHandler::DATA_TYPE] = array(
+        'classname' => 'StringDataTypeHandler');
+    $items[IntegerDataTypeHandler::DATA_TYPE] = array(
+        'classname' => 'IntegerDataTypeHandler');
+    $items[NumberDataTypeHandler::DATA_TYPE] = array(
+        'classname' => 'NumberDataTypeHandler');
+    $items[CurrencyDataTypeHandler::DATA_TYPE] = array(
+        'classname' => 'CurrencyDataTypeHandler');
+    $items[PercentDataTypeHandler::DATA_TYPE] = array(
+        'classname' => 'PercentDataTypeHandler');
+/*
+    $items[BooleanDataTypeHandler::DATA_TYPE] = array(
+        'classname' => 'BooleanDataTypeHandler');*/
+    $items[DateDataTypeHandler::DATA_TYPE] = array(
+        'classname' => 'DateDataTypeHandler');
+
+    $items[TimeDataTypeHandler::DATA_TYPE] = array(
+        'classname' => 'TimeDataTypeHandler');
+    $items[DateTimeDataTypeHandler::DATA_TYPE] = array(
+        'classname' => 'DateTimeDataTypeHandler');
+    $items[URIDataTypeHandler::DATA_TYPE] = array(
+        'classname' => 'URIDataTypeHandler');
+
+    $items[ArrayDataTypeHandler::DATA_TYPE] = array(
+        'classname' => 'ArrayDataTypeHandler');
+    $items[ObjectDataTypeHandler::DATA_TYPE] = array(
+        'classname' => 'ObjectDataTypeHandler');
+
+    return $items;
+}
+
+
+function data_controller_dp_operator() {
+    $items[EmptyOperatorHandler::OPERATOR__NAME] = array(
+        'description' => t('Empty'),
+        'handler' => array(
+            'classname' => 'EmptyOperatorHandler'));
+    $items[NotEmptyOperatorHandler::OPERATOR__NAME] = array(
+        'description' => t('Not Empty'),
+        'handler' => array(
+            'classname' => 'NotEmptyOperatorHandler'));
+
+    // value-based operators
+    $items[EqualOperatorHandler::OPERATOR__NAME] = array(
+        'description' => t('Equal'),
+        'handler' => array(
+            'classname' => 'EqualOperatorHandler'),
+        'metadata' => array(
+            'classname' => 'ValueBasedOperatorMetaData'));
+    $items[NotEqualOperatorHandler::OPERATOR__NAME] = array(
+        'description' => t('Not Equal'),
+        'handler' => array(
+            'classname' => 'NotEqualOperatorHandler'),
+        'metadata' => array(
+            'classname' => 'ValueBasedOperatorMetaData'));
+    $items[GreaterOrEqualOperatorHandler::OPERATOR__NAME] = array(
+        'description' => t('Greater or Equal'),
+        'handler' => array(
+            'classname' => 'GreaterOrEqualOperatorHandler'),
+        'metadata' => array(
+            'classname' => 'ValueBasedOperatorMetaData'));
+    $items[GreaterThanOperatorHandler::OPERATOR__NAME] = array(
+        'description' => t('Greater than'),
+        'handler' => array(
+            'classname' => 'GreaterThanOperatorHandler'),
+        'metadata' => array(
+            'classname' => 'ValueBasedOperatorMetaData'));
+    $items[LessOrEqualOperatorHandler::OPERATOR__NAME] = array(
+        'description' => t('Less or Equal'),
+        'handler' => array(
+            'classname' => 'LessOrEqualOperatorHandler'),
+        'metadata' => array(
+            'classname' => 'ValueBasedOperatorMetaData'));
+    $items[LessThanOperatorHandler::OPERATOR__NAME] = array(
+        'description' => t('Less than'),
+        'handler' => array(
+            'classname' => 'LessThanOperatorHandler'),
+        'metadata' => array(
+            'classname' => 'ValueBasedOperatorMetaData'));
+    $items[WildcardOperatorHandler::OPERATOR__NAME] = array(
+        'description' => t('Wildcard'),
+        'handler' => array(
+            'classname' => 'WildcardOperatorHandler'),
+        'metadata' => array(
+            'classname' => 'WildcardOperatorMetaData'));
+    $items[NotWildcardOperatorHandler::OPERATOR__NAME] = array(
+        'description' => t('Not Wildcard'),
+        'handler' => array(
+            'classname' => 'NotWildcardOperatorHandler'),
+        'metadata' => array(
+            'classname' => 'WildcardOperatorMetaData'));
+    $items[RegularExpressionOperatorHandler::OPERATOR__NAME] = array(
+        'description' => t('Regular Expression'),
+        'handler' => array(
+            'classname' => 'RegularExpressionOperatorHandler'),
+        'metadata' => array(
+            'classname' => 'RegularExpressionOperatorMetaData'));
+    $items[NotRegularExpressionOperatorHandler::OPERATOR__NAME] = array(
+        'description' => t('Regular Expression'),
+        'handler' => array(
+            'classname' => 'NotRegularExpressionOperatorHandler'),
+        'metadata' => array(
+            'classname' => 'RegularExpressionOperatorMetaData'));
+
+    // Range-based operators
+    $items[RangeOperatorHandler::OPERATOR__NAME] = array(
+        'description' => t('Range'),
+        'handler' => array(
+            'classname' => 'RangeOperatorHandler'),
+        'metadata' => array(
+            'classname' => 'RangeBasedOperatorMetaData'));
+    $items[NotInRangeOperatorHandler::OPERATOR__NAME] = array(
+        'description' => t('Not in Range'),
+        'handler' => array(
+            'classname' => 'NotInRangeOperatorHandler'),
+        'metadata' => array(
+            'classname' => 'RangeBasedOperatorMetaData'));
+    $items[DynamicRangeOperatorHandler::OPERATOR__NAME] = array(
+        'description' => t('Dynamic Range'),
+        'handler' => array(
+            'classname' => 'DynamicRangeOperatorHandler'),
+        'metadata' => array(
+            'classname' => 'RangeBasedOperatorMetaData'));
+
+    // Data-related operators
+    $items[OldestOperatorHandler::OPERATOR__NAME] = array(
+        'description' => t('Oldest'),
+        'handler' => array(
+            'classname' => 'OldestOperatorHandler'));
+    $items[PreviousOperatorHandler::OPERATOR__NAME] = array(
+        'description' => t('Previous'),
+        'handler' => array(
+            'classname' => 'PreviousOperatorHandler'),
+        'metadata' => array(
+            'classname' => 'PreviousOperatorMetaData'));
+    $items[LatestOperatorHandler::OPERATOR__NAME] = array(
+        'description' => t('Latest'),
+        'handler' => array(
+            'classname' => 'LatestOperatorHandler'));
+
+    return $items;
+}
+
+function data_controller_dp_request_chain() {
+    $items[] = array(
+        'classname' => 'TotalInFormulaExpressionRequestLinkHandler',
+        'priority' => 10);
+
+    return $items;
+}

@@ -1,0 +1,104 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+/**
+ * Upon export, entity references are replaced with uuids to support partial updates.
+ */
+
+
+/**
+ * Implements hook_xautoload()
+ *
+ * @param \Drupal\xautoload\Adapter\LocalDirectoryAdapter $adapter
+ */
+function gd_sync_xautoload($adapter) {
+    $adapter->add('GD\Sync','lib');
+}
+
+/**
+ * Implements hook_menu
+ *
+ * @return array
+ */
+function gd_sync_menu () {
+    $items = array();
+
+    $items['admin/structure/govdashboard/sync'] = array(
+        'title' => 'GovDashboard Datasource Sync',
+        'description' =>  'Import/Export Utility',
+        'page callback' => 'gd_sync_admin_page',
+        'access arguments' => array('administer site configuration'),
+        'file' => 'gd_sync.admin.php',
+    );
+
+    $items['admin/structure/govdashboard/sync/list'] = array(
+        'title' => 'Datasources',
+        'page callback' => 'gd_sync_admin_page',
+        'access arguments' => array('administer site configuration'),
+        'file' => 'gd_sync.admin.php',
+        'type' => MENU_DEFAULT_LOCAL_TASK,
+        'context' => MENU_CONTEXT_PAGE,
+        'weight' => 0
+    );
+
+    $items['admin/structure/govdashboard/sync/export'] = array(
+        'title' => 'Export',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('gd_sync_export_form'),
+        //'page callback' => 'gd_sync_admin_page_export',
+        'access arguments' => array('administer site configuration'),
+        'file' => 'gd_sync.admin.php',
+        'type' => MENU_LOCAL_TASK,
+        'context' => MENU_CONTEXT_PAGE,
+        'weight' => 1
+    );
+
+    $items['admin/structure/govdashboard/sync/import'] = array(
+        'title' => 'Import',
+        'page callback' => 'gd_sync_admin_page_import',
+        'access arguments' => array('administer site configuration'),
+        'file' => 'gd_sync.admin.php',
+        'type' => MENU_LOCAL_TASK,
+        'context' => MENU_CONTEXT_PAGE,
+        'weight' => 2
+    );
+
+    $items['admin/structure/govdashboard/sync/datasource/%node'] = array(
+        'title' => 'Datasource View',
+        'page callback' => 'gd_sync_admin_page_datasource',
+        'page arguments' => array(5),
+        'access arguments' => array('administer site configuration'),
+        'file' => 'gd_sync.admin.php',
+        'type' => MENU_LOCAL_TASK,
+        'context' => MENU_CONTEXT_PAGE
+    );
+
+    return $items;
+}
+
+/**
+ * Implementation of hook_services_resources().
+ *
+ */
+function gd_sync_services_resources() {
+    require_once 'gd_sync.resource.php';
+    return gd_sync_resource_definition();
+}

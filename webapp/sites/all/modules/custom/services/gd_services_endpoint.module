@@ -1,0 +1,199 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+// $Id$
+
+define('GD_DATETIME_FORMAT_API', 'm/d/Y h:i:s A');
+define('GD_DATE_FORMAT_API', 'm/d/Y');
+define('GD_TIME_FORMAT_API', 'h:i:s A');
+
+require_once drupal_get_path('module', 'services_oauth') . '/services_oauth.inc';
+
+/**
+ * Implements hook_init
+ */
+function gd_services_endpoint_init () {
+    drupal_register_shutdown_function('gd_services_endpoint_shutdown');
+}
+
+/**
+ * Shutdown function to capture fatal errors for api
+ */
+function gd_services_endpoint_shutdown () {
+    if (arg(0) == 'api') {
+        // Returns an associative array describing the last error with keys "type", "message", "file" and "line".
+        $error = error_get_last();
+        if ($error !== NULL && $error['type'] === E_ERROR) {
+            ob_clean(); // so that there is a clean return
+            header('Internal Server Error',true,500);
+            echo json_encode($error["message"].' on line '.$error['line'].' of '.$error['file']);
+            drupal_exit();
+        }
+    }
+}
+
+/**
+ * Implementation of hook_ctools_plugin_api().
+ */
+function gd_services_endpoint_ctools_plugin_api($owner, $api) {
+    if ($owner == 'services' && $api == 'services') {
+        return array(
+            'version' => 3
+        );
+    }
+
+    if ($owner == 'oauth_common' && $api == 'oauth') {
+        return array(
+            'version' => 1
+        );
+    }
+}
+
+function gd_services_endpoint_default_services_endpoint () {
+    $files = file_scan_directory(drupal_get_path('module', 'gd_services_endpoint') . '/endpoints', '/\.endpoint/');
+    $endpoints = array();
+    foreach ( $files as $absolute => $file ) {
+        require $absolute;
+        if ( !empty($endpoint) ){
+            $endpoints[$file->name] = $endpoint;
+        }
+    }
+    return $endpoints;
+}
+
+function gd_services_endpoint_default_oauth_common_context () {
+    $files = file_scan_directory(drupal_get_path('module', 'gd_services_endpoint') . '/contexts', '/\.context/');
+    $contexts = array();
+    foreach ( $files as $absolute => $file ) {
+        require $absolute;
+        if ( !empty($context) ){
+            $contexts[$file->name] = $context;
+        }
+    }
+    return $contexts;
+}
+
+function gd_services_endpoint_rest_server_response_formatters_alter ( &$formatters ) {
+
+    $formatters['csv'] = array(
+        'mime types' => array('text/csv'),
+        'formatter class' => 'GD_ServicesViewFormat_CSV',
+        'view arguments' => array('format'=>'csv'),
+    );
+
+    $formatters['xls'] = array(
+        'mime types' => array('application/vnd.ms-excel'),
+        'formatter class' => 'GD_ServicesViewFormat_Excel',
+        'view arguments' => array('format'=>'xls'),
+    );
+
+    $formatters['pdf'] = array(
+        'mime types' => array('application/pdf'),
+        'formatter class' => 'GD_ServicesViewFormat_PDF',
+        'view arguments' => array('format'=>'pdf'),
+    );
+
+    $formatters['debug'] = array(
+        'mime types' => array('text/plain'),
+        'view' => 'GD_ServicesViewFormat_Debug',
+        'view arguments' => array('format'=>'debug'),
+    );
+
+}
+
+/**
+ * Implements hook_gd_security_exceptions()
+ */
+function gd_services_endpoint_gd_security_exceptions () {
+    $items = array();
+    $items[] = '/^api\//i';
+    return $items;
+}
+
+/**
+ * Implementation of hook_services_authentication_info().
+ */
+function gd_services_endpoint_services_authentication_info() {
+    return array(
+        'title'             => t('GovDash Service Authentication'),
+        'description'       => t("Uses Drupal's built in sessions and OAuth to authenticate."),
+        'authenticate_call' => 'gd_services_endpoint_authenticate_call',
+        'security_settings' => '_services_oauth_security_settings',
+        'default_security_settings' => '_services_oauth_default_security_settings',
+        'controller_settings' => '_services_oauth_controller_settings'
+    );
+}
+
+function gd_services_endpoint_authenticate_call ( $settings, $method, $args ) {
+
+    $auth_errors = array();
+
+    if (isset($_POST['HTTP-X-CSRF-TOKEN'])) {
+        $_SERVER['HTTP_X_CSRF_TOKEN'] = $_POST['HTTP-X-CSRF-TOKEN'];
+    }
+
+    // Session Check
+    $session_error =_services_sessions_authenticate_call($settings, $method, $args);
+
+    global $user;
+    if ( $user->uid == 0 ) {
+        if ( isset($session_error) ) {
+            $auth_errors[] = $session_error;
+        } else {
+            $auth_errors[] = 'Session authorization required';
+        }
+    }
+
+    // OAuth Check
+    $oauth_error = _services_oauth_authenticate_call($settings, $method, $args);
+    if ( $oauth_error ) {
+        $auth_errors[] = $oauth_error;
+    }
+
+    // if they both failed
+    if ( count($auth_errors) == 2 ) {
+
+        // last ditch attempt
+        // GD Auth Check
+        if ( function_exists('gd_auth_authenticate') ) {
+
+            if ( !gd_auth_authenticate() ) {
+                $auth_errors[] = 'Custom authorization failed';
+                return implode(' and ',$auth_errors);
+            }
+
+        } else {
+            return implode(' and ',$auth_errors);
+        }
+
+    }
+
+    // remove oauth headers in case failure
+    drupal_add_http_header('Status', '200 OK');
+    //drupal_add_http_header('WWW-Authenticate', sprintf('OAuth realm="%s"', url('', array('absolute' => TRUE))));
+
+    // load the oauth user
+    $consumer = services_get_server_info('oauth_consumer');
+    if ($consumer && $consumer->uid) {
+        $user = user_load($consumer->uid);
+    }
+
+    return false;
+}

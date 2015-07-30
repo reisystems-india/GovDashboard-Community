@@ -1,0 +1,64 @@
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+h2.steps-title {
+    font-size: 200%;
+    border-bottom: 0;
+    color: #E78A22;
+    font-weight:  bold;
+}
+
+div.steps-contents {
+    font-size: 14px;
+    display: block;
+    width: 300px;
+}
+
+
+div.welcome-instructions-1 {
+    float:left;
+    width: 960px;
+    height: 130px;
+    background: url(../images/arr-right.png) no-repeat 280px 50px;
+}
+
+div.welcome-instructions-2 {
+    padding-left: 300px;
+    float: left;
+    background: url(../images/arr-left.png) no-repeat 170px 75px;
+    height: 150px;
+}
+
+div.welcome-instructions-3 {
+    float: left;
+    margin-top: -70px;
+}
+
+div.welcome-instructions-4 {
+    margin-left: 120px;
+    float: left;
+    padding-bottom: 50px;
+    background: url(../images/arr-go.png) no-repeat 430px 50px;
+    width: 550px;
+}
+
+div.welcome-instructions-5 {
+    float: left;
+    margin-top: 80px;
+}

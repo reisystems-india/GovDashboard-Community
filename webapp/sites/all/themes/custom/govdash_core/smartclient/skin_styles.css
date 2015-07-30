@@ -1,0 +1,3750 @@
+/*============================================================
+    "Simplicity" theme programmatic settings
+    Copyright 2003 and beyond, Isomorphic Software
+============================================================*/
+
+/*============================================================
+General
+============================================================*/
+
+a:link, a:visited {
+    color: #1489B4;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+.pageBackground {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 11px;
+    color: #333333;
+    background: #F6F6F6;
+}
+
+/* Act Mgt. iframe-chrome bug */
+div[eventproxy="AccountStatsPage"] {
+    min-height: 760px;
+}
+
+div[eventproxy="AccountStatsPage"] iframe {
+    min-height: 760px;
+}
+
+/* default text */
+.normal {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 12px;
+    box-sizing: content-box;
+    -webkit-box-sizing: content-box;
+    -moz-box-sizing: content-box;
+}
+
+table {
+    border-collapse: separate; /* fix for Drupal default style aka "thin grey line" */
+}
+
+td {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 11px;
+}
+
+.defaultBorder {
+    border: 1px solid #A7ABB4;
+}
+
+h2 {
+    /*font-family: 'News Cycle', Arial, Helvetica, sans-serif;
+     color: #D15D07;
+     font-size: 24px;
+     border-bottom: 6px solid #F1F1F1;
+     padding: 0px 0px 2px 0px;
+     margin: 10px 0px 10px 0px;*/
+}
+
+h3 {
+    font-size: 18px;
+    color: #3E3E3E;
+    margin: 10px 0px 0px 0px;
+}
+
+p {
+    margin: 0px 0px 6px 0px;
+}
+
+.wizardStep {
+    color: #21252e;
+    font-size: 12px;
+}
+
+.helperText {
+    color: #6E6E6E;
+}
+
+.messages, .messages_info, .messages_ok, .messages_warning, .messages_error {
+    background-position: 8px 8px; /* LTR */
+    background-repeat: no-repeat;
+    border: 1px solid;
+    margin: 6px 0;
+    padding: 10px 10px 10px 50px; /* LTR */
+}
+
+.messages_info, .info {
+    background-image: url(images/actions/information.png);
+    border-color: #7be;
+    color: #028;
+    background-color: #ecf2ff;
+}
+
+.messages_ok, .ok {
+    background-image: url(images/actions/ok.png);
+    border-color: #be7;
+    color: #234600;
+    background-color: #f8fff0;
+}
+
+.messages_warning, .warning {
+    background-image: url(images/actions/warning.png);
+    border-color: #ed5;
+    color: #840;
+    background-color: #fffce5;
+}
+
+.messages_error, .error {
+    background-image: url(images/actions/error.png);
+    border-color: #ed541d;
+    color: #8c2e0b;
+    background-color: #fef5f1;
+}
+
+.messages_info div,
+.messages_ok div,
+.messages_warning div,
+.messages_error div {
+    padding-bottom: 5px;
+}
+
+.tempStyle td {
+    border: 1px solid #FF0000;
+}
+
+/* Application Header */
+.headerRegion {
+    background: #21252e url(images/common/headerbackground.png) center top;
+}
+
+.datamartChangeRegion {
+    /*background-color: #F6F6F6;*/
+}
+
+/* drag outline */
+.dragOutline {
+    border: 1px solid #0060BF;
+}
+
+/* drop indicator */
+.dropBorder {
+    background-color: #808080;
+}
+
+/* hover canvas  */
+.canvasHover,
+.gridHover,
+.formHover {
+    font: normal 11px Arial, Helvetica, sans-serif;
+    color: #eee;
+    -moz-border-radius: 4px;
+    -webkit-border-radius: 4px;
+    background-color: #21252e;
+    border: 2px solid #B4B5C9;
+    padding: 5px;
+    opacity: 0.9;
+    text-align: center;
+}
+
+/* group label */
+.groupLabel {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    color: #333333;
+    padding-left: 5px;
+    padding-right: 5px;
+}
+
+.headerButton,
+.headerButtonOver,
+.headerButtonDown,
+.headerButtonDisabled,
+.headerButtonSelected,
+.headerButtonSelectedDown,
+.headerButtonSelectedOver,
+.headerButtonSelectedDisabled {
+    font: bold 12px Arial, Helvetica, sans-serif;
+    padding: 2px;
+    padding-left: 5px;
+    padding-right: 5px;
+}
+
+.headerButton {
+    border: 1px solid #FFFFFF;
+    border-right: 1px solid #DDDDDD;
+    background: #DCE0E8;
+    /*
+        background-image: -webkit-gradient(linear, left bottom, left top, color-stop(0.25, rgb(220, 224, 232)), color-stop(0.63, rgb(233, 236, 245)), color-stop(0.82, rgb(240, 244, 252)));
+        background-image: -moz-linear-gradient(center bottom, rgb(220, 224, 232) 25%, rgb(233, 236, 245) 63%, rgb(240, 244, 252) 82%);
+    */
+    background: #E3E6EF;
+}
+
+
+.headerButtonOver {
+    border: 1px solid #FFFFFF;
+    border-right: 1px solid #DDDDDD;
+    /*background: #C9CDD4;*/
+    background: #F0F4FC;
+    /*
+        background-image: -webkit-gradient(linear, left bottom, left top, color-stop(0.1, rgb(201, 205, 212)), color-stop(0.71, rgb(233, 236, 245)), color-stop(0.77, rgb(240, 244, 252)));
+        background-image: -moz-linear-gradient(center bottom, rgb(211, 211, 211) 10%, rgb(242, 242, 242) 71%, rgb(252, 252, 252) 77%);
+    */
+}
+
+.headerButtonDown {
+    border: 1px solid #FFFFFF;
+    border-right: 1px solid #DDDDDD;
+    background: #d5d5d5;
+    /*
+        background-image: -webkit-gradient(linear, left bottom, left top, color-stop(0.23, rgb(240, 244, 252)), color-stop(0.29, rgb(233, 236, 245)), color-stop(0.9, rgb(201, 205, 212)));
+        background-image: -moz-linear-gradient(center bottom, rgb(211, 211, 211) 10%, rgb(242, 242, 242) 71%, rgb(252, 252, 252) 77%);
+    */
+}
+
+.headerButtonDisabled {
+    color: #666666;
+    border: 1px solid #FFFFFF;
+    border-right: 1px solid #DDDDDD;
+    /*
+        border-top: 1px solid #CCCCCC;
+        border-right: 1px solid #CCCCCC;
+    */
+    background: #C3C3C3;
+
+}
+
+.headerButtonSelected,
+.headerButtonSelectedDown,
+.headerButtonSelectedOver,
+.headerButtonSelectedDisabled {
+    color: white;
+    border: 1px solid #FFFFFF;
+    border-right: 1px solid #999;
+    background: #9BA5BB;
+    /*
+        background-image: -webkit-gradient(linear, left bottom, left top, color-stop(0.1, rgb(131, 154, 201)), color-stop(0.55, rgb(139, 164, 214)), color-stop(0.77, rgb(148, 174, 227)));
+        background-image: -moz-linear-gradient(center bottom, rgb(84, 137, 202) 10%, rgb(108, 150, 202) 55%, rgb(132, 164, 202) 77%);
+    */
+}
+
+.headerButtonSelectedOver {
+    border: 1px solid #FFFFFF;
+    border-right: 1px solid #DDDDDD;
+    color: white;
+    background: #9BA5BB;
+    /*
+        background-image: -webkit-gradient(linear, left bottom, left top, color-stop(0.1, rgb(131, 154, 201)), color-stop(0.55, rgb(139, 164, 214)), color-stop(0.77, rgb(148, 174, 227)));
+        background-image: -moz-linear-gradient(center bottom, rgb(84, 137, 202) 10%, rgb(108, 150, 202) 55%, rgb(132, 164, 202) 77%);
+    */
+}
+
+.headerButtonSelectedDisabled {
+    border: 1px solid #FFFFFF;
+    border-right: 1px solid #DDDDDD;
+    font-size: 11px;
+    color: #666666;
+
+}
+
+.navButton,
+.navButtonOver,
+.navButtonDown,
+.navButtonDisabled,
+.navButtonSelected,
+.navButtonSelectedDown,
+.navButtonSelectedOver,
+.navButtonSelectedDisabled {
+    font: normal normal 15px/normal Arial, Helvetica, sans-serif;
+    font-size-adjust: none;
+    font-stretch: normal;
+    padding: 5px 20px;
+    color: #9BA5BB;
+    vertical-align: middle;
+    cursor: pointer;
+}
+
+/* Disabling SmartClient buttons styles - see GovDash OlsDefaultWidget.css
+
+.navButtonOver,
+.navButtonDown,
+.navButtonSelected,
+.navButtonSelectedDown,
+.navButtonSelectedOver {
+    background: #E6AF2A;
+    color: #FFFFFF;
+    -moz-border-radius: 3px;
+    -webkit-border-radius: 3px;
+    border-radius: 3px;
+    white-space: nowrap;
+}
+*/
+.navLink,
+.navLinkOver,
+.navLinkDown,
+.navLinkDisabled,
+.navLinkSelected,
+.navLinkSelectedDown,
+.navLinkSelectedOver,
+.navLinkSelectedDisabled {
+    font: normal normal 13px/normal Arial, Helvetica, sans-serif;
+    font-size-adjust: none;
+    font-stretch: normal;
+    padding: 2px 20px;
+    color: #9BA5BB;
+    border-right: 1px solid #455169;
+    vertical-align: middle;
+    cursor: pointer;
+}
+
+.navLinkOver,
+.navLinkSelectedOver {
+    text-decoration: underline;
+}
+
+/* ImgButton */
+.imgButton,
+.imgButtonOver,
+.imgButtonSelected,
+.imgButtonSelectedDisabled,
+.imgButtonSelectedOver {
+    font: normal 10px Arial, Helvetica, sans-serif;
+}
+
+.imgButtonDown,
+.imgButtonSelectedDown {
+    font: normal 10px Arial, Helvetica, sans-serif;
+}
+
+.imgButtonDisabled {
+    color: #666666;
+    font: normal 10px Arial, Helvetica, sans-serif;
+}
+
+.imgButtonSelected, .imgButtonSelectedOver {
+    background-color: #E6AF2A;
+}
+
+.imgButtonOver {
+    background-color: #ed5;
+}
+
+/* StretchImgButton */
+.stretchImgButton,
+.stretchImgButtonSelected,
+.stretchImgButtonSelectedOver,
+.stretchImgButtonOver,
+.stretchImgButtonDown,
+.stretchImgButtonSelectedDown,
+.stretchImgButtonSelectedDisabled,
+.stretchImgButtonDisabled {
+    font: normal 10px Arial, Helvetica, sans-serif;
+}
+
+.stretchImgButtonSelectedDisabled,
+.stretchImgButtonDisabled {
+    color: #666666;
+}
+
+/*== Menus ==*/
+
+.menuTable { /* used in listGrid tables as a column drop-down, ?, ? */
+    box-shadow: 0 1px 3px #999999;
+    /*border-left: 3px solid white;*/
+    /*border: 1px solid #CCC;*/
+
+}
+.menuTable td { white-space:nowrap; font-weight:bold }
+
+.menu,
+.menuDark,
+.menuSelected,
+.menuSelectedDark,
+.menuOver,
+.menuOverDark,
+.menuSelectedOver,
+.menuSelectedOverDark,
+.menuDisabled,
+.treeMenuSelected,
+.treeMenuSelectedOver {
+    background-color:#FFF5CC;
+}
+
+.menuOver,
+.menuOverDark,
+.menuSelectedOver,
+.menuSelectedOverDark {
+    color: white;
+    background-color: #E68522;
+    /*border-top: 1px solid #D15D07;
+    border-bottom: 1px solid #EF9327;*/
+}
+
+.menuDisabled {
+    color: #979797;
+    /*background-color: white;*/
+}
+
+.treeMenuSelected {
+    background-color: #fff1a8;
+    /*border-top: 1px solid #ffeb90;
+    border-bottom: 1px solid #ffeb90;*/
+}
+
+.treeMenuSelectedOver {
+    color: white;
+    background-color: #0A246A;
+    /*border-top: 1px solid #0A246A;
+    border-bottom: 1px solid #0A246A;*/
+}
+
+.windowBackground,
+.dialogBackground {
+    border: 0;
+    -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
+    border-radius: 5px;
+}
+
+.windowBody,
+.dialogBody,
+.promptBody {
+}
+
+.windowHeader,
+.windowHeaderHilite,
+.dialogHeader,
+.dialogHeaderHilite {
+    border-bottom: 2px solid #DEDEDE;
+    margin-bottom: 5px;
+}
+
+.windowHeaderHilite,
+.dialogHeaderHilite {
+}
+
+.windowHeaderText,
+.dialogHeaderText,
+.dialogStatusBarText {
+    font-size: 15px;
+    color: #D15D07;
+    font-weight: bold;
+}
+
+.windowStatusBar,
+.dialogStatusBar {
+    color: black;
+    border-top: 1px solid #999999;
+    border-left: 1px solid #999999;
+    border-right: 1px solid #FFFFFF;
+    border-bottom: 1px solid #FFFFFF;
+}
+
+.windowStatusBar {
+}
+
+.modalMask {
+    background-color: black;
+}
+
+
+/*== Layout ==*/
+
+.layoutDropLine {
+    background-color: #DDDDFF;
+}
+
+.layoutPlaceHolder {
+    border: 1px solid black;
+}
+
+.splitbar {
+    background-color: #FFFFFF;
+}
+
+.splitbarDown {
+    border: 1px solid #C0C0C0;
+    background-color: #FFFFFF;
+}
+
+.separator span {
+    /*background: url(images/shared/gradient_separator.png) no-repeat left center;*/
+    margin-top: 12px;
+    border-top: 6px solid #F1F1F1;
+    width: 100%;
+    height: 10px;
+    display: block;
+}
+
+/*== TabSet and tab titles ==*/
+
+.tabSetContainer {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 11px;
+    border: 1px solid #EEE;
+    border-top: 1px solid #FFF;
+    box-shadow: 1px 1px 3px #A29E93;
+    background: #FFF;
+    padding-top: 10px !important;
+}
+
+.tabSetContainer body {
+    background: #FFF;
+}
+
+.tabBarTop {
+    padding-top: 2px;
+    color: #21252e;
+    /*border-bottom: 1px solid #CCC;*/
+}
+
+.tabBarLeft {
+    padding-left: 2px;
+}
+
+.tabBarRight {
+    padding-right: 2px;
+}
+
+.tabBarBottom {
+    padding-bottom: 2px;
+}
+
+.tab,
+.tabOver,
+.tabSelected,
+.tabSelectedOver,
+.tabDown,
+.tabSelectedDown,
+.tabSelectedDisabled,
+.tabDisabled {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 11px;
+}
+
+.tabSelectedDisabled,
+.tabDisabled {
+    color: #666666;
+}
+
+.tabTitle,
+.tabTitleDown,
+.tabTitleOver,
+.tabTitleDisabled,
+.tabTitleSelected,
+.tabTitleSelectedDown,
+.tabTitleSelectedOver,
+.tabTitleSelectedDisabled,
+.vtabTitle,
+.vtabTitleSelected,
+.vtabTitleOver,
+.vtabTitleDown,
+.vtabTitleSelectedOver,
+.vtabTitleSelectedDown,
+.vtabTitleDisabled,
+.vtabTitleSelectedDisabled {
+    color: #29333c;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 11px;
+    padding-bottom: 4px;
+}
+
+.tabTitleOver,
+.vtabTitleOver {
+    color: #29333c;
+}
+
+.tabTitleSelected,
+.vtabTitleSelected {
+    color: #FFF;
+    padding-bottom: 4px;
+}
+
+.tabTitleSelectedOver,
+.vtabTitleSelectedOver {
+    color: #353f46;
+    padding-bottom: 4px;
+}
+
+.tabTitleDisabled,
+.tabTitleSelectedDisabled,
+.vtabTitleDisabled,
+.vtabTitleSelectedDisabled {
+    color: #AAAAAA;
+    padding-bottom: 2px;
+}
+
+/*== SectionStack ==*/
+
+.sectionStack {
+    border: 1px solid #A6ABB4;
+    background-color: #EEE;
+}
+
+.controlBar {
+    background-color: #4B5467;
+    padding: 10px;
+    /*border-right: 0px solid #C9CDD4;
+    border-bottom: 1px solid #A6ABB4;
+    border-top: 1px solid #A6ABB4;*/
+    /* background */
+    background: #D15D07;
+    background: -webkit-gradient(linear, left top, left bottom, from(#4B5467), to(#2C333E));
+    background: -moz-linear-gradient(left, #4B5467, #2C333E);
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr = '#4B5467', endColorstr = '#2C333E');
+    /* radius */
+    -webkit-border-radius: 10px 0 0 10px;
+    -moz-border-radius: 10px 0 0 10px;
+    border-radius: 10px 0 0 10px;
+}
+
+.controlBar:hover {
+    background-color: #DCE0E8;
+}
+
+/* SectionStack headers - css based */
+.sectionHeaderopened,
+.sectionHeaderclosed,
+.sectionHeaderDisabledopened,
+.sectionHeaderDisabledclosed {
+    background-color: #AEB6BF;
+    border-bottom: 1px solid #EEE;
+    color: #333;
+    font: 14px Arial, Helvetica, sans-serif;
+}
+
+.sectionHeaderopened,
+.sectionHeaderDisabledopened {
+    background: #364050;
+    color: #FFF;
+    border-top: 0;
+}
+
+.sectionHeaderDisabledopened,
+.sectionHeaderDisabledclosed {
+    color: #777777;
+}
+
+.sectionHeaderopened:hover,
+.sectionHeaderclosed:hover {
+}
+
+.subSectionHeaderopened,
+.subSectionHeaderclosed,
+.subSectionHeaderDisabledopened,
+.subSectionHeaderDisabledclosed {
+    background: #DDDDDD;
+    color: #D15D07;
+    font: bold 12px Arial, Helvetica, sans-serif;
+    padding-left: 5px;
+    border-bottom: 2px solid #FFF;
+}
+
+.subSectionSeriesopened,
+.subSectionSeriesclosed,
+.subSectionSeriesDisabledopened,
+.subSectionSeriesDisabledclosed {
+    background: #eee;
+    color: #000;
+    border-bottom: 1px solid #fff;
+    font: bold 11px Arial, Helvetica, sans-serif;
+    padding-left: 15px;
+}
+
+.subSectionHeaderDisabledopened,
+.subSectionHeaderDisabledclosed,
+.subSectionSeriesDisabledopened,
+.subSectionSeriesDisabledclosed {
+    color: #c8c8c8;
+    /*border-bottom: 1px solid #c8c8c8;*/
+}
+
+.subSectionHeaderopened:hover,
+.subSectionHeaderclosed:hover {
+
+}
+
+.sectionRegion {
+    padding: 3px;
+}
+
+.sectionDragObject {
+    border: 1px solid #21252e;
+    background-color: #F6F6F6;
+    -moz-border-radius: 2px;
+    -webkit-border-radius: 2px;
+    border-radius: 2px;
+    padding: 0px 0px 0px 5px;
+}
+
+.sectionDragObject:hover {
+    color: #000000;
+}
+
+/*== Forms ==*/
+
+textarea {
+    /*overflow: auto;*/
+    resize: none; /* without this smartclient makes all textareas resizable by default which causes issues */
+}
+
+/* general form styles */
+.formRow {
+}
+
+.formCell,
+.formCellFocused,
+.formCellDisabled,
+.nestedFormContainer,
+.nestedFormContainerFocused,
+.nestedFormContainerDisabled {
+    font: normal 11px Arial, Helvetica, sans-serif;
+    border: 0px solid #FF0000;
+    vertical-align: top;
+    padding: 3px;
+}
+
+.formCell .formCell {
+    padding: 0px;
+}
+
+.formTitle,
+.formTitleFocused,
+.formTitleDisabled,
+.formCellError,
+.formTitleError,
+.formHint,
+.headerItem,
+.headerItemDisabled,
+.headerItemError,
+.staticTextItem,
+.staticTextItemDisabled,
+.staticTextItemError,
+.textItem,
+.textItemFocused,
+.textItemDisabled,
+.textItemError,
+.textItemHint,
+.selectItemControl,
+.selectItemControlError,
+.selectItemControlFocused,
+.selectItemText,
+.selectItemTextError,
+.selectItemTextDisabled,
+.selectItemTextFocused,
+.selectItemTextHint,
+.comboBoxItem,
+.comboBoxItemFocused,
+.comboBoxItemError,
+.comboBoxItemDisabled,
+.comboBoxItemPendingText,
+.pickListCell,
+.pickListCellSelected,
+.pickListCellDisabled,
+.pickListCellDark,
+.pickListCellSelectedDark,
+.tallPickListCell,
+.tallPickListCellSelected,
+.tallPickListCellDisabled,
+.tallPickListCellDark,
+.tallPickListCellSelectedDark,
+.labelAnchor,
+.labelAnchorDisabled,
+.labelAnchorError,
+.labelAnchorFocused {
+    font: bold 11px Arial, Helvetica, sans-serif;
+    /*vertical-align: top;*/
+    /*padding: 0px; - TEST! */
+    box-sizing: content-box;
+    -webkit-box-sizing: content-box;
+    -moz-box-sizing: content-box;
+}
+
+.formTitle label,
+.formTitleDisabled label,
+.formTitleError label,
+.formTitleFocused label,
+.formCell input,
+.formCellDisabled input,
+.formCellError input
+.formCellFocused input,
+.textItemFocused,
+.labelAnchor label,
+.labelAnchorFocused label,
+.labelAnchorDisabled label,
+.labelAnchorDisabled label,
+#customViewToggleContainer label,
+#publicDashboardSwitchContainer label {
+    font: bold 11px Arial, Helvetica, sans-serif !important;
+}
+
+.selectItemControl,
+.selectItemControlError,
+.selectItemControlFocused {
+    margin-bottom: 3px !important;
+}
+
+/*controls spacing under select boxes*/
+
+.formCell .staticTextItem a {
+    font-weight: bold;
+    /* background: #FFF;
+    border: 1px solid #EEE;
+    display: block;
+    font: 14px/16px Arial,Helvetica,sans-serif;
+    padding: 7px 15px;
+    text-align: center;
+    width: 80px;*/
+}
+
+.formCell .staticTextItem {
+    text-align: left;
+}
+
+.textItem,
+.textItemFocused,
+.textItemDisabled,
+.textItemError,
+.textItemHint,
+.selectItemText,
+.selectItemTextError,
+.selectItemTextFocused,
+.selectItemTextDisabled,
+.selectItemTextHint {
+    /* border: 1px solid #AAACB2; - border causes dropdown scrollbar issues */
+    padding: 2px;
+}
+
+.formTitle label,
+.formTitleFocused label {
+    display: inline;
+}
+
+/*
+.formTitle B,
+.formTitleFocused B {
+    font-weight: normal;
+    font-style: normal;
+}
+*/
+
+td.formTitle, td.formTitleFocused, td.formTitleDisabled, td.formTitleError {
+    font-weight: bold;
+    padding-top: 5px;
+    padding-right: 5px;
+    text-align: right;
+    vertical-align: top;
+    white-space: nowrap;
+}
+
+.formCellError label,
+.formTitleError label {
+    display: inline-block;
+}
+
+.formHint {
+    color: #455668;
+    padding: 3px;
+}
+
+/* headerItem */
+.headerItem,
+.headerItemDisabled,
+.headerItemError {
+    font-size: 14px;
+    font-weight: bold;
+    color: #E68522;
+}
+
+.textItemDisabled {
+    color: #ACA899;
+}
+
+.textItemHint {
+    color: #3E3E3E;
+}
+
+.textItem,
+.textItemFocused,
+.textItemDisabled,
+.textItemError,
+.textItemHint {
+    /* width: 300px !important; */
+    margin-bottom: 3px !important; /* creates margin below the text input */
+    margin-right: 5px; /* creates margin to the left of text input */
+    margin-top: 0 !important; /* deleting this property created issue with listGrid */
+    border: 0; /* border causes scrollbars in drop-downs and other formatting issues */
+    background: #FFF;
+    -moz-box-shadow: inset 0 0 3px #444;
+    -webkit-box-shadow: inset 0 0 3px #444;
+    box-shadow: 0 0 3px #444 inset;
+    padding:5px;
+
+    /* Required for IE box-shadow*/
+    /*behavior: url(ie-css3.htc); - doesn't work! */
+
+    background: #DCE0E8; /* since drop-shadow doesn't work in IE this is the one property that makes form fields visible */
+}
+
+td.uploadField input {padding:5px !important; height: auto !important;} /* fix for Create New Data upload input field in IE */
+
+
+.comboBoxItemPendingText {
+    color: #0066CC;
+}
+
+.radioTextBox {
+    padding-right: 5px;
+}
+
+.radioTextBox label {
+    font-size: 11px;
+}
+
+/* selectItem */
+.selectItemTextFocused {
+    color: black;
+}
+
+.selectItemText,
+.selectItemTextError,
+.selectItemTextFocused,
+.selectItemTextDisabled,
+.selectItemTextHint{
+    border: 0; /* border causes scrollbars in drop-downs and other formatting issues */
+    -moz-box-shadow: inset 0 0 3px #444;
+    -webkit-box-shadow: inset 0 0 3px #444;
+    box-shadow: 0 0 3px #444 inset;
+    padding: 5px 4px; /*looks good in FF*/
+    background: #DCE0E8; /* since drop-shadow doesn't work in IE this is the one property that makes form fields visible */
+}
+
+.selectItemPickerIcon,
+.selectItemPickerIconFocused,
+.selectItemPickerIconDisabled,
+.selectItemPickerIconError {
+    padding: 0px;
+}
+
+/*.pickListMenuBody     {
+    border:1px solid black;
+} */
+/*.pickListMenuBody td,
+.pickListMenuBody table {border: 0 !important; padding: 0}*/
+
+.pickListCell,
+.pickListCellDark,
+.tallPickListCell,
+.tallPickListCellDark {
+    color: black;
+    background-color: #fff5cc;
+    /*padding-left: 8px; -  causes cutoff checkbox issue in IE9 */
+}
+
+.scrollingMenu .pickListCell,
+.scrollingMenu .pickListCellDark,
+.scrollingMenu .tallPickListCell,
+.scrollingMenu .tallPickListCellDark,
+.scrollingMenu .pickListCellSelected,
+.scrollingMenu .pickListCellSelectedDark,
+.scrollingMenu .tallPickListCellSelected,
+.scrollingMenu .tallPickListCellSelectedDark {
+    /*text-indent: 5px; - TEST! */
+    vertical-align: middle;}
+
+
+.pickListCellSelected,
+.pickListCellSelectedDark {
+    color: white;
+    background-color: #D76E20;
+    /*padding-left: 8px;  -  causes cutoff checkbox issue in IE9*/
+    border: 0;
+}
+
+.tallPickListCellSelected,
+.tallPickListCellSelectedDark {
+    color: black;
+    background: #B2DFEE;
+}
+
+.pickListCellDisabled,
+.tallPickListCellDisabled {
+    color: #595959;
+    background-color: #C0C0C0;
+}
+
+/* checkbox and radioButton */
+.labelAnchor,
+.labelAnchorDisabled,
+.labelAnchorError,
+.labelAnchorFocused {
+    text-decoration: none;
+    vertical-align: middle;
+}
+
+.labelAnchor label,
+.labelAnchorDisabled label,
+.labelAnchorError label,
+.labelAnchorFocused label {
+    padding: 2px 3px 0;
+}
+
+/* FilterBuilder */
+.bracketBorders {
+    border-left: 1px solid #808080;
+    border-top: 1px solid #808080;
+    border-bottom: 1px solid #808080;
+}
+
+/* ColorChooser */
+.colorChooserCell {
+    background-color: #EFEFEF;
+    border-left: 1px solid #EFEFEF;
+    border-top: 1px solid #EFEFEF;
+    border-right: 1px solid #EFEFEF;
+    border-bottom: 1px solid #EFEFEF;
+}
+
+.colorChooserCellOver {
+    background-color: #EFEFEF;
+    border-left: 1px solid black;
+    border-top: 1px solid black;
+    border-right: 1px solid black;
+    border-bottom: 1px solid black;
+}
+
+/*== DateChooser ==*/
+
+/* Defaults for all days and controls */
+.dateChooserButton,
+.dateChooserButtonOver,
+.dateChooserButtonDown,
+.dateChooserButtonDisabled,
+.dateChooserButtonSelected,
+.dateChooserButtonSelectedDown,
+.dateChooserButtonSelectedOver,
+.dateChooserButtonSelectedDisabled,
+.dateChooserWeekendButton,
+.dateChooserWeekendButtonOver,
+.dateChooserWeekendButtonDown,
+.dateChooserWeekendButtonDisabled,
+.dateChooserWeekendButtonSelected,
+.dateChooserWeekendButtonSelectedDown,
+.dateChooserWeekendButtonSelectedOver,
+.dateChooserWeekendButtonSelectedDisabled,
+.dateChooserBottomButton,
+.dateChooserBottomButtonOver,
+.dateChooserBottomButtonDown,
+.dateChooserBottomButtonSelected,
+.dateChooserBottomButtonSelectedOver,
+.dateChooserBottomButtonSelectedDown,
+.dateChooserNavButton,
+.dateChooserNavButtonOver,
+.dateChooserNavButtonDown,
+.dateChooserNavButtonSelected,
+.dateChooserNavButtonSelectedOver,
+.dateChooserNavButtonSelectedDown,
+.dateChooserWeekday,
+.dateChooserWeekdayOver,
+.dateChooserWeekdayDown,
+.dateChooserWeekdaySelected,
+.dateChooserWeekdaySelectedOver,
+.dateChooserWeekdaySelectedDown,
+.dateChooserWeekdayDisabled,
+.dateChooserWeekend,
+.dateChooserWeekendOver,
+.dateChooserWeekendDown,
+.dateChooserWeekendSelected,
+.dateChooserWeekendSelectedOver,
+.dateChooserWeekendSelectedDown,
+.dateChooserWeekendSelectedDisabled,
+.dateChooserWeekendDisabled {
+    font-family: Arial, Verdana, sans-serif;
+    font-size: 12px;
+    background-color: #FFFFFF;
+    color: #868686;
+    text-align: center;
+}
+
+/* year/month buttons */
+.dateChooserNavButton,
+.dateChooserNavButtonOver,
+.dateChooserNavButtonDown,
+.dateChooserNavButtonSelected,
+.dateChooserNavButtonSelectedOver,
+.dateChooserNavButtonSelectedDown {
+    padding: 0px;
+    border-top: 0px none;
+    border-bottom: 1px solid #EEE
+}
+
+/* for all buttons, plus weekday headers (dateChooserButton) */
+.dateChooserButton,
+.dateChooserButtonOver,
+.dateChooserButtonDown,
+.dateChooserButtonSelected,
+.dateChooserButtonSelectedOver,
+.dateChooserButtonSelectedDown,
+.dateChooserWeekendButton,
+.dateChooserWeekendButtonOver,
+.dateChooserWeekendButtonDown,
+.dateChooserWeekendButtonSelected,
+.dateChooserWeekendButtonSelectedOver,
+.dateChooserWeekendButtonSelectedDown,
+.dateChooserNavButton,
+.dateChooserNavButtonOver,
+.dateChooserNavButtonDown,
+.dateChooserNavButtonSelected,
+.dateChooserNavButtonSelectedOver,
+.dateChooserNavButtonSelectedDown {
+    font-weight: bold;
+    color: #4C4C4C;
+}
+
+.dateChooserButtonOver,
+.dateChooserButtonDown {
+    cursor: pointer;
+    color: #467DCD;
+}
+
+.dateChooserWeekendButton,
+.dateChooserWeekendButtonOver,
+.dateChooserWeekendButtonDown,
+.dateChooserWeekendButtonSelected,
+.dateChooserWeekendButtonSelectedOver,
+.dateChooserWeekendButtonSelectedDown {
+    background-color: #CCC;
+}
+
+.dateChooserNavButton,
+.dateChooserNavButtonOver,
+.dateChooserNavButtonDown,
+.dateChooserNavButtonSelected,
+.dateChooserNavButtonSelectedOver,
+.dateChooserNavButtonSelectedDown {
+    cursor: pointer;
+    padding: 0 4px;
+    text-transform: uppercase;
+    color: #D15D07;
+    font-size: 14px;
+    text-align: center;
+}
+
+.dateChooserNavButtonOver,
+.dateChooserNavButtonDown {
+    color: #E6AF2A;
+}
+
+/* Today, Cancel buttons */
+.dateChooserBottomButton,
+.dateChooserBottomButtonOver,
+.dateChooserBottomButtonDown {
+    cursor: pointer;
+    font-weight: bold;
+    color: #D15D07;
+    border-top: 1px solid #EEE;
+    text-align: left;
+}
+
+.dateChooserBottomButtonOver {
+    color: #E6AF2A;
+}
+
+/* weekday and weekend cells */
+.dateChooserWeekday,
+.dateChooserWeekdayOver,
+.dateChooserWeekdayDown,
+.dateChooserWeekdaySelected,
+.dateChooserWeekdaySelectedOver,
+.dateChooserWeekdaySelectedDown,
+.dateChooserWeekdayDisabled,
+.dateChooserWeekend,
+.dateChooserWeekendOver,
+.dateChooserWeekendDown,
+.dateChooserWeekendSelected,
+.dateChooserWeekendSelectedOver,
+.dateChooserWeekendSelectedDown,
+.dateChooserWeekendDisabled {
+    cursor: pointer;
+    color: #444;
+    /*border: 2px solid white;*/
+    background-color: white;
+}
+
+.dateChooserWeekdayDisabled,
+.dateChooserWeekendDisabled {
+    color: #999;
+}
+
+.dateChooserWeekend,
+.dateChooserWeekendOver,
+.dateChooserWeekendSelected,
+.dateChooserWeekendSelectedDisabled,
+.dateChooserWeekendDisabled {
+    /*border: 2px solid #fff1a8;*/
+    background-color: #EEE;
+}
+
+.dateChooserWeekdayOver,
+.dateChooserWeekendOver {
+    /*border: 2px solid #ffeb90;*/
+    background-color: #EEE;
+}
+
+.dateChooserWeekdaySelected,
+.dateChooserWeekdaySelectedOver,
+.dateChooserWeekdayDown,
+.dateChooserWeekdaySelectedDown,
+.dateChooserWeekendSelected,
+.dateChooserWeekendSelectedDisabled,
+.dateChooserWeekendSelectedOver,
+.dateChooserWeekendDown,
+.dateChooserWeekendSelectedDown {
+    font-weight: bold;
+    color: #FFF;
+    /*border: 2px solid #ffdd2e;*/
+    background-color: #D15D07;
+}
+
+.dateChooserWeekdayDown,
+.dateChooserWeekendDown {
+    font-weight: normal;
+}
+
+/* year and month pop-up menus */
+.dateChooserYearMenu,
+.dateChooserMonthMenu {
+    background-color: #FFFFFF;
+}
+
+/*== Slider & Rangebar ==*/
+
+/* slider and rangebar labels */
+.sliderTitle,
+.sliderRange,
+.sliderValue,
+.rangebarTitle,
+.rangebarRange,
+.rangebarValue {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 10px;
+}
+
+.sliderTitle,
+.rangebarTitle {
+    font-weight: bold;
+}
+
+.sliderRange,
+.rangebarRange {
+    color: gray;
+}
+
+/*== DetailViewer ==*/
+.detailBlock {
+    border-left: 1px solid gray;
+    border-top: 1px solid gray;
+}
+
+.detail,
+.detailLabel,
+.detailHeader {
+    border-right: 1px solid gray;
+    border-bottom: 1px solid gray;
+}
+
+.detail,
+.detailLabel,
+.detailHeader {
+    font-family: Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    background-color: white;
+}
+
+.detailLabel {
+    font-weight: bold;
+    background-color: #EEEEEE;
+    text-align: right;
+}
+
+.detailHeader {
+    font-size: 14px;
+    font-weight: bold;
+    background-color: #BBDAFA;
+}
+
+/*== ListGrid ==*/
+
+/*============================================================
+    ListGrid parts
+        styleName - listGrid
+        headerBarStyle - headerBar
+        bodyStyleName - gridBody
+============================================================*/
+
+.listGrid {
+    /*border: 1px solid #A7ABB4;
+    border-right: 0;
+    border-left: 0;*/
+    background: none;
+    /*border-bottom: 3px dashed #EEE;*/
+
+}
+.listGrid td {
+    /*padding-left: 10px*/}
+
+.cell,
+.cellOver,
+.cellSelected,
+.cellSelectedOver,
+.cellDark,
+.cellOverDark,
+.cellSelectedOverDark,
+.cellSelectedDark,
+.specialColSelected,
+.recordSummaryCellSelected,
+.recordSummaryCellSelectedDark,
+.specialColOver,
+.recordSummaryCellOver,
+.recordSummaryCellOverDark {
+    /*padding-left: 15px*/
+}
+
+.loadingDataMessage,
+.offlineMessage,
+.emptyMessage {
+    padding: 10px !important;
+    font: italic 11px Arial, Helvetica, sans-serif;
+}
+
+.gridDragTracker {
+    background-color: white;
+    padding: 1px;
+    border: 1px dotted blue;
+    font: normal 11px Arial, Helvetica, sans-serif;
+}
+
+.dragLine {
+    border-bottom: 2px dotted #548ACA;
+}
+
+/** If enabled, will cause scrollbars in some situations.  Leaving it here in case other functionality is affected.
+.listTable {
+    min-width: 150px;
+    vertical-align: bottom;
+}
+**/
+
+/* for filterEditor */
+.recordEditorCell {
+    color: black;
+    background-color: #f4f4f4;
+    font: normal 11px Arial, Helvetica, sans-serif;
+}
+
+.recordEditorCell input {
+    margin-bottom: 0;
+    height: auto !important; /* fixed padding issue in Select Reports dropdown on New Dashboard page */
+}
+
+/*============================================================
+    ListGrid cells
+        listGrid.baseStyle
+============================================================*/
+
+/*------------------------------------------------------------
+        listGrid.baseStyle
+------------------------------------------------------------*/
+.cell,
+.cellDark,
+.cellOver,
+.cellOverDark,
+.cellSelected,
+.cellSelectedDark,
+.cellSelectedOver,
+.cellSelectedOverDark,
+.cellDisabled,
+.cellDisabledDark,
+.tallCell,
+.tallCellDark,
+.tallCellOver,
+.tallCellOverDark,
+.tallCellSelected,
+.tallCellSelectedDark,
+.tallCellSelectedOver,
+.tallCellSelectedOverDark,
+.tallCellDisabled,
+.tallCellDisabledDark,
+.gridSummaryCell,
+.gridSummaryCellDisabled,
+.recordSummaryCell,
+.recordSummaryCellDark,
+.recordSummaryCellOver,
+.recordSummaryCellOverDark,
+.recordSummaryCellSelected,
+.recordSummaryCellSelectedDark,
+.recordSummaryCellSelectedOver,
+.recordSummaryCellSelectedOverDark,
+.recordSummaryCellDisabled,
+.recordSummaryCellDisabledDark,
+.expansionCellCell,
+.expansionCellCellDark,
+.expansionCellCellOver,
+.expansionCellCellOverDark,
+.expansionCellCellSelected,
+.expansionCellCellSelectedDark,
+.expansionCellCellSelectedOver,
+.expansionCellCellSelectedOverDark,
+.expansionCellCellDisabled,
+.expansionCellCellDisabledDark,
+.specialCol,
+.specialColOver,
+.specialColSelected,
+.specialColSelectedOver,
+.specialColDisabled,
+.groupNode {
+    font: normal 11px Arial, Helvetica, sans-serif;
+    text-overflow: ellipsis;
+    background: #F7F7F7;
+}
+
+.specialCol { color: black; }
+
+.cellDark,
+.recordSummaryCell,
+.recordSummaryCellDark,
+.tallCellDark {
+    background: #FFF;
+}
+
+.gridSummaryCell,
+.gridSummaryCellDisabled {
+    background: #ececec;
+}
+
+
+/* hover state */
+.cellOver,
+.cellOverDark,
+.specialColOver,
+.recordSummaryCellOver,
+.recordSummaryCellOverDark,
+.tallCellOver,
+.tallCellOverDark,
+.cellSelectedOver,
+.cellSelectedOverDark,
+.specialColSelectedOver,
+.recordSummaryCellSelectedOver,
+.recordSummaryCellSelectedOverDark,
+.tallCellSelectedOver,
+.tallCellSelectedOverDark {
+    background: #FFF5CC;
+}
+
+/* selected state */
+.cellSelected,
+.cellSelectedDark,
+.specialColSelected,
+.recordSummaryCellSelected,
+.recordSummaryCellSelectedDark,
+.tallCellSelected,
+.tallCellSelectedDark {
+    background: #F2EBCE;
+}
+
+/* disabled state */
+.cellDisabled,
+.cellDisabledDark,
+.specialColDisabled,
+.gridSummaryCellDisabled,
+.recordSummaryCellDisabled,
+.recordSummaryCellDisabledDark,
+.tallCellDisabled,
+.tallCellDisabledDark {
+    color: #AAAAAA;
+    background: #FFFFFF;
+}
+
+.gridSummaryCell,
+.gridSummaryCellDisabled {
+    font-weight: bold;
+}
+
+.groupNode {
+    font-weight: bold;
+    color: #333;
+    background: #EEE;
+    border-color: #CCC;
+}
+
+/* GD ADVANCED TABLE */
+/* TODO: we need to rename this css class */
+
+/*== simpleTable ==*/
+.simpleTable {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.simpleTable TR {
+    border-bottom: 1px solid #e2e2e2;
+    background: #FFFFFF;
+}
+
+.simpleTable TR:hover {
+    background-color: #FFF5CC;
+}
+
+.simpleTable TH, .simpleTable TD {
+    font: normal 11px Arial, Helvetica, sans-serif;
+    padding: 5px;
+    margin: 0px;
+}
+
+.simpleTable TH {
+    white-space: nowrap;
+    border: 1px solid #fff;
+    border-bottom: 2px solid #A7ABB4;
+    font-weight: bold;
+    text-align: left;
+    padding-right: 20px; /* prevents the th text from overlapping the sort arrows */
+}
+
+/*Tree styling*/
+/*------------------------------------------------------------
+        treeGrid.baseStyle
+------------------------------------------------------------*/
+.treeCell,
+.treeCellDark,
+.treeCellOver,
+.treeCellOverDark,
+.treeCellSelected,
+.treeCellSelectedDark,
+.treeCellSelectedOver,
+.treeCellSelectedOverDark,
+.treeCellDisabled,
+.treeCellDisabledDark,
+.treeTallCell,
+.treeTallCellDark,
+.treeTallCellOver,
+.treeTallCellOverDark,
+.treeTallCellSelected,
+.treeTallCellSelectedDark,
+.treeTallCellSelectedOver,
+.treeTallCellSelectedOverDark,
+.treeTallCellDisabled,
+.treeTallCellDisabledDark {
+    font-family: Arial, Verdana, sans-serif;
+    font-size: 11px;
+    text-overflow: ellipsis;
+    color: black;
+}
+
+.treeTallCell,
+.treeTallCellDark,
+.treeTallCellOver,
+.treeTallCellOverDark,
+.treeTallCellSelected,
+.treeTallCellSelectedDark,
+.treeTallCellSelectedOver,
+.treeTallCellSelectedOverDark,
+.treeTallCellDisabled,
+.treeTallCellDisabledDark {
+
+}
+
+.treeCellDark,
+.treeTallCellDark {
+    background-color: #f7f7f7;
+}
+
+.treeCellOver,
+.treeCellOverDark {
+    background: #fff1a8;
+}
+
+.treeTallCellOver,
+.treeTallCellOverDark {
+    background-color: #ffeb90;
+}
+
+.treeCellSelected,
+.treeCellSelectedDark {
+    background: #ffeb90;
+
+}
+
+.treeTallCellSelected,
+.treeTallCellSelectedDark {
+    background-color: #ffeb90;
+}
+
+.treeCellSelectedOver,
+.treeCellSelectedOverDark {
+    background: #ffeb90;
+}
+
+.treeTallCellSelectedOver,
+.treeTallCellSelectedOverDark {
+    background-color: #ffeb90;
+}
+
+.treeCellDisabled,
+.treeCellDisabledDark,
+.treeTallCellDisabled,
+.treeTallCellDisabledDark {
+    color: #AAAAAA;
+    background-color: #FFFFFF;
+}
+
+/* Field builders (Formula/Summary) */
+.sampleOutput {
+    border: 2px solid #D9D9D9;
+    padding: 3px;
+}
+
+/* Multi-sort - sort-index appearing next to sort-arrows in field headers */
+.sortNumeral {
+    font-size: 7px;
+}
+
+/*============================================================
+    12) ToolStrip
+============================================================*/
+.toolStrip {
+    margin-top: 5px;
+}
+
+.toolStripLayoutDropLine {
+    background-color: #404040;
+}
+
+.toolbarButton,
+.toolbarButtonOver,
+.toolbarButtonDown,
+.toolbarButtonDisabled,
+.toolbarButtonSelected,
+.toolbarButtonSelectedDown,
+.toolbarButtonSelectedOver,
+.toolbarButtonSelectedDisabled {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    padding: 5px;
+    color: #000000;
+}
+
+.toolbarButton {
+}
+
+.toolbarButtonOver {
+    color: #0060BF;
+}
+
+.toolbarButtonDown {
+    color: #0060BF;
+}
+
+.toolbarButtonDisabled {
+    color: #CCCCCC;
+}
+
+.toolbarButtonSelected,
+.toolbarButtonSelectedDown,
+.toolbarButtonSelectedOver,
+.toolbarButtonSelectedDisabled {
+    font-size: 12px;
+    font-weight: bold;
+    color: #0060BF;
+}
+
+.toolbarButtonSelectedOver {
+
+}
+
+.toolbarButtonSelectedDisabled {
+    font-size: 11px;
+    color: #666666;
+}
+
+/*============================================================
+  Tools
+============================================================*/
+.resizeThumb {
+    background-color: #009999;
+}
+
+/*============================================================
+  TileGrid
+==============================================================*/
+
+.tileGrid {
+    /*border: 1px solid #808080;*/
+}
+
+.tileValue,
+.tileValueDown,
+.tileValueSelected,
+.tileValueOver,
+.tileValueSelectedOver,
+.tileValueSelectedDown {
+    font-size: 11px;
+    text-overflow: ellipsis;
+    font-weight: bold;
+}
+
+.tileValueSelected {
+}
+
+.tileValueSelectedOver {
+}
+
+.simpleTile,
+.simpleTileOver,
+.simpleTileSelected,
+.simpleTileSelectedOver {
+    padding: 5px 5px 5px 5px;
+    background: #DCE0E8;
+    border-radius: 10px;
+}
+
+.simpleTileOver,
+.simpleTileSelected,
+.simpleTileSelectedOver {
+    background: #808793;
+}
+
+.simpleTileOver td,
+.simpleTileSelected td,
+.simpleTileSelectedOver td {
+    color: #FFF;
+}
+
+.simpleTileSelected {
+}
+
+.simpleTileSelectedOver {
+}
+
+.userTileBlocked {
+    background: url(images/shared/blocked_avatar.png) no-repeat center;
+}
+.userTile {
+    background: url(images/shared/single_avatar.png) no-repeat center;
+}
+.groupTile {
+    background: url(images/shared/group_avatar.png) no-repeat center;
+}
+
+/*============================================================
+    Unused? Review & Remove
+============================================================*/
+.selectedText {
+    color: white;
+    background-color: darkblue;
+}
+
+.disabled {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    color: #CCCCCC;
+}
+
+.pageHeader {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 12px;
+    font-weight: bold;
+    color: darkblue
+}
+
+.printPageHeader {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 14px;
+    font-weight: bold;
+    color: darkblue
+}
+
+.printCell {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 10px;
+}
+
+/*IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII
+IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII
+IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII
+
+    Styles below this comment are not used by default in this skin
+
+IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII
+IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII
+IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII*/
+
+/*============================================================
+    TabSet CSS tabs
+        tabSet.simpleTabBaseStyle
+============================================================*/
+/* styles for simple css-styled tabs*/
+/* left */
+.tabButtonLeft,
+.tabButtonLeftOver,
+.tabButtonLeftSelected,
+.tabButtonLeftSelectedOver,
+.tabButtonLeftDown,
+.tabButtonLeftSelectedDown,
+.tabButtonLeftSelectedDisabled,
+.tabButtonLeftDisabled {
+    padding: 2px;
+    border: 0px solid #C0C3C7;
+    background: #e7e7e7;
+    background-image: -moz-linear-gradient(top, #ffffff, #efefef);
+    background-image: -webkit-gradient(linear, left top, left bottom, from(#ffffff), to(#efefef));
+    -moz-border-radius: 3px;
+    -webkit-border-radius: 3px;
+    border-radius: 3px;
+    white-space: nowrap;
+    vertical-align: middle;
+    cursor: pointer;
+    overflow: visible;
+}
+
+.tabButtonLeftOver,
+.tabButtonLeftSelected,
+.tabButtonLeftSelectedOver {
+    background: #ffffff;
+}
+
+.tabButtonLeftDown,
+.tabButtonLeftSelectedDown {
+    background: #ddd;
+}
+
+.tabButtonLeftSelectedDisabled,
+.tabButtonLeftDisabled {
+    background: #ddd;
+}
+
+/* right */
+.tabButtonRight,
+.tabButtonRightOver,
+.tabButtonRightSelected,
+.tabButtonRightSelectedOver,
+.tabButtonRightDown,
+.tabButtonRightSelectedDown,
+.tabButtonRightSelectedDisabled,
+.tabButtonRightDisabled {
+    padding: 2px;
+    border: 1px solid #C0C3C7;
+    background: #e7e7e7;
+    background-image: -moz-linear-gradient(top, #ffffff, #efefef);
+    background-image: -webkit-gradient(linear, left top, left bottom, from(#ffffff), to(#efefef));
+    -moz-border-radius: 3px;
+    -webkit-border-radius: 3px;
+    border-radius: 3px;
+    white-space: nowrap;
+    vertical-align: middle;
+    cursor: pointer;
+    overflow: visible;
+}
+
+.tabButtonRightOver,
+.tabButtonRightSelected,
+.tabButtonRightSelectedOver {
+    background: #ffffff;
+}
+
+.tabButtonRightDown,
+.tabButtonRightSelectedDown {
+    background: #ddd;
+}
+
+.tabButtonRightSelectedDisabled,
+.tabButtonRightDisabled {
+    background: #ddd;
+}
+
+/* top */
+.tabButtonTop,
+.tabButtonTopOver,
+.tabButtonTopSelected,
+.tabButtonTopSelectedOver,
+.tabButtonTopDown,
+.tabButtonTopSelectedDown,
+.tabButtonTopSelectedDisabled,
+.tabButtonTopDisabled {
+    -x-system-font: none;
+    font-family: "Lucida Grande", "Lucida Sans Unicode", Segoe UI, Helvetica, Arial, sans-serif;
+    font-size: 13px;
+    font-size-adjust: none;
+    font-stretch: normal;
+    font-style: normal;
+    font-variant: normal;
+    font-weight: normal;
+    line-height: 14px;
+    color: #6E6E6E;
+    padding: 3px 35px;
+    border: 1px solid #FFF;
+    border-right: 1px solid #CCC;
+    /*background: #e7e7e7;*/
+    -moz-border-radius: 3px;
+    -webkit-border-radius: 3px;
+    border-radius: 3px;
+    white-space: nowrap;
+    vertical-align: top;
+    cursor: pointer;
+    overflow: visible;
+    box-shadow: 2px 1px 4px #A29E93;
+}
+
+.tabButtonTopOver,
+.tabButtonTopSelected,
+.tabButtonTopSelectedOver {
+    background: #FFF;
+    color: #B5530C;
+}
+
+/*.tabButtonTopSelected {
+    border-bottom:none;
+}*/
+
+.tabButtonTopDown,
+.tabButtonTopSelectedDown {
+    background: #F6F6F6;
+    color: #21252e;
+}
+
+.tabButtonTopSelectedDisabled,
+.tabButtonTopDisabled {
+    background: #ddd;
+}
+
+/* bottom */
+.tabButtonBottom,
+.tabButtonBottomOver,
+.tabButtonBottomSelected,
+.tabButtonBottomSelectedOver,
+.tabButtonBottomDown,
+.tabButtonBottomSelectedDown,
+.tabButtonBottomSelectedDisabled,
+.tabButtonBottomDisabled {
+    padding: 2px;
+    border: 0px solid #C0C3C7;
+    background: #e7e7e7;
+    background-image: -moz-linear-gradient(top, #ffffff, #efefef);
+    background-image: -webkit-gradient(linear, left top, left bottom, from(#ffffff), to(#efefef));
+    -moz-border-radius: 3px;
+    -webkit-border-radius: 3px;
+    border-radius: 3px;
+    white-space: nowrap;
+    vertical-align: middle;
+    cursor: pointer;
+    overflow: visible;
+}
+
+.tabButtonBottomOver,
+.tabButtonBottomSelected,
+.tabButtonBottomSelectedOver {
+    background: #ffffff;
+}
+
+.tabButtonBottomDown,
+.tabButtonBottomSelectedDown {
+    background: #ddd;
+}
+
+.tabButtonBottomSelectedDisabled,
+.tabButtonBottomDisabled {
+    background: #ddd;
+}
+
+/*IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII
+IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII
+IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII
+
+    Styles below this comment are used by optional modules only
+
+IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII
+IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII
+IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII*/
+
+/*============================================================
+    CubeGrid - Analytics Module only
+        cubeGrid.baseStyle - cubeCell
+        headerGrid.baseStyle - rowHeader
+        reportHeaderBar.button.baseStyle - rowHeader
+        reportHeaderBar.button.baseStyle - innerHeader/colHeader
+        reportHeaderBar.button.baseStyle - rowHeaderLabel
+        reportHeaderBar.button.baseStyle - colHeaderLabel
+============================================================*/
+.cubeGridBody {
+}
+
+.cubeCell {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    color: black;
+    text-overflow: ellipsis;
+    background-color: #FFFFFF;
+    border-top: 1px solid white;
+    border-bottom: 1px solid #828282;
+    border-left: 1px solid white;
+    border-right: 1px solid #828282;
+}
+
+.cubeCellDark {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    color: black;
+    text-overflow: ellipsis;
+    background-color: #EEEEEE;
+    border-top: 1px solid #EEEEEE;
+    border-bottom: 1px solid #828282;
+    border-left: 1px solid #EEEEEE;
+    border-right: 1px solid #828282;
+}
+
+.cubeCellDisabled {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    color: #666666;
+    text-overflow: ellipsis;
+    background-color: #FFFFFF;
+    border-top: 1px solid #FFFFFF;
+    border-bottom: 1px solid #FFFFFF;
+    border-left: 1px solid #FFFFFF;
+    border-right: 1px solid #FFFFFF;
+}
+
+/* partial styles */
+.cubeCellOver {
+    background-color: #B8D1EE;
+    border-top: 1px solid #B8D1EE;
+    border-bottom: 1px solid #828282;
+}
+
+.cubeCellSelected {
+    background-color: #FFE781;
+    border-top: 1px solid #FFE781;
+    border-bottom: 1px solid #828282;
+    border-left: 1px solid #FFE781;
+    border-right: 1px solid #828282;
+}
+
+.cubeCellSelectedOver {
+    background-color: #B8D1EE;
+    border-top: 1px solid #B8D1EE;
+    border-bottom: 1px solid #828282;
+    border-left: 1px solid #B8D1EE;
+    border-right: 1px solid #828282;
+}
+
+/* row headers */
+.rowHeader {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    color: white;
+    background-color: #6682A0;
+    border-left: 1px solid #FFFFFF;
+    border-top: 1px solid #FFFFFF;
+    border-right: 1px solid #264260;
+    border-bottom: 1px solid #264260;
+    background-image: url("images/CubeGrid/rowHeader.gif");
+}
+
+.rowHeaderOver {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    color: white;
+    background-color: #6682A0;
+    border-left: 1px solid #264260;
+    border-top: 1px solid #264260;
+    border-right: 1px solid #FFFFFF;
+    border-bottom: 1px solid #FFFFFF;
+    background-image: url("images/CubeGrid/rowHeaderOver.gif");
+}
+
+.rowHeaderDown {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    color: white;
+    background-color: #6682A0;
+    border-left: 1px solid #264260;
+    border-top: 1px solid #264260;
+    border-right: 1px solid #FFFFFF;
+    border-bottom: 1px solid #FFFFFF;
+    background-image: url("images/CubeGrid/rowHeaderOver.gif");
+}
+
+.rowHeaderDisabled {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    color: #808080;
+    background-color: #6682A0;
+    border-left: 1px solid #808080;
+    border-top: 1px solid #808080;
+    border-right: 1px solid #808080;
+    border-bottom: 1px solid #808080;
+}
+
+.rowHeaderSelected,
+.rowHeaderSelectedDown {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    color: white;
+    background-color: #3E74B3;
+    border-left: 1px solid #00008B;
+    border-top: 1px solid #00008B;
+    border-right: 1px solid #F0F8FF;
+    border-bottom: 1px solid #F0F8FF;
+    background-image: url("images/CubeGrid/rowHeaderSelected.gif");
+
+}
+
+.rowHeaderSelectedOver {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    color: white;
+    background-color: #3E74B3;
+    border-top: 1px solid white;
+    border-bottom: 1px solid white;
+    border-left: 1px solid white;
+    border-right: 1px solid white;
+    background-image: url("images/CubeGrid/rowHeaderSelectedOver.gif");
+}
+
+.rowHeaderSelectedDisabled {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    color: #808080;
+    background-color: #3E74B3;
+    border-left: 1px solid #808080;
+    border-top: 1px solid #808080;
+    border-right: 1px solid #808080;
+    border-bottom: 1px solid #808080;
+}
+
+/* row label */
+.rowHeaderLabel {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: white;
+    background-color: #204B7A;
+    border-left: 1px solid #FFFFFF;
+    border-top: 1px solid #FFFFFF;
+    border-right: 1px solid #000B3A;
+    border-bottom: 1px solid #000B3A;
+    background-image: url("images/CubeGrid/rowHeaderLabel.gif");
+}
+
+.rowHeaderLabelOver {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: white;
+    background-color: #204B7A;
+    border-left: 1px solid #000B3A;
+    border-top: 1px solid #000B3A;
+    border-right: 1px solid #FFFFFF;
+    border-bottom: 1px solid #FFFFFF;
+    background-image: url("images/CubeGrid/rowHeaderLabel.gif");
+}
+
+.rowHeaderLabelDown {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: white;
+    background-color: #204B7A;
+    border-left: 1px solid #000B3A;
+    border-top: 1px solid #000B3A;
+    border-right: 1px solid #FFFFFF;
+    border-bottom: 1px solid #FFFFFF;
+    background-image: url("images/CubeGrid/rowHeaderLabelDown.gif");
+}
+
+.rowHeaderLabelDisabled {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: #808080;
+    background-color: #7D7D7D;
+    border-left: 1px solid #808080;
+    border-top: 1px solid #808080;
+    border-right: 1px solid #808080;
+    border-bottom: 1px solid #808080;
+}
+
+.rowHeaderLabelSelected,
+.rowHeaderLabelSelectedDown {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: white;
+    background-color: #3E74B3;
+    border-left: 1px solid black;
+    border-top: 1px solid black;
+    border-right: 1px solid #555555;
+    border-bottom: 1px solid #555555;
+    background-image: url("images/CubeGrid/rowHeaderDown.gif");
+}
+
+.rowHeaderLabelSelectedOver {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: white;
+    background-color: #3E74B3;
+    border-top: 1px solid white;
+    border-bottom: 1px solid white;
+    border-left: 1px solid white;
+    border-right: 1px solid white;
+    background-image: url("images/CubeGrid/rowHeaderDown.gif");
+}
+
+.rowHeaderLabelSelectedDisabled {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: #808080;
+    background-color: #7D7D7D;
+    border-left: 1px solid #808080;
+    border-top: 1px solid #808080;
+    border-right: 1px solid #808080;
+    border-bottom: 1px solid #808080;
+}
+
+/* column headers */
+.colHeader {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    color: white;
+    background-color: #6682A0;
+    border-left: 1px solid #FFFFFF;
+    border-top: 1px solid #FFFFFF;
+    border-right: 1px solid #264260;
+    border-bottom: 1px solid #264260;
+    background-image: url("images/CubeGrid/colHeader.gif");
+}
+
+.colHeaderOver {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    color: white;
+    background-color: #6682A0;
+    border-left: 1px solid #264260;
+    border-top: 1px solid #264260;
+    border-right: 1px solid #FFFFFF;
+    border-bottom: 1px solid #FFFFFF;
+    background-image: url("images/CubeGrid/colHeaderOver.gif");
+}
+
+.colHeaderDown {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    color: white;
+    background-color: #6682A0;
+    border-left: 1px solid #264260;
+    border-top: 1px solid #264260;
+    border-right: 1px solid #FFFFFF;
+    border-bottom: 1px solid #FFFFFF;
+    background-image: url("images/CubeGrid/colHeader.gif");
+}
+
+.colHeaderDisabled {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    color: #808080;
+    background-color: #6682A0;
+    border-left: 1px solid #808080;
+    border-top: 1px solid #808080;
+    border-right: 1px solid #808080;
+    border-bottom: 1px solid #808080;
+}
+
+.colHeaderSelected,
+.colHeaderSelectedDown {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: white;
+    background-color: #3E74B3;
+    border-left: 1px solid #00008B;
+    border-top: 1px solid #00008B;
+    border-right: 1px solid #F0F8FF;
+    border-bottom: 1px solid #F0F8FF;
+    background-image: url("images/CubeGrid/colHeaderSelected.gif");
+}
+
+.colHeaderSelectedOver {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: white;
+    background-color: #3E74B3;
+    border-top: 1px solid white;
+    border-bottom: 1px solid white;
+    border-left: 1px solid white;
+    border-right: 1px solid white;
+    background-image: url("images/CubeGrid/colHeaderSelectedOver.gif");
+}
+
+.colHeaderSelectedDisabled {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: #808080;
+    background-color: #3E74B3;
+    border-left: 1px solid #808080;
+    border-top: 1px solid #808080;
+    border-right: 1px solid #808080;
+    border-bottom: 1px solid #808080;
+}
+
+/* column label */
+.colHeaderLabel {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: white;
+    background-color: #204B7A;
+    border-left: 1px solid #FFFFFF;
+    border-top: 1px solid #FFFFFF;
+    border-right: 1px solid #555555;
+    border-bottom: 1px solid #555555;
+    background-image: url("images/CubeGrid/colHeaderLabel.gif");
+}
+
+.colHeaderLabelOver {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: white;
+    background-color: #204B7A;
+    border-left: 1px solid #000B3A;
+    border-top: 1px solid #000B3A;
+    border-right: 1px solid #555555;
+    border-bottom: 1px solid #555555;
+    background-image: url("images/CubeGrid/colHeaderLabelDown.gif");
+}
+
+.colHeaderLabelDown {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: white;
+    background-color: #204B7A;
+    border-left: 1px solid #000B3A;
+    border-top: 1px solid #000B3A;
+    border-right: 1px solid #FFFFFF;
+    border-bottom: 1px solid #FFFFFF;
+    background-image: url("images/CubeGrid/colHeaderLabelDown.gif");
+}
+
+.colHeaderLabelDisabled {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: #808080;
+    background-color: #7D7D7D;
+    border-left: 1px solid #808080;
+    border-top: 1px solid #808080;
+    border-right: 1px solid #808080;
+    border-bottom: 1px solid #808080;
+}
+
+.colHeaderLabelSelected,
+.colHeaderLabelSelectedDown {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: white;
+    background-color: #3E74B3;
+    border-left: 1px solid black;
+    border-top: 1px solid black;
+    border-right: 1px solid #555555;
+    border-bottom: 1px solid #555555;
+    background-image: url("images/CubeGrid/colHeaderLabelDown.gif");
+}
+
+.colHeaderLabelSelectedOver {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: white;
+    background-color: #3E74B3;
+    border-top: 1px solid white;
+    border-bottom: 1px solid white;
+    border-right: 1px solid #555555;
+    border-bottom: 1px solid #555555;
+    background-image: url("images/CubeGrid/colHeaderDown.gif");
+}
+
+.colHeaderLabelSelectedDisabled {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: #808080;
+    background-color: #7D7D7D;
+    border-left: 1px solid #808080;
+    border-top: 1px solid #808080;
+    border-right: 1px solid #808080;
+    border-bottom: 1px solid #808080;
+}
+
+/* inner header */
+.innerHeader {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    color: black;
+    background-color: #CCCCCC;
+    border-left: 1px solid white;
+    border-top: 1px solid white;
+    border-right: 1px solid #808080;
+    border-bottom: 1px solid #808080;
+    background-image: url("images/CubeGrid/innerHeader.gif");
+}
+
+.innerHeaderOver {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    color: black;
+    background-color: #CCCCCC;
+    border-left: 1px solid #808080;
+    border-top: 1px solid #808080;
+    border-right: 1px solid white;
+    border-bottom: 1px solid white;
+    background-image: url("images/CubeGrid/innerHeader.gif");
+}
+
+.innerHeaderDown {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    color: black;
+    background-color: #CCCCCC;
+    border-left: 1px solid #808080;
+    border-top: 1px solid #808080;
+    border-right: 1px solid white;
+    border-bottom: 1px solid white;
+    background-image: url("images/CubeGrid/innerHeader.gif");
+}
+
+.innerHeaderDisabled {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    color: #808080;
+    background-color: #CCCCCC;
+    border-left: 1px solid #808080;
+    border-top: 1px solid #808080;
+    border-right: 1px solid #808080;
+    border-bottom: 1px solid #808080;
+}
+
+.innerHeaderSelected,
+.innerHeaderSelectedDown {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: white;
+    background-color: #3E74B3;
+    border-left: 1px solid #00008B;
+    border-top: 1px solid #00008B;
+    border-right: 1px solid #F0F8FF;
+    border-bottom: 1px solid #F0F8FF;
+    background-image: url("images/CubeGrid/innerHeaderSelected.gif");
+}
+
+.innerHeaderSelectedOver {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: white;
+    background-color: #3E74B3;
+    border-top: 1px solid white;
+    border-bottom: 1px solid white;
+    border-left: 1px solid white;
+    border-right: 1px solid white;
+    background-image: url("images/CubeGrid/innerHeaderSelectedOver.gif");
+}
+
+.innerHeaderSelectedDisabled {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    color: #808080;
+    background-color: #CCCCCC;
+    border-left: 1px solid #808080;
+    border-top: 1px solid #808080;
+    border-right: 1px solid #808080;
+    border-bottom: 1px solid #808080;
+}
+
+/*============================================================
+    BarChart
+    internal, charting/visualization module only
+        styleName - chart
+        barStyle - chartBar
+        others are currently fixed
+============================================================*/
+
+.chart {
+    background-color: #CCCCCC;
+}
+
+.chartTitle {
+    color: black;
+    font-family: Tahoma, sans-serif;
+    font-size: 14px;
+    font-weight: bold;
+    text-align: center
+}
+
+.chartAxisTitle {
+    color: green;
+    font-family: Tahoma, sans-serif;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.chartValueTitle {
+    color: black;
+    font-family: Tahoma, sans-serif;
+    font-size: 10px;
+}
+
+.chartTotal {
+    color: black;
+    font-family: Bitstream Vera Sans, sans-serif;
+    font-size: 12px;
+    background-color: linen;
+}
+
+.chartBody {
+    border-left: 1px solid black;
+    border-top: 1px dashed blue;
+    border-right: 1px solid black;
+    background-color: #DDDDDD
+}
+
+.chartBar1 {
+    background-color: red;
+    filter: "progid:dximagetransform.microsoft.gradient(gradientType=1, startColorStr=#990000, endColorStr=#FF0000)";
+}
+
+.chartBar2 {
+    background-color: blue;
+    filter: "progid:dximagetransform.microsoft.gradient(gradientType=1, startColorStr=#000099, endColorStr=#0000FF)";
+}
+
+.chartBar3 {
+    background-color: green;
+    filter: "progid:dximagetransform.microsoft.gradient(gradientType=1, startColorStr=#009900, endColorStr=#00FF00)";
+}
+
+/*============================================================
+    Printing
+        printHeader - general print style for header elements including:
+        - ListGrid header cells
+        - SectionStack headers
+============================================================*/
+.printHeader {
+    font-family: Bitstream Vera Sans, Helvetica, Verdana, sans-serif;
+    font-size: 11px;
+    border: 1px solid black;
+    font-weight: bold;
+}
+
+/*============================================================
+    Calendar
+
+============================================================*/
+.calendar,
+.calendarDisabled,
+.calendarWorkday,
+.calendarDark {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    color: black;
+    border-bottom: 1px solid #a0a0a0;
+    border-right: 1px solid #a0a0a0;
+    background-color: #ffffff;
+}
+
+.calendarDisabled {
+    background-color: gainsboro;
+}
+
+.calendarWorkday {
+    background-color: #ffffcc;
+}
+
+.calendarOver,
+.calendarOverDark {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    color: black;
+    border-bottom: 1px solid #a0a0a0;
+    border-right: 1px solid #a0a0a0;
+    background-color: #c0ffc0;
+}
+
+.calendarCellSelected {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    color: black;
+    border-bottom: 1px solid #a0a0a0;
+    border-right: 1px solid #a0a0a0;
+    background-color: #CCCCCC;
+}
+
+.labelColumn {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    color: black;
+    border-bottom: 1px solid #a0a0a0;
+    border-right: 1px solid #a0a0a0;
+    background-color: gainsboro;
+}
+
+/* ----month---- */
+/* calMonthDayHeader and Body */
+
+.calMonthDayHeader,
+.calMonthDayHeaderDark {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    color: black;
+    border-bottom: 1px solid #a0a0a0;
+    border-right: 1px solid #a0a0a0;
+    background-color: gainsboro;
+}
+
+.calMonthDayHeaderOver,
+.calMonthDayHeaderOverDark {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    color: black;
+    border-bottom: 1px solid #a0a0a0;
+    border-right: 1px solid #a0a0a0;
+    background-color: #c0ffc0;
+}
+
+.calMonthDayBody,
+.calMonthDayBodyDark {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    color: black;
+    border-bottom: 1px solid #a0a0a0;
+    border-right: 1px solid #a0a0a0;
+    background-color: #ffffff;
+}
+
+.calMonthDayBodyOver,
+.calMonthDayBodyOverDark {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    color: black;
+    border-bottom: 1px solid #a0a0a0;
+    border-right: 1px solid #a0a0a0;
+    background-color: #c0ffc0;
+}
+
+.calMonthDayBodyDisabled,
+.calMonthDayBodyDisabledOver {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    color: black;
+    border-bottom: 1px solid #a0a0a0;
+    border-right: 1px solid #a0a0a0;
+    background-color: #E6E6E6;
+}
+
+/* calMonthOtherDayHeader and Body */
+
+.calMonthOtherDayHeader,
+.calMonthOtherDayHeaderDark {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    color: #444444;
+    border-bottom: 1px solid #a0a0a0;
+    border-right: 1px solid #a0a0a0;
+    background-color: #aaaaaa;
+}
+
+.calMonthOtherDayHeaderOver,
+.calMonthOtherDayHeaderOverDark {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    color: #444444;
+    border-bottom: 1px solid #a0a0a0;
+    border-right: 1px solid #a0a0a0;
+    background-color: #c0ffc0;
+}
+
+.calMonthOtherDayBody,
+.calMonthOtherDayBodyDark,
+.calMonthOtherDayBodyDisabled,
+.calMonthOtherDayBodyDisabledOver {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    color: black;
+    border-bottom: 1px solid #a0a0a0;
+    border-right: 1px solid #a0a0a0;
+    background-color: #E6E6E6;
+}
+
+.calMonthOtherDayBodyOver,
+.calMonthOtherDayBodyOverDark {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    color: black;
+    border-bottom: 1px solid #a0a0a0;
+    border-right: 1px solid #a0a0a0;
+    background-color: #c0ffc0;
+}
+
+/* calMonthOtherDayBlank */
+
+.calMonthOtherDayBlank,
+.calMonthOtherDayBlankDark,
+.calMonthOtherDayBlankOver,
+.calMonthOtherDayBlankOverDark {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    color: #444444;
+    border-bottom: 1px solid #a0a0a0;
+    border-right: 1px solid #a0a0a0;
+    background-color: #E6E6E6;
+}
+
+/* calMonthEventLink */
+
+a.calMonthEventLink:link {
+    color: blue;
+    text-decoration: none
+}
+
+a.calMonthEventLink:visited {
+    color: blue;
+    text-decoration: none
+}
+
+a.calMonthEventLink:hover {
+    color: blue;
+    text-decoration: underline
+}
+
+a.calMonthEventLink:active {
+    color: blue;
+    text-decoration: none
+}
+
+/* ----event window---- */
+
+.eventWindow {
+    font-size: 9px;
+    background-color: #EBF4FF;
+    border: 1px solid #d0dff6;
+
+}
+
+.eventWindowHeader {
+    font-family: Arial, Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 9px;
+    color: #4C4C4C;
+    background-color: #d0dff6;
+
+}
+
+.eventWindowBody {
+    font-family: Arial, Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 9px;
+    color: black;
+    background-color: #EBF4FF;
+    padding: 3px;
+
+}
+
+.eventWindowResizer {
+    border-top: 1px solid white;
+    border-bottom: 1px solid white;
+}
+
+/*============================================================
+    PropertySheet
+    internal, used by Visual SmartClient tools
+        propertySheet.autoChildDefaults.cellStyle - propSheetValue
+        propertySheet.autoChildDefaults.titleStyle - propSheetTitle
+        propertySheet.TextItemDefaults.textBoxStyle - propSheetField
+        propertySheet.SelectItemDefaults.controlStyle - propSheetSelectControl
+        propertySheet.ColorItemDefaults.textBoxStyle - propSheetField
+        propertySheet.HeaderItemDefaults.textBoxStyle - propSheetHeading
+        propertySheet.SectionHeaderItemDefaults.cellStyle - propSheetSectionItemCell
+============================================================*/
+
+.propSheetValue,
+.propSheetValueFocused,
+.propSheetDisabled {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    border-bottom: 1px solid #AAAAAA;
+    border-right: 1px solid #AAAAAA;
+    padding: 0px;
+    margin: 0px;
+}
+
+.propSheetTitle,
+.propSheetTitleFocused,
+.propSheetTitleDisabled {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    border-bottom: 1px solid #AAAAAA;
+    border-right: 1px solid #AAAAAA;
+    background-color: #DDDDDD;
+    padding-left: 4px;
+    padding-right: 4px;
+}
+
+.propSheetTitleError,
+.propSheetValueError {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    color: #204268;
+    background-color: #CFD9F2
+}
+
+.propSheetField,
+.propSheetFieldDisabled {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    background-color: #FFFFFF;
+    border: 0px;
+    padding: 0px;
+    padding-left: 4px;
+    padding-right: 4px;
+    margin-top: 3px;
+}
+
+.propSheetHeading,
+.propSheetHeadingDisabled {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: black;
+    background-color: #CCCCCC;
+    padding: 4px;
+    border-bottom: 1px solid #AAAAAA;
+}
+
+.propSheetSelectControl,
+.propSheetSelectControlFocused,
+.propSheetSelectControlDisabled {
+    padding-left: 3px;
+    padding-right: 3px;
+}
+
+.propSheetSectionItemCell,
+.propSheetSectionItemDisabled {
+}
+
+/* Styles for Finder cells */
+.finder,
+.finderSelected {
+    font-family: Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 12px;
+    background-color: #F0F0F0;
+    border-bottom: 1px solid white;
+}
+
+.finderSort,
+.finderSelectedSort {
+    font-family: Gadget, Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 12px;
+    background-color: #DDDDDD;
+    border-bottom: 1px solid white;
+}
+
+.finderDisabled {
+    font-family: Chicago, Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 12px;
+    color: #666666;
+    background-color: #FFFFFF;
+    border-bottom: 1px solid #FFFFFF;
+}
+
+.finderSelectedText {
+    color: white;
+    background-color: black;
+    margins: 5;
+}
+
+/* header buttons */
+.finderButton {
+    font-family: Gadget, Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 12px;
+    background-color: #DDDDDD;
+    border-left: 1px solid white;
+    border-top: 1px solid white;
+    border-right: 1px solid #CCCCCC;
+    border-bottom: 1px solid #CCCCCC;
+}
+
+.finderButtonDown,
+.finderButtonSelectedDown {
+    font-family: Gadget, Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 12px;
+    color: white;
+    background-color: #999999;
+    border-left: 1px solid #666666;
+    border-top: 1px solid #666666;
+    border-right: 1px solid white;
+    border-bottom: 1px solid white;
+}
+
+.finderButtonSelectedDisabled,
+.finderButtonSelected {
+    font-family: Gadget, Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 12px;
+    background-color: #999999;
+    border-left: 1px solid #666666;
+    border-top: 1px solid #666666;
+    border-right: 1px solid white;
+    border-bottom: 1px solid white;
+}
+
+.finderButtonDisabled {
+    font-family: Gadget, Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 12px;
+    color: #666666;
+    background-color: #999999;
+    border-left: 1px solid #CCCCCC;
+    border-top: 1px solid #CCCCCC;
+    border-right: 1px solid #CCCCCC;
+    border-bottom: 1px solid #CCCCCC;
+}
+
+/* Styles for Explorer cells */
+.explorer,
+.explorerOver,
+.explorerSelected,
+.explorerSelectedOver,
+.explorerDark,
+.explorerOverDark,
+.explorerSelectedOverDark,
+.explorerSelectedDark,
+.explorerDisabled {
+    font-family: MS Sans Serif, Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 12px;
+}
+
+.explorerSelectedText {
+    background-color: darkblue;
+    color: white;
+    margins: 5;
+}
+
+.explorerButtonOver,
+.explorerButtonSelected,
+.explorerButtonSelectedOver,
+.explorerButton {
+    font-family: MS Sans Serif, Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 12px;
+    background-color: #CCCCCC;
+    border-left: 2px solid white;
+    border-top: 2px solid white;
+    border-right: 1px solid #999999;
+    border-bottom: 1px solid #999999;
+}
+
+.explorerButtonSelectedDown,
+.explorerButtonDown {
+    font-family: MS Sans Serif, Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 12px;
+    background-color: #CCCCCC;
+    border-left: 2px solid #999999;
+    border-top: 2px solid #999999;
+    border-right: 0px solid white;
+    border-bottom: 0px solid white;
+}
+
+.explorerButtonSelectedDisabled,
+.explorerButtonDisabled {
+    font-family: MS Sans Serif, Verdana, Bitstream Vera Sans, sans-serif;
+    font-size: 12px;
+    color: #666666;
+    background-color: #CCCCCC;
+    border-left: 1px solid #CCCCCC;
+    border-top: 1px solid #CCCCCC;
+    border-right: 1px solid #CCCCCC;
+    border-bottom: 1px solid #CCCCCC;
+}
+
+/* Styles for Report Column Tree (Linked Datasets) & Dashboard Filter Column Tree */
+
+.linkedDataset, .dashboardFilterDataset, .mainDataset {
+    color: #000000;
+    background-color: #DDD;
+    border-bottom: 2px solid #FFF;
+}
+
+.linkedDataset table img + img,
+.linkedDataset table img + img + img,
+.mainDataset table img + img,
+.mainDataset table img + img + img,
+.dashboardFilterDataset table img + img,
+.dashboardFilterDataset table img + img + img {
+    width: 0;
+    height: 0;
+}
+
+.linkedDataset tbody tr td + td + td nobr {
+    background-image: url(images/actions/link.png);
+    background-repeat: no-repeat;
+    padding-left: 18px;
+    position: relative;
+    right: 5px;
+}
+
+.mainDataset tbody tr td + td + td nobr {
+    padding-left: 18px;
+    position: relative;
+    right: 5px;
+}
+
+/* Styles for Gauge - title and reading */
+
+.guageTitle {
+    font-family: "Lucida Grande", "Lucida Sans Unicode", Verdana, Arial, Helvetica, sans-serif;
+    color: #3E576F;
+    font-size: 16px;
+    width: 400px;
+    text-align: center;
+}
+
+/* Styles for Report List links (Report, Dataset) */
+.ReportListLink,
+.ReportListLinkDark {
+    color: #1489B4;
+    border-bottom: 1px solid #e2e2e2;
+    background-color: #ffffff;
+}
+
+.ReportListLinkOver,
+.ReportListLinkOverDark {
+    color: #1489B4;
+    cursor: pointer;
+    border-bottom: 1px solid #e2e2e2;
+    background-color: #FFF5CC;
+}
+
+.ReportListLinkSelected,
+.ReportListLinkSelectedDark {
+    color: #1489B4;
+    border-bottom: 1px solid #e2e2e2;
+    background-color: #F2EBCE;
+}
+
+.ReportListLinkSelectedOver,
+.ReportListLinkSelectedOverDark {
+    color: #1489B4;
+    cursor: pointer;
+    border-bottom: 1px solid #e2e2e2;
+    background-color: #FFF5CC;
+}
+
+.ReportListLinkDisabled,
+.ReportListLinkDisabledDark {
+    color: #1489B4;
+    border-bottom: 1px solid #e2e2e2;
+    background-color: #ffffff;
+}
+
+/* Styles for Report Form */
+
+
+.reportColTreeNoSelectDisabled { /* NOTE: this is for _baseStyle: "reportColTreeNoSelect" */
+    border-bottom: 1px solid #DDD;
+}
+
+.reportColTreeNoSelectDisabled nobr img + img {opacity: 0; width: 0;}
+
+.reportColTreeNoSelectDisabled nobr img + img + img {opacity: 1; width: auto;}
+
+.reportNameTextbox, .reportNameTextboxFocused {
+    font-weight: normal;
+    /*font-size: 18px;
+    height: 35px;
+    width: 450px;
+    margin-bottom: 10px;*/
+}
+
+.reportDetailsTitle {
+    font-weight: bold;
+}
+
+.reportDetailsText {
+    padding-bottom: 8px;
+}
+
+.dashboardBuilderLayout {
+    /*margin-left: -10px;*/
+    /*overflow: visible !important;*/
+
+}
+
+.reportDropDown,
+.dashboardDropDown {
+    box-shadow: 0 3px 5px #A29E93;
+    border-radius: 0 10px 0 0;
+    box-sizing: content-box;
+    -webkit-box-sizing: content-box;
+    -moz-box-sizing: content-box;
+}
+
+.reportDropDown td,
+.dashboardDropDown td {
+    vertical-align: middle; /* vertically aligns text fields with radio buttons in drop-downs */
+}
+
+.reportDropDown td.formTitle,
+.reportDropDown td.formTitleFocused,
+.dashboardDropDown td.formTitle,
+.dashboardDropDown td.formTitleFocused{
+    vertical-align: top;
+}
+
+/* Styles for Dataset Upload Form */
+.datasetUploadCancelLink {
+    padding-right: 10px;
+}
+
+/* Styles for Dataset Info Form */
+.datasetColumnPreviewName, .datasetColumnPreviewData {
+    padding: 5px;
+    width: 300px;
+    white-space: normal;
+    border: 1px solid #ccc;
+    overflow: hidden; /* prevents urls from going beyond table borders */
+}
+
+.datasetColumnPreviewName {
+    font-weight: bold;
+    background: #DCE0E8;
+    background-image: -webkit-gradient(linear, left bottom, left top, color-stop(0.25, rgb(220, 224, 232)), color-stop(0.63, rgb(233, 236, 245)), color-stop(0.82, rgb(240, 244, 252)));
+    background-image: -moz-linear-gradient(center bottom, rgb(220, 224, 232) 25%, rgb(233, 236, 245) 63%, rgb(240, 244, 252) 82%);
+}
+
+.datasetColumnPreviewData {
+    font-weight: normal;
+    border-top: 0;
+}
+
+.columnPreview {
+    vertical-align: top !important;
+    padding: 0;
+    margin: 0;
+}
+
+.datasetNameTitle {
+    width: 100px;
+}
+
+.dashboardDetailsContainer, .dashboardReportsDashboardsContainer {
+    float: left;
+    margin-top: 25px;
+}
+
+.dashboardReportsDashboardsContainer {
+    width: 250px;
+    padding-left: 50px
+}
+
+.dashboardDetailsContainer {
+    padding-left: 150px;
+    width: 200px;
+}
+
+.dashboardReportsDashboardsContainer p {
+    font-size: 11px;
+    padding-top: 0;
+}
+
+.dashboardDetailsTitle {
+    font-weight: bold;
+    float: left;
+}
+
+.dashboardDetailsText {
+    margin-bottom: 4px;
+}
+
+.datasetFormDataTypeField .staticTextItem {
+    color: #1489B4;
+    cursor: pointer;
+    padding: 3px 0 0;
+    width: 400px;
+    text-decoration: underline;
+}
+
+.datasetFormDataTypeBlurb {
+    padding: 5px 0px 5px 0px;
+    vertical-align: top; /* fix for alignment in IE8 */
+}
+
+.pleaseSelectDataType {
+    background-image: url(images/actions/warning.png);
+    background-repeat: no-repeat;
+    color: red;
+    padding-left: 20px;
+    line-height: 20px;
+}
+
+/* Styles for Dashboard Help Window */
+
+.dashboardHelpWindowHeader {
+    border-bottom: 0;
+}
+
+.dashboardHelpDataset, .dashboardHelpReport {
+    text-align: center;
+    margin-bottom: 25px;
+    font: 15px/20px Arial,Helvetica,sans-serif;
+}
+
+/* Canvas warning message */
+.canvas-warning {
+    font-size:14px;
+    font-family: Lucida Grande, Arial, sans-serif;
+    text-align: center;
+}
+
+/* Styles for Dashboard Counts */
+
+.builderOptionCountSaved {
+    background-color: #E6AF2A;
+    border-radius: 10px 10px 10px 10px;
+    behavior: url(/sites/all/libraries/css/pie/PIE.htc);
+    box-shadow: 1px 2px 3px #804218;
+    color: white;
+    display: block;
+    font-weight: bold;
+    height: 15px !important;
+    line-height: 15px;
+    margin-top: -4px;
+    text-align: center;
+}
+
+.builderOptionCountUnsaved {
+    background-color: #FF0000;
+    border-radius: 10px 10px 10px 10px;
+    behavior: url(/sites/all/libraries/css/pie/PIE.htc);
+    box-shadow: 1px 2px 3px #804218;
+    color: white;
+    display: block;
+    font-weight: bold;
+    height: 15px !important;
+    line-height: 15px;
+    margin-top: -4px;
+    text-align: center;
+}
+
+/* Styles for Report & Dashboard Config Drop Downs */
+
+/* moved to theme's style.css
+.configDropdownListItems {
+    padding-bottom: 2px;
+    border-bottom: 2px solid #ddd;
+} */
+
+.actionBar {
+    z-index: 10000000 !important;
+    float: left;
+    position: relative !important;
+    margin-left: 460px;
+}
+
+/* Advanced Table styles */
+
+.dashboardAdvTableName {
+    font-family: "Lucida Grande", "Lucida Sans Unicode", Verdana, Arial, Helvetica, sans-serif;
+    color: #3E576F;
+    font-size: 16px;
+    text-align: center;
+}
+
+/* Various Bug Fixes - modify with caution! */
+
+td.textArea,
+td.textAreaFocused {vertical-align: top;}
+
+.listGrid .listTable,
+.scrollingMenu .listTable {width: 100% !important;} /* fix for the clipped bg in drop-downs (scrolling menu is for the viewers page filters)*/
+.tableGrid .listTable {/*width: 1px !important;*/} /* tableGrid class must be applied to every adv table in order to fix the column resizing issue */
+/* Jenna: Figure out an alternatve for width: 1px !important; - breaks listGrid in IE9! */
+
+.listTable td div {max-height: none !important;} /* fix for horizontal scrollbar and data clipping issues */
+
+
+/*.listTable td div {height: auto !important;}*/ /* fix for horizontal scrollbar and data clipping issues in IE BROWSERS */
+/*html>body .listTable td div {height: 100% !important;}*/ /* override the previous line in normal browsers */
+
+
+#header-menu #header-menu-smart textarea { display: none;} /* fix for small textarea cubes showing up next to main navigation buttons in GDheader */
+
+.accountDashPane {margin-top: -1px;}
+.AccountLayoutNavPane {margin-top: -1px;}
+
+
+/* Testing table theme*/
+.accountDashboardCell{
+    font-family:"Lucida Grande", "Lucida Sans Unicode",Verdana, Arial, Helvetica;
+    font-size:13px;
+    color: #3E576F;
+    /*border-bottom:1px solid #a0a0a0; border-right:1px solid #a0a0a0;*/
+}
+.accountDashboardCellDark {
+    font-family:"Lucida Grande", "Lucida Sans Unicode",Verdana, Arial, Helvetica;
+    font-size:13px;
+    color: #3E576F;
+    /*border-bottom:1px solid #a0a0a0; border-right:1px solid #a0a0a0;*/
+    background-color: #DCE0E8;
+}
+.accountDashboardCellOver{
+    font-family:"Lucida Grande", "Lucida Sans Unicode",Verdana, Arial, Helvetica;
+    font-size:13px;
+    color: #3E576F;
+}
+.accountDashboardCellOverDark {
+    font-family:"Lucida Grande", "Lucida Sans Unicode",Verdana, Arial, Helvetica;
+    font-size:13px;
+    color: #3E576F;
+    /*border-bottom:1px solid #a0a0a0; border-right:1px solid #a0a0a0;*/
+    background-color: #DCE0E8;
+}
+.accountDashboardCellSelected{
+    font-family:"Lucida Grande", "Lucida Sans Unicode",Verdana, Arial, Helvetica;
+    font-size:13px;
+    color: #3E576F;
+    /*border-bottom:1px solid #a0a0a0; border-right:1px solid #a0a0a0;*/
+}
+.accountDashboardCellSelectedDark {
+    font-family:"Lucida Grande", "Lucida Sans Unicode",Verdana, Arial, Helvetica;
+    font-size:13px;
+    color: #3E576F;
+    /*border-bottom:1px solid #a0a0a0; border-right:1px solid #a0a0a0;*/
+    background-color: #DCE0E8;
+}
+.accountDashboardCellSelectedOver{
+    font-family:"Lucida Grande", "Lucida Sans Unicode",Verdana, Arial, Helvetica;
+    font-size:13px;
+    color: #3E576F;
+    /*border-bottom:1px solid #a0a0a0; border-right:1px solid #a0a0a0;*/
+}
+.accountDashboardCellSelectedOverDark {
+    font-family:"Lucida Grande", "Lucida Sans Unicode",Verdana, Arial, Helvetica;
+    font-size:13px;
+    color: #3E576F;
+    /*border-bottom:1px solid #a0a0a0; border-right:1px solid #a0a0a0;*/
+    background-color: #DCE0E8;
+}
+.accountDashboardCellDisabled,
+.accountDashboardCellDisabledDark {
+    font-family:Verdana,Bitstream Vera Sans,sans-serif;
+    font-size:11px;
+    color:#808080;
+    border-bottom:1px solid #a0a0a0;
+    border-right:1px solid #a0a0a0;
+    background-color:#ffffff;
+}
+
+/* Traffic Light Form Styles */
+
+.trafficLightLabel_green, .trafficLightLabel_yellow, .trafficLightLabel_red {
+    background-position: 0px 4px; /* LTR */
+    background-repeat: no-repeat;
+}
+
+.trafficLightLabel_green {
+    background-image: url(/sites/all/modules/custom/webui/admin/images/traffic_light_green.png);
+}
+
+.trafficLightLabel_yellow {
+    background-image: url(/sites/all/modules/custom/webui/admin/images/traffic_light_yellow.png);
+}
+
+.trafficLightLabel_red {
+    background-image: url(/sites/all/modules/custom/webui/admin/images/traffic_light_red.png);
+}
+
+.trafficLightGreenCell,
+.trafficLightGreenCellDark,
+.trafficLightGreenCellOver,
+.trafficLightGreenCellOverDark,
+.trafficLightGreenCellSelected,
+.trafficLightGreenCellSelectedDark,
+.trafficLightGreenCellSelectedOver,
+.trafficLightGreenCellSelectedOverDark,
+.trafficLightGreenCellSelectedDown,
+.trafficLightGreenCellSelectedDownDark {
+    color: black;
+    background-color: #74E774;
+    border: 1px solid white;
+
+    /* IE10 */
+    background-image: -ms-linear-gradient(top, #74E774 20%, #5CD65C 80%);
+
+    /* Mozilla Firefox */
+    background-image: -moz-linear-gradient(top, #74E774 20%, #5CD65C 80%);
+
+    /* Opera */
+    background-image: -o-linear-gradient(top, #74E774 20%, #5CD65C 80%);
+
+    /* Webkit (Safari/Chrome 10) */
+    background-image: -webkit-gradient(linear, right top, right bottom, color-stop(0.2, #74E774), color-stop(0.8, #5CD65C));
+
+    /* Webkit (Chrome 11+) */
+    background-image: -webkit-linear-gradient(top, #74E774 20%, #5CD65C 80%);
+
+    /* Proposed W3C Markup */
+    background-image: linear-gradient(top, #74E774 20%, #5CD65C 80%);
+}
+
+.trafficLightYellowCell,
+.trafficLightYellowCellDark,
+.trafficLightYellowCellOver,
+.trafficLightYellowCellOverDark,
+.trafficLightYellowCellSelected,
+.trafficLightYellowCellSelectedDark,
+.trafficLightYellowCellSelectedOver,
+.trafficLightYellowCellSelectedOverDark,
+.trafficLightYellowCellSelectedDown,
+.trafficLightYellowCellSelectedDownDark {
+    color: black;
+    background-color: #F5DE6B;
+    border: 1px solid white;
+
+    /* IE10 */
+    background-image: -ms-linear-gradient(top, #F5DE6B 20%, #F2CB07 80%);
+
+    /* Mozilla Firefox */
+    background-image: -moz-linear-gradient(top, #F5DE6B 20%, #F2CB07 80%);
+
+    /* Opera */
+    background-image: -o-linear-gradient(top, #F5DE6B 20%, #F2CB07 80%);
+
+    /* Webkit (Safari/Chrome 10) */
+    background-image: -webkit-gradient(linear, right top, right bottom, color-stop(0.2, #F5DE6B), color-stop(0.8, #F2CB07));
+
+    /* Webkit (Chrome 11+) */
+    background-image: -webkit-linear-gradient(top, #F5DE6B 20%, #F2CB07 80%);
+
+    /* Proposed W3C Markup */
+    background-image: linear-gradient(top, #F5DE6B 20%, #F2CB07 80%);
+}
+
+.trafficLightRedCell,
+.trafficLightRedCellDark,
+.trafficLightRedCellOver,
+.trafficLightRedCellOverDark,
+.trafficLightRedCellSelected,
+.trafficLightRedCellSelectedDark,
+.trafficLightRedCellSelectedOver,
+.trafficLightRedCellSelectedOverDark,
+.trafficLightRedCellSelectedDown,
+.trafficLightRedCellSelectedDownDark {
+    color: #000;
+    background-color: #F88C8E;
+    border: 1px solid #FFF;
+
+    /* IE10 */
+    background-image: -ms-linear-gradient(top, #F88C8E 10%, #F66F72 80%);
+
+    /* Mozilla Firefox */
+    background-image: -moz-linear-gradient(top, #F88C8E 10%, #F66F72 80%);
+
+    /* Opera */
+    background-image: -o-linear-gradient(top, #F88C8E 10%, #F66F72 80%);
+
+    /* Webkit (Safari/Chrome 10) */
+    background-image: -webkit-gradient(linear, right top, right bottom, color-stop(0.2, #F88C8E), color-stop(0.8, #F66F72));
+
+    /* Webkit (Chrome 11+) */
+    background-image: -webkit-linear-gradient(top, #F88C8E 10%, #F66F72 80%);
+
+    /* Proposed W3C Markup */
+    background-image: linear-gradient(top, #F88C8E 10%, #F66F72 80%);
+}
+
+.trafficLightGreenCellOver,
+.trafficLightGreenCellOverDark,
+.trafficLightGreenCellSelectedOver,
+.trafficLightGreenCellSelectedOverDark,
+.trafficLightYellowCellOver,
+.trafficLightYellowCellOverDark,
+.trafficLightYellowCellSelectedOver,
+.trafficLightYellowCellSelectedOverDark,
+.trafficLightRedCellOver,
+.trafficLightRedCellOverDark,
+.trafficLightRedCellSelectedOver,
+.trafficLightRedCellSelectedOverDark {
+    color: #000;
+    background-color: #EEE;
+    background-image: none;
+}
+
+.trafficLightGreenCellSelected,
+.trafficLightGreenCellSelectedDark,
+.trafficLightGreenCellSelectedDown,
+.trafficLightGreenCellSelectedDownDark,
+.trafficLightYellowCellSelected,
+.trafficLightYellowCellSelectedDark,
+.trafficLightYellowCellSelectedDown,
+.trafficLightYellowCellSelectedDownDark,
+.trafficLightRedCellSelected,
+.trafficLightRedCellSelectedDark,
+.trafficLightRedCellSelectedDown,
+.trafficLightRedCellSelectedDownDark {
+    color: #000;
+    background-color: #CCC;
+    background-image: none;
+}
+/* end Traffic Light */
+
+
+/* Dynamic text */
+.dtext-container { font: normal 12px "Lucida Grande", Arial, san-serif; text-align: center; }
+.dtext-title { font-weight: bold; color: #000; }
+.dtext-data {font-size: 23px; color: #677182; font-family: Arial, Helvetica, san-serif; }
+
+.report-container {font: 13px/15px "Lucida Grande", Arial, san-serif; text-align: left;}
+.report-container dt {color: #677182; padding-bottom: 3px; font-size: 14px;}
+.report-container dd {margin: 0; padding-bottom: 10px; font-family: Arial, Helvetica, san-serif; font-weight: bold}
+/* end Dynamic text */
+
+
+/* Canvas Mover */
+.dashboardBuilderCanvasMover {
+    background-image: url(/sites/all/modules/custom/webui/admin/images/move_canvas.png);
+    background-repeat: no-repeat;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 50px;
+    height: 50px;
+    z-index: 99999999 !important;
+    display: none;
+    zoom: 1;
+    filter: alpha(opacity=50);
+    opacity: 0.5;
+    cursor: move;
+}
+/* end Canvas Mover */
+
+/* Dashboard Builder Report Canvas Resize Mask */
+
+.gd-report-resize-mask {
+    background-color: transparent;
+    position: absolute;
+    z-index: 99999999 !important;
+}
+
+/* end Dashboard Builder Report Canvas Resize Mask */
+
+/* styles for Dashboard Builder - Public flag */
+
+#publicDashboardSwitchContainer {
+    padding-bottom: 10px;
+}
+
+#publicDashboardLabel {
+    display: inline;
+    cursor: pointer;
+}
+
+#publicDashboardSwitchContainer a:link, #publicDashboardSwitchContainer a:visited, #publicDashboardSwitchContainer a:active, #publicDashboardSwitchContainer a:hover {
+    color: #1489B4;
+}
+
+#publicDashboardUrlInput {
+    width: 240px;
+}
+
+/* end Dashboard Builder - Public switch */
+
+/* override for Canvas borders - fix for the bottom grippie */
+.dashboardCanvasInstance {
+    border-top-color: #F9F8F9 !important; /* do NOT remove/combine these styles - fix for canvas grippie issue in dashboard builder */
+    border-left-color: #F9F8F9 !important;
+    border-right-color: #F9F8F9 !important;
+    /*border-top-style: 0px solid !important; /* overrides double border - otherwise it's partially showing in the grid */
+    /*border-left-style: 0px solid !important;
+    border-right-style: 0px solid !important;*/
+    border-bottom: 5px double #E17D20;
+    box-sizing: content-box;
+    -webkit-box-sizing: content-box;
+    -moz-box-sizing: content-box;
+}
+
+
+#dashboard_filters strong { display:block; width: 40px; height: 40px; }
+
+.connectionFormBlurb { padding-top: 10px; }
+.connectionFormBlurb span { font-size: 15px; }
+
+/* Fix for onFocus blue border in Chrome / dashed border in Firefox */
+/**:focus {outline: none;}*/
+
+/* Data Joints */
+.jointDataBlock {}
+.jointDataName{font-size:11px; /*min-width: 400px*/ white-space:wrap !important; }
+.jointDataTrash{}
+.jointDataWarn{}
+.jointChainIcon {
+    width: 15px;
+    height: 10px;
+    display: inline-block;
+    background: url(images/actions/link.png) no-repeat 0 -2px transparent;
+}
+/* end Data Joints */
+
+
+/* New Advanced Table */
+.gd_report_title {
+    float: left;
+    height: 22px;
+    line-height: 22px;
+    background: transparent;
+    font-family: "Lucida Grande", "Lucida Sans Unicode", Segoe UI, Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    color: #3E576F;
+}
+
+.gd_report_sub_title {
+    float: right;
+    background: transparent;
+    font-family: "Lucida Grande", "Lucida Sans Unicode", Segoe UI, Helvetica, Arial, sans-serif;
+    font-size: 12px;
+    color: #3E576F;
+}
+
+h2.gd_report_title,
+h3.gd_report_title {
+    margin: 0 0 0 0;
+    padding-bottom: 0;
+    font-weight: normal;
+}
+
+h5.gd_report_sub_title {
+    padding-bottom: 0;
+    font-weight: normal;
+}
+
+
+div.advTableBodyArea {
+    clear: both;
+    background-color: #FAF9F9;
+    border-bottom: 0;
+    overflow: hidden;
+}
+
+.sortArrow {
+    position: relative;
+    float: left;
+    width: 0px;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+}
+
+.css-arrow-up {
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-bottom: 5px solid #D15D07;
+}
+
+.css-arrow-down {
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid #D15D07;
+}
+
+.simpleTable th {
+    cursor: pointer !important;
+    background-color: #E3E6EF !important;
+    border-bottom: 0;
+    line-height: 22px;
+    background: url('/sites/all/modules/custom/webui/admin/images/sort_both.png') no-repeat center right;
+}
+
+th.advTableSortAsc {
+    background: #E3E6EF url('/sites/all/modules/custom/webui/admin/images/sort_asc.png') no-repeat center right !important;
+}
+
+th.advTableSortDesc {
+    background: #E3E6EF url('/sites/all/modules/custom/webui/admin/images/sort_desc.png') no-repeat center right !important;
+}
+
+.advTableBodyArea th:hover, .advTableBodyArea th:focus {
+    background-color: #CBD1E1 !important;
+}
+
+.gd-pagination-bar {
+    font: 11px "Lucida Grande", Arial, san-serif;
+    height: 36px;
+    line-height: 36px;
+    background-color: #E3E6EF;
+    border-top: 0;
+}
+
+.gd-pagination-showing-records {
+    margin-left: 4px;
+    float: left;
+}
+
+.gd-pagination-showing-page {
+    float: right;
+    margin-right: 8px;
+}
+
+.gd-pagination-button {
+    cursor: pointer;
+    background-color: white;
+    line-height: 14px;
+    position: relative;
+    float: right;
+    border: 1px solid #E3E6EF;
+    width: 16px;
+    height: 16px;
+    padding: 3px;
+    margin-top: 6px;
+}
+
+.gd-pagination-button-last {
+    margin-right: 4px;
+}
+
+.gd-pagination-button:hover, .gd-pagination-button-last:hover,
+.gd-pagination-button:focus, .gd-pagination-button-last:focus {
+    background-color: #E6AF2A;
+}
+
+/* End New Advanced Table */

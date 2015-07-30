@@ -1,0 +1,358 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+function gd_admin_ui_menu () {
+
+    $items = array();
+
+    $items['cp/account'] = array(
+        'page callback' => 'gd_admin_ui_page_account',
+        'access callback' => 'gd_admin_ui_access',
+        'file' => 'gd_admin_ui.pages.inc',
+        'type' => MENU_CALLBACK
+    );
+
+    return $items;
+}
+
+function gd_admin_ui_access () {
+    return user_is_logged_in();
+}
+
+/**
+ * returns first datasource where current user has "update" permission.
+ *
+ * @return object
+ */
+function gd_admin_get_first_editable_datasource () {
+    $datasources = gd_account_user_get_datasources();
+    if ( !empty($datasources) ) {
+        $names = array_keys($datasources);
+        return $datasources[$names[0]];
+    } else {
+        return null;
+    }
+}
+
+/**
+ * sets first editable datasource in session.
+ *
+ * @return bool
+ */
+function gd_admin_change_active_datasource () {
+    $datasource = gd_admin_get_first_editable_datasource();
+    if ( $datasource ) {
+        gd_datasource_set_active($datasource->name);
+        return true;
+    }
+
+    return false;
+}
+
+function gd_admin_ui_get_user () {
+    global $user;
+
+    gd_account_user_add_fields($user, $user);
+
+    $account = new StdClass();
+    $account->id = $user->uid;
+    $account->name = $user->name;
+    $account->email = $user->mail;
+    $account->firstname = $user->firstname;
+    $account->lastname = $user->lastname;
+    $account->fullname = $user->fullname;
+    $account->groups = $user->roles;
+
+    // Check if the user has instance admin access or the user is user number 1, set admin access to 1 else 0
+    if ( gd_account_user_is_admin($user) ) {
+        $account->type = 1;
+    } else {
+        $account->type = 0;
+    }
+
+    return json_encode($account);
+}
+
+function gd_admin_ui_get_datasources () {
+    $result = array();
+    foreach ( gd_account_user_get_datasources() as $datasource ) {
+        $ds = new stdClass();
+        $ds->name = $datasource->name;
+        $ds->publicName = $datasource->publicName;
+        $ds->description = $datasource->description;
+        $ds->readonly = $datasource->readonly;
+
+        if ( $datasource->name === gd_datasource_find_active() ) {
+            $ds->active = 1;
+        }
+
+        $result[] = $ds;
+    }
+
+    return json_encode($result);
+}
+
+function gd_admin_ui_get_datasource () {
+    $datasources = gd_account_user_get_datasources();
+
+    if ( empty($datasources) ) {
+        throw new Exception('Datasource is missing!');
+    }
+
+    $datasourceNames = array_keys($datasources);
+
+    if ( in_array(gd_datasource_find_active(),$datasourceNames) ) {
+        $datasource = $datasources[gd_datasource_get_active()];
+    } else {
+        $datasource = $datasources[$datasourceNames[0]];
+    }
+
+    return json_encode($datasource);
+}
+
+// TODO
+function gd_admin_ui_get_account () {
+
+    $acct = new StdClass();
+    $acct->id = 1;
+    $acct->name = 'Account 1';
+
+    return json_encode($acct);
+}
+
+function gd_admin_ui_get_stats () {
+    $stats = new StdClass();
+    $stats->datasets = 0;
+    $stats->reports = 0;
+    $stats->dashboards = 0;
+
+    return json_encode($stats);
+}
+
+/**
+ * @param bool $refresh
+ * @return array
+ */
+function gd_admin_ui_get_sections () {
+
+    $sections = gd_admin_get_sections();
+
+    $result = array();
+    foreach ( $sections as $s ) {
+        $result[] = $s['class'];
+    }
+
+    return $result;
+}
+
+function gd_admin_ui_gd_admin_ui_sections () {
+    return array(
+        'dataset'=>'DatasetSection',
+        'report'=>'ReportSection',
+        'dashboard'=>'DashboardSection',
+        'account'=>'AccountSection'
+    );
+}
+
+/**
+ * Implements hook_library()
+ * @return mixed
+ */
+function gd_admin_ui_library () {
+    $libraries = array();
+
+    $libraries['smartclient'] = array(
+        'title' => 'SmartClient',
+        'website' => 'http://www.smartclient.com/product/scOverview.jsp',
+        'version' => '8.1p_2013-05-31',
+        'js' => array(
+            'var isomorphicDir="/sites/all/libraries/smartclient/";var isc_useSimpleNames=false;' => array('type'=>'inline'),
+            'sites/all/libraries/smartclient/system/modules/ISC_Core.js' => array(),
+            'sites/all/libraries/smartclient/system/modules/ISC_Foundation.js' => array(),
+            'sites/all/libraries/smartclient/system/modules/ISC_Containers.js' => array(),
+            'sites/all/libraries/smartclient/system/modules/ISC_History.js' => array(),
+            'sites/all/libraries/smartclient/system/modules/ISC_Grids.js' => array(),
+            'sites/all/libraries/smartclient/system/modules/ISC_Forms.js' => array(),
+            'sites/all/libraries/smartclient/system/modules/ISC_DataBinding.js' => array(),
+            'sites/all/libraries/smartclient/system/modules/ISC_RichTextEditor.js' => array(),
+            'isc.screenReader = true;isc.setAutoDraw(false);isc.Date.setShortDatetimeDisplayFormat("toUSShortDateTime");' => array('type'=>'inline')
+        )
+    );
+
+    $libraries['GD_Admin_UI'] = array(
+        'title'   => 'GovDashboard Admin UI',
+        'website' => 'https://govdashboard.com',
+        'version' => '0.1',
+        'js' => array(),
+        'dependencies' => array(
+            array('gd_admin_ui', 'smartclient'),
+            array('gd_admin', 'GD_Admin_Builder')
+        )
+    );
+
+    foreach ( gd_admin_ui_get_js() as $file ) {
+        $path = drupal_get_path('module','gd_admin_ui').'/js';
+        $libraries['GD_Admin_UI']['js'][$path.'/'.$file] = array('weight' => 0);
+    }
+
+    return $libraries;
+}
+
+function gd_admin_ui_get_js () {
+
+    $includes = array();
+
+    $includes[] = 'common/Class.js';
+    $includes[] = 'common/UriHandler.js';
+    $includes[] = 'common/Message.js';
+    $includes[] = 'common/MessageSection.js';
+
+    $includes[] = 'ds/DrupalDS.js';
+    $includes[] = 'ds/DrupalActionDS.js';
+    $includes[] = 'ds/DashboardDS.js';
+    $includes[] = 'ds/DatasourceDS.js';
+    $includes[] = 'ds/UserDS.js';
+    $includes[] = 'ds/UserGroupDS.js';
+    $includes[] = 'ds/UserDashboardDS.js';
+    $includes[] = 'account/UserDashboardData.js';
+    $includes[] = 'ds/GroupDS.js';
+    $includes[] = 'ds/GroupListDS.js';
+    $includes[] = 'ds/GroupDashboardDS.js';
+    $includes[] = 'ds/GroupDatasourceDS.js';
+    $includes[] = 'ds/GroupUserDS.js';
+
+    $includes[] = 'datasource/Datasource.js';
+
+    //$includes[] = 'analytic/AnalyticSection.js';
+
+    $includes[] = 'account/User.js';
+    $includes[] = 'account/Group.js';
+    $includes[] = 'account/UserListLayout.js';
+    $includes[] = 'account/UserListActions.js';
+    $includes[] = 'account/UserAddNewLayout.js';
+    $includes[] = 'account/UserDetailsLayout.js';
+    $includes[] = 'account/UserDetailsActions.js';
+    $includes[] = 'account/GroupAddNewForm.js';
+    $includes[] = 'account/GroupAddNewLayout.js';
+    $includes[] = 'account/GroupListLayout.js';
+    $includes[] = 'account/GroupListActions.js';
+    $includes[] = 'account/GroupDetailsLayout.js';
+    $includes[] = 'account/GroupDetailsActions.js';
+    $includes[] = 'account/AccountDashboards.js';
+    $includes[] = 'account/AccountLayout.js';
+    $includes[] = 'account/AccountLayoutActions.js';
+    $includes[] = 'account/Account.js';
+    $includes[] = 'account/CurrentUser.js';
+    $includes[] = 'account/CurrentDatamart.js';
+    $includes[] = 'account/UserAddNewForm.js';
+
+    $includes[] = 'account/AccountActions.js';
+    $includes[] = 'account/GroupDatasourceData.js';
+    $includes[] = 'account/GroupUserData.js';;
+
+    $includes[] = 'dataset/DatasetSection.js';
+    $includes[] = 'report/ReportSection.js';
+    $includes[] = 'dashboard/DashboardSection.js';
+    $includes[] = 'workflow/WorkflowSection.js';
+
+    $includes[] = 'GDApplication.js';
+    $includes[] = 'GDHeader.js';
+    $includes[] = 'GDNavigation.js';
+
+    return $includes;
+}
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------------------------------------
+// EXCEPTION HANDLING
+// ---------------------------------------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------------------------------------
+
+/**
+ * This function handles Session Errors. This handler method is to be used in the Services layer only.
+ *
+ * TODO move to service module
+ *
+ * @throws ServicesException
+ */
+function gd_admin_ui_service_session_error_handler () {
+    $messages = drupal_get_messages();
+
+    if (!empty($messages['error'])) {
+        foreach ($messages['error'] as $m) {
+            LogHelper::log_error($m);
+        }
+    }
+
+    if (!empty($messages['warning'])) {
+        foreach ($messages['warning'] as $m) {
+            LogHelper::log_warn($m);
+        }
+    }
+
+    if (!empty($messages['status'])) {
+        foreach ($messages['status'] as $m) {
+            LogHelper::log_info($m);
+        }
+    }
+
+    throw new ServicesException('An unexpected Error has occurred. Please contact your Site Administrator.', 406);
+}
+
+/**
+ * This function handles thrown Exceptions. This handler method is to be used in the Services layer only.
+ *
+ * TODO: move this to services module
+ * @param Exception $e
+ * @throws ServicesException
+ */
+function gd_admin_ui_service_exception_handler ( Exception $e ) {
+    $messages = drupal_get_messages();
+
+    if (!empty($messages['error'])) {
+        foreach ($messages['error'] as $m) {
+            LogHelper::log_error($m);
+        }
+    }
+
+    if (!empty($messages['warning'])) {
+        foreach ($messages['warning'] as $m) {
+            LogHelper::log_warn($m);
+        }
+    }
+
+    if (!empty($messages['status'])) {
+        foreach ($messages['status'] as $m) {
+            LogHelper::log_info($m);
+        }
+    }
+
+    LogHelper::log_error($e);
+
+    $code = (int) $e->getCode();
+
+    if ( $code < 400 || $code > 500 ) {
+        $code = 500;
+    }
+    $message = preg_replace("/[\n\r]/"," ",$e->getMessage());
+
+    throw new ServicesException($message,$code,$messages);
+}

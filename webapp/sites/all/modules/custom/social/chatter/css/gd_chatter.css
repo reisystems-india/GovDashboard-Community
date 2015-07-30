@@ -1,0 +1,213 @@
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+.chatter-icon {
+    width: 30px;
+    height: 30px;
+    background: #4A4D53 url(images/logo.salesforce-chatter.png) 2.5px 2.5px no-repeat;
+    background-size: 25px 25px;
+}
+
+.chatter-container {
+    z-index: 99999999;
+    position: absolute;
+    top: 250px;
+    right: 150px;
+    width: 300px;
+    height: 400px;
+    border-radius: 5px 5px 0 0;
+}
+.chatter-header {
+    border-radius: 5px 5px 0 0;
+    width: 100%;
+    height: 35px;
+    background: #4A4D53;
+    padding-top: 15px;
+}
+
+.chatter-body {
+    padding: 10px;
+    width: 280px;
+    height: 280px;
+    background: #D9DBDD;
+    overflow-y: auto;
+}
+
+.chatter-item {
+    width: 100%;
+    height: 50px;
+    margin-bottom: 10px;
+}
+
+.chatter-comment {
+    height: 30px;
+    padding: 10px;
+    background: #A5A7AC;
+}
+
+.chatter-text-box {
+    width: 100%;
+    height: 100%;
+    border: none;
+    padding: 0;
+}
+
+.chatter-item-even img,
+.chatter-item-even span {
+    float: left;
+}
+
+.chatter-item-even img {
+    margin-right: 10px;
+}
+
+.chatter-item-odd img {
+    margin-left: 10px;
+}
+
+.chatter-item-odd img,
+.chatter-item-odd span {
+    float: right;
+}
+
+.chatter-item-image {
+    width: 50px;
+    height: 50px;
+}
+
+.chatter-item-text {
+    width: 210px;
+    margin-bottom: 10px;
+    line-height: 17px;
+}
+
+.chatter-header-title {
+    font-family: "News Cycle", "Droid Sans", Helvetica, Arial, sans-serif;
+    font-size: 25px;
+    text-align: center;
+    width: 100%;
+    color: white;
+    letter-spacing: 1px;
+}
+
+.chatter-header-back {
+    width: 30px;
+    height: 30px;
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: #4A4D53 url("images/back.png") no-repeat;
+    background-size: 30px 30px;
+}
+
+.chatter-header-close {
+    width: 30px;
+    height: 30px;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #4A4D53 url(images/close.png) no-repeat;
+    background-size: 30px 30px;
+}
+
+.chatter-loading {
+    margin: 110px auto 0 auto;
+    width: 50px;
+    height: 50px;
+    background: #D9DBDD url(images/loading.gif) no-repeat;
+}
+
+.chatter-group-image {
+    width: 50px;
+    height: 50px;
+    margin-right: 10px;
+    float: left;
+}
+
+.chatter-group-text {
+    font-weight: bold;
+    font-size: 110%;
+}
+
+.chatter-group {
+    margin-bottom: 10px;
+}
+
+.chatter-feed-item {
+    margin-bottom: 10px;
+}
+
+.chatter-feed-item-image {
+    width: 50px;
+    height: 50px;
+    float: left;
+}
+
+.chatter-feed-item-details {
+    float:left;
+    margin-left: 10px;
+    width: 220px;
+}
+
+.chatter-feed-item-name {
+    float: left;
+    font-weight: bold;
+    width: 100%;
+    font-size: 90%;
+}
+
+.chatter-feed-item-text {
+    float: left;
+    font-size: 85%;
+}
+
+.chatter-comment-item {
+    margin-left: 10px;
+    margin-bottom: 5px;
+}
+
+.chatter-comment-item-image {
+    width: 35px;
+    height: 35px;
+    float: left;
+}
+
+.chatter-comment-item-name {
+    float: left;
+    font-weight: bold;
+    width: 100%;
+    font-size: 90%;
+    line-height: 10px;
+}
+
+.chatter-comment-item-text {
+    float: left;
+    font-size: 85%;
+    word-break: break-word;
+    width: 95%;
+    line-height: 15px;
+    margin-top: 5px;
+
+}
+
+.chatter-comment-item-details {
+    float: left;
+    margin-left: 10px;
+    width: 83%;
+}

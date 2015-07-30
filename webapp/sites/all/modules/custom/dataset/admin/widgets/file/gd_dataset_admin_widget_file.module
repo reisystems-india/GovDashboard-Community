@@ -1,0 +1,51 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+/**
+ * Implements hook_gd_dataset_admin_widgets()
+ *
+ * @return array
+ */
+function gd_dataset_admin_widget_file_gd_dataset_admin_widgets () {
+
+    $items['file'] =  array(
+        'name' => 'file',
+        'title' => 'File',
+        'class' => 'DatasetWidgetFile'
+    );
+
+    return $items;
+}
+
+function gd_dataset_admin_widget_file_library_alter(&$libraries, $module) {
+    if ( $module == 'gd_dataset_admin' && isset($libraries['GD_Admin_DatasetSection']) ) {
+        $libraries['GD_Admin_DatasetSection']['js'][drupal_get_path('module','gd_dataset_admin_widget_file').'/js/DatasetWidgetFile.js'] = array();
+    }
+
+    if ( $module == 'gd_dataset_admin' && isset($libraries['GD_Admin_DatasetSection_Builder']) ) {
+        $libraries['GD_Admin_DatasetSection_Builder']['js'][drupal_get_path('module','gd_dataset_admin_widget_file').'/js/DatasetWidgetFileView.js'] = array();
+        $libraries['GD_Admin_DatasetSection_Builder']['css'][drupal_get_path('module','gd_dataset_admin_widget_file').'/css/DatasetWidgetFile.css'] = array();
+    }
+}
+
+function gd_dataset_admin_widget_file_menu () {
+
+}

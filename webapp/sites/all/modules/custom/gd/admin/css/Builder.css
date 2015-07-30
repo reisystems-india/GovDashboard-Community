@@ -1,0 +1,76 @@
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+input.bldr-flt-frm-slt-txt {
+    margin-top: 8px;
+}
+
+span.bldr-lst-itm-icn {
+    width: 14px;
+    height: 14px;
+    margin-right: 5px;
+}
+
+span.bldr-lst-itm-icn-pblc {
+    cursor: auto;
+}
+
+span.bldr-lst-itm-icn-trsh {
+    cursor: pointer;
+    margin: 0;
+}
+
+.bldr-absolute {
+    position: absolute !important;
+}
+
+div.bldr-mdl-cntnt {
+    height:25px;
+    line-height: 25px;
+}
+
+div.bldr-mdl-icn {
+    font-size:25px;
+}
+
+div.bldr-ntf-vw-cntr.changed {
+    background-color: #c0392b;
+}
+
+div.bldr-ntf-vw-cntr {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: #f1c40f;
+    padding: 2px;
+    text-align: center;
+}
+
+span.bldr-ntf-vw-txt {
+    color: white;
+    display: block;
+    font-size: 13px;
+    height: 16px;
+    vertical-align: middle;
+}
+
+div.tooltip {
+    z-index: 1000000;
+}

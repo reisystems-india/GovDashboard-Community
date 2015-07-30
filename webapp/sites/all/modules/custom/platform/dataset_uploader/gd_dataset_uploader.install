@@ -1,0 +1,64 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+// TODO in the future updates
+//   - remove account prefix from table name, primary, unique and foreign keys.
+//     Change dataset suffix from 'ds' to 'd'.
+//     Update corresponding Drupal nodes
+
+/**
+ * Converts system column names from __version and __state to sc_version and sc_state respectively.
+ */
+function gd_dataset_uploader_update_7101(&$sandbox) {
+    if (!isset($sandbox['total'])) {
+        $sandbox['total'] = db_select('INFORMATION_SCHEMA.columns', 'c')->condition('c.column_name', array('__version', '__state'))->countQuery()->execute()->fetchField();
+        $sandbox['progress'] = 0;
+    }
+
+    // finding instances of __version and __state columns in tables
+    $columnsQuery = db_select('INFORMATION_SCHEMA.columns', 'c');
+    $columnsQuery->fields('c', array('table_schema', 'table_name', 'column_name'));
+    $columnsQuery->condition('c.column_name', array('__version', '__state'));
+    // processing only limited number of records at a time to avoid possible timeout
+    $columnsQuery->range(0, 10);
+
+    $columnsStatement = $columnsQuery->execute();
+
+    // processing all found columns
+    foreach ($columnsStatement as $column) {
+        $schemaName = $column->table_schema;
+        $tableName = $column->table_name;
+
+        $oldColumnName = $column->column_name;
+        // replacing '__' with new prefix for system column
+        $newColumnName = DatasetSystemColumnNames::COLUMN_NAME_PREFIX . substr($oldColumnName, 2);
+
+        // preparing & executing a statement to change column name
+        $sql = "ALTER TABLE $schemaName.$tableName CHANGE $oldColumnName $newColumnName INTEGER";
+        db_query($sql);
+
+        $sandbox['progress']++;
+    }
+
+    $sandbox['#finished'] = ($sandbox['progress'] == $sandbox['total'])
+        ? 1
+        : ($sandbox['progress'] / $sandbox['total']);
+}

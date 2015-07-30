@@ -1,0 +1,67 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+define('GD_AUTH_DEFAULT_AUTHENTICATOR','None');
+
+function gd_auth_menu () {
+    $items = array();
+
+    $items['admin/config/govdashboard/authentication'] = array(
+        'title' => 'Authentication Settings',
+        'description' =>  'Authentication managment for GovDashboard.',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('gd_auth_admin_settings'),
+        'file' => 'gd_auth.admin.inc',
+        'access arguments' => array('administer site configuration'),
+    );
+
+    return $items;
+}
+
+function gd_auth_get_registered_authenticators () {
+    $authenticators = &drupal_static(__FUNCTION__, NULL);
+    if (!isset($authenticators)) {
+        $authenticators = (array) module_invoke_all('gd_auth_register_authenticators');
+    }
+    return $authenticators;
+}
+
+function gd_auth_authenticate () {
+    $authenticator_key = variable_get('gd_auth_authenticator',GD_AUTH_DEFAULT_AUTHENTICATOR);
+
+    if ( $authenticator_key === GD_AUTH_DEFAULT_AUTHENTICATOR ) {
+        return user_is_logged_in();
+    } else {
+        $authenticators = gd_auth_get_registered_authenticators();
+        $instance = null;
+        foreach ( $authenticators as $key => $authenticator ) {
+            if ( $authenticator_key === $key && class_exists($authenticator['classname']) ) {
+                $instance = new $authenticator['classname']();
+            }
+        }
+
+        if ( $instance !== null ) {
+            return $instance->authenticate(array());
+        } else {
+            throw new UnexpectedValueException('Could not find Authenticator');
+        }
+    }
+}

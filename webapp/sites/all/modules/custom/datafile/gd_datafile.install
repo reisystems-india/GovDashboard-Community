@@ -1,0 +1,46 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+/**
+ * Populates new datafile field 'field_datafile_dataset_sysname'
+ */
+function gd_datafile_update_7101 () {
+
+    // make sure the new field exists before continuing
+    if ( field_info_field('field_datafile_dataset_sysname') === null ) {
+        throw new DrupalUpdateException('Missing field "field_datafile_dataset_sysname". Please run update again.');
+    }
+
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node');
+    $query->propertyCondition('type', NODE_TYPE_DATAFILE);
+    $query->addTag('DANGEROUS_ACCESS_CHECK_OPT_OUT');
+
+    $entities = $query->execute();
+
+    $datafiles = node_load_multiple(array_keys($entities['node']));
+
+    foreach ( $datafiles as $datafile ) {
+        $dataset = node_load($datafile->field_datafile_dataset[$datafile->language][0]['nid']);
+        $datafile->field_datafile_dataset_sysname[$datafile->language][0]['value'] = $dataset->field_dataset_sysname[$dataset->language][0]['value'];
+        node_save($datafile);
+    }
+}

@@ -1,0 +1,225 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+/**
+ * Implements hook_menu()
+ *
+ * @return array
+ */
+function gd_report_admin_menu () {
+
+    $items = array();
+
+    $items['cp/report'] = array(
+        'page callback' => 'gd_report_admin_page_index',
+        'access callback' => 'gd_admin_permissions',
+        'file' => 'gd_report_admin.pages.php',
+        'type' => MENU_CALLBACK,
+    );
+		
+	$items['cp/report/%'] = array(
+        'page callback' => 'gd_report_admin_page_edit',
+        'page arguments' => array(2),
+        'access callback' => 'gd_admin_permissions',
+        'title' => 'Report Update',
+        'type' => MENU_CALLBACK,
+        'file' => 'gd_report_admin.pages.php'
+    );
+
+	$items['cp/report/create'] = array(
+        'page callback' => 'gd_report_admin_page_new',
+        'access callback' => 'gd_admin_permissions',
+        'title' => 'Report Create',
+        'type' => MENU_CALLBACK,
+        'file' => 'gd_report_admin.pages.php'
+    );
+
+    return $items;
+}
+
+/**
+ * Implements hook_gd_admin_sections()
+ *
+ * @return array
+ */
+function gd_report_admin_gd_admin_sections () {
+    $items['report'] =  array(
+        'name' => 'report',
+        'title' => 'Reports',
+        'class' => 'ReportSection',
+        'weight' => 1
+    );
+
+    return $items;
+}
+
+// Implements hook_library()
+function gd_report_admin_library() {
+
+    $libraries['GD_Admin_ReportSection'] = array(
+        'title'   => 'GD Admin - Report Section',
+        'version' => '',
+        'js' => array(
+            drupal_get_path('module','gd_report_admin').'/js/ReportSection.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/Report.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/ReportFactory.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/ReportFilter.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/ReportDataset.js' => array()
+        ),
+        'css' => array (
+            drupal_get_path('module','gd_report_admin').'/css/ReportSection.css' => array('weight'=>1,'group'=>CSS_THEME)
+        ),
+        'dependencies' => array(
+            array('gd_admin', 'GD_Admin')
+        )
+    );
+
+    $libraries['GD_Admin_ReportSection_Index'] = array(
+        'title'   => 'GD Admin - Report Section - Index',
+        'version' => '',
+        'js' => array(
+            drupal_get_path('module','gd_report_admin').'/js/list/ReportListView.js' => array()
+        ),
+        'css' => array (),
+        'dependencies' => array(
+            array('gd_report_admin', 'GD_Admin_ReportSection')
+        )
+    );
+
+    //  TODO Reorganize
+    $libraries['GD_Admin_ReportSection_Builder'] = array(
+        'title'   => 'GD Admin - Report Section - Builder',
+        'version' => '',
+        'js' => array(
+            //  TODO Pull column and formula file to generic GD library
+            drupal_get_path('module','gd_dataset_admin').'/js/edit/column/Column.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/column/Formula.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/filter/ext/ReportLookupFilterForm.js' => array(),
+            drupal_get_path('module','gd_dashboard').'/js/ReportMenu.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/ReportBuilder.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/ReportTypeToolbar.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/ReportCustomViewEditor.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/ReportCanvas.js' => array(),
+
+            drupal_get_path('module','gd_report_admin').'/js/builder/button/action/ReportCancelButton.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/button/action/ReportSaveButton.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/button/action/ReportSaveAsButton.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/button/action/ReportDeleteButton.js' => array(),
+
+            drupal_get_path('module','gd_report_admin').'/js/builder/button/config/ReportConfigButton.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/ReportListForm.js' => array(),
+
+            drupal_get_path('module','gd_report_admin').'/js/builder/button/config/ReportDataButton.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/ReportDataForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/ReportDataList.js' => array(),
+
+            drupal_get_path('module','gd_report_admin').'/js/builder/button/config/ReportColumnButton.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/ReportColumnForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/column/ReportColumnTree.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/column/ReportFormulaTree.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/column/ReportColumnSelectionForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/column/ReportSelectedColumnForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/column/ReportFormulaForm.js' => array(),
+
+            drupal_get_path('module','gd_report_admin').'/js/builder/button/config/ReportFilterButton.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/filter/ReportFilterColumnTree.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/filter/ReportFilterListForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/filter/ReportFilterCreateForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/filter/ReportFilterForm.js' => array(),
+
+            drupal_get_path('module','gd_report_admin').'/js/builder/button/config/ReportConfigureButton.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/configure/ReportSortForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/configure/sort/ReportSortColumnTree.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/configure/ReportLimitForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/configure/ReportFormatForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/configure/format/ReportFormatListForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/configure/format/ReportFormatCreateForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/configure/format/ReportFormatFormFactory.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/configure/format/ReportColumnFormatForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/configure/format/ReportColumnFormatNumericForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/configure/format/ReportColumnFormatDateForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/configure/format/ReportColumnFormatURIForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/configure/ReportColumnOrderForm.js' => array(),
+
+            drupal_get_path('module','gd_report_admin').'/js/builder/button/config/ReportVisualizeButton.js' => array(),
+            
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/visualize/ReportDisplayOptionsForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/visualize/ReportFooterOptionsForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/visualize/ReportTooltipsForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/visualize/ReportTargetLineForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/visualize/ReportFontSizeForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/visualize/ReportXaxisDisplayForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/visualize/ReportNumericSpanForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/visualize/ReportTickIntervalForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/visualize/ReportRangeForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/visualize/ReportColorSchemeForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/visualize/ReportColumnDisplayForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/visualize/footer/ReportFooterListForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/visualize/footer/ReportFooterCreateForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/visualize/footer/ReportFooterEditForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/visualize/columndisplay/ReportColumnDisplayListForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/visualize/columndisplay/ReportColumnDisplayCreateForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/visualize/columndisplay/ReportColumnDisplayFormFactory.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/visualize/columndisplay/ReportColumnDisplayNumericForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/visualize/columndisplay/ReportColumnDisplayPieNumericForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/visualize/columndisplay/ReportColumnDisplayStringForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/visualize/columndisplay/ReportColumnDisplayLineAreaNumericForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/visualize/columndisplay/ReportColumnDisplayDynamicNumericForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/visualize/ReportTrafficLightForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/visualize/trafficlight/ReportTrafficLightListForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/visualize/trafficlight/ReportTrafficLightCreateForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/visualize/trafficlight/ReportTrafficLightFormFactory.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/visualize/trafficlight/ReportTrafficLightStandardForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/visualize/ReportColorOptionsForm.js' => array(),
+            drupal_get_path('module','gd_report_admin').'/js/builder/form/visualize/color/ReportColorColumnTree.js' => array(),
+        ),
+        'css' => array (
+            drupal_get_path('module','gd_report_admin').'/css/ReportBuilder.css' => array('weight'=>1,'group'=>CSS_THEME)
+        ),
+        'dependencies' => array(
+            array('gd_report_admin', 'GD_Admin_ReportSection'),
+            array('gd_admin', 'GD_Admin_Builder'),
+            array('gd','jQueryTE'),
+            array('gd','highcharts'),
+            array('gd','GD_PivotTable'),
+            array('gd','jQueryContext'),
+            array('gd','jsTree'),
+            array('gd','chosen'),
+            array('gd','spectrum'),
+        )
+    );
+
+    return $libraries;
+}
+
+function gd_report_admin_theme ( $existing, $type, $theme, $path ) {
+    return array(
+        'gd_report_admin_layout' => array(
+            'variables' => array(
+                'report' => NULL,
+                'reportDataset' => NULL,
+                'update' => NULL
+            ),
+            'template' => 'layout',
+            'path' => drupal_get_path('module', 'gd_report_admin').'/templates'
+        )
+    );
+}

@@ -1,0 +1,304 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+use GD\Common\Collections\ArrayCollection;
+use GD\Security\Authorization\Entity\Entity;
+use GD\Security\Authorization\Role\DrupalRole;
+
+/**
+ * Implementation of hook_menu()
+ */
+function gd_security_menu() {
+    $items = array();
+
+    //  403 Forbidden handler
+    $items['forbidden'] = array(
+        'page callback' => 'gd_security_forbidden',
+        'title' => '403 Forbidden',
+        'access callback' => true,
+    );
+
+    return $items;
+}
+
+function gd_security_forbidden() {
+    drupal_access_denied();
+    drupal_exit();
+}
+
+/**
+ * Implements hook_xautoload()
+ *
+ * @param \Drupal\xautoload\Adapter\LocalDirectoryAdapter $adapter
+ */
+function gd_security_xautoload($adapter) {
+    $adapter->add('GD','lib');
+}
+
+/**
+ * Implementation of hook_init()
+ */
+function gd_security_init () {
+    if ( !gd_security_allow_anonymous() ) {
+        gd_security_authenticate();
+    }
+}
+
+/**
+ * Implementation of hook_menu_get_item_alter()
+ *
+ * @param $router_item
+ * @param $path
+ * @param $original_map
+ */
+function gd_security_menu_get_item_alter(&$router_item, $path, $original_map) {
+    if ( !gd_security_allow_anonymous() ) {
+        gd_security_authenticate();
+    }
+}
+
+/**
+ * Implementation of hook_user_logout()
+ */
+function gd_security_user_logout() {
+    $handlers = gd_security_authentication_handlers();
+
+    foreach ($handlers as $handler) {
+        $handler['factory']::getInstance()->getAuthentication()->invalidate();
+    }
+}
+
+/**
+ * Authentication Handler
+ */
+function gd_security_authenticate () {
+
+    if ( user_is_logged_in() ) {
+        return;
+    }
+
+    $handlers = gd_security_authentication_handlers();
+
+    // pre
+    foreach ( $handlers as $handler ) {
+        $handler['factory']::getInstance()->getAuthentication()->preAuthenticate();
+    }
+
+    // auth
+    foreach ( $handlers as $handler ) {
+        $handler['factory']::getInstance()->getAuthentication()->authenticate();
+        if ( $handler['factory']::getInstance()->getAuthentication()->hasIdentity() ) {
+            break;
+        }
+    }
+
+    // post
+    foreach ( $handlers as $handler ) {
+        $handler['factory']::getInstance()->getAuthentication()->postAuthenticate();
+    }
+
+}
+
+/**
+ * @return array
+ */
+function gd_security_authentication_handlers () {
+    $handlers = &drupal_static(__FUNCTION__, NULL);
+    if (!isset($handlers)) {
+        $handlers = (array) module_invoke_all('gd_security_authentication_register');
+
+        $handlers['oauth'] = array(
+            'weight' => -5,
+            'factory' => '\GD\Security\Authentication\Factory\OAuthAuthenticationFactory'
+        );
+
+        $handlers['drupal'] = array(
+            'weight' => 0,
+            'factory' => '\GD\Security\Authentication\Factory\DrupalAuthenticationFactory'
+        );
+
+        // order by weight
+        usort($handlers, function($a, $b) {
+            if ($a['weight'] == $b['weight']) {
+                return 0;
+            }
+            return ($a['weight'] < $b['weight']) ? -1 : 1;
+        });
+    }
+    return $handlers;
+}
+
+/**
+ * @return bool
+ */
+function gd_security_allow_anonymous () {
+    if ( drupal_installation_attempted() || variable_get('maintenance_mode', 0) ) {
+        return TRUE;
+    }
+
+    // For drush or cron run from sh: login not required.
+    if ( 'cli' == PHP_SAPI || strpos($_SERVER['REQUEST_URI'], '/cron.php?cron_key=') === 0 ) {
+        return TRUE;
+    }
+
+    foreach ( gd_security_exceptions() as $pattern ) {
+        if ( preg_match($pattern,$_GET['q']) === 1 ) {
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+/**
+ * Implements hook_gd_session_timeout();
+ */
+function gd_security_gd_session_timeout() {
+    $handlers = gd_security_authentication_handlers();
+
+    foreach ( $handlers as $handler ) {
+        $handler['factory']::getInstance()->getAuthentication()->timeout();
+    }
+}
+
+/**
+ * @return array
+ */
+function gd_security_exceptions () {
+    $exceptions = &drupal_static(__FUNCTION__, NULL);
+    if (!isset($exceptions)) {
+        $exceptions = (array) module_invoke_all('gd_security_exceptions');
+
+        $exceptions[] = '/^user$/i';
+        $exceptions[] = '/^user\/logout/i';
+        $exceptions[] = '/^user\/reset/i';
+        $exceptions[] = '/^user\/password/i';
+        $exceptions[] = '/^gd\/user\/password-reset/i';
+        $exceptions[] = '/^gd\/ext/i';
+        $exceptions[] = '/^gd\/js/i';
+        $exceptions[] = '/^accessibility\//i';
+        $exceptions[] = '/^forbidden/i';
+        $exceptions[] = '/^public\//i';
+
+        // allow modifications
+        drupal_alter('gd_security_exceptions', $exceptions);
+    }
+
+    return $exceptions;
+}
+
+/**
+ * @return array
+ */
+function gd_security_authorization_handlers () {
+    $handlers = &drupal_static(__FUNCTION__, NULL);
+    if (!isset($handlers)) {
+        $handlers = (array) module_invoke_all('gd_security_authorization_register');
+
+        $handlers['drupal'] = array(
+            'weight' => 0,
+            'factory' => '\GD\Security\Authorization\Factory\DrupalAuthorizationFactory'
+        );
+
+        // order by weight
+        usort($handlers, function($a, $b) {
+                if ($a['weight'] == $b['weight']) {
+                    return 0;
+                }
+                return ($a['weight'] < $b['weight']) ? -1 : 1;
+            });
+    }
+    return $handlers;
+}
+
+/**
+ * @param $user
+ * @param Entity $entity
+ * @param $operation
+ * @return bool
+ */
+function gd_security_is_allowed ( $user, Entity $entity, $operation ) {
+    $handlers = gd_security_authorization_handlers();
+    $roles = new ArrayCollection();
+    foreach ( $user->roles as $roleId => $roleName ) {
+        $roles->add(new DrupalRole($roleId));
+    }
+    foreach ( $handlers as $handler ) {
+        if( !$handler['factory']::getInstance()->getAuthorization()->isAllowed($roles,$entity,$operation) ) {
+            return FALSE;
+        }
+    }
+    return TRUE;
+}
+
+/**
+ * @param $roles
+ * @param Entity $entity
+ * @param $operation
+ * @return bool
+ */
+function gd_security_is_allowed_by_role ( ArrayCollection $roles, Entity $entity, $operation ) {
+    $handlers = gd_security_authorization_handlers();
+    foreach ( $handlers as $handler ) {
+        if( !$handler['factory']::getInstance()->getAuthorization()->isAllowed($roles,$entity,$operation) ) {
+            return FALSE;
+        }
+    }
+    return TRUE;
+}
+
+/**
+ * @param $roles
+ * @param Entity $entity
+ * @param $operation
+ */
+function gd_security_allow ( ArrayCollection $roles, Entity $entity, $operation ) {
+    $handlers = gd_security_authorization_handlers();
+    foreach ( $handlers as $handler ) {
+        $handler['factory']::getInstance()->getAuthorization()->allow($roles,$entity,$operation);
+    }
+}
+
+/**
+ * @param $roles
+ * @param Entity $entity
+ * @param $operation
+ */
+function gd_security_deny ( ArrayCollection $roles, Entity $entity, $operation ) {
+    $handlers = gd_security_authorization_handlers();
+    foreach ( $handlers as $handler ) {
+        $handler['factory']::getInstance()->getAuthorization()->deny($roles,$entity,$operation);
+    }
+}
+
+function gd_security_is_single_sign_on() {
+    $handlers = gd_security_authentication_handlers();
+
+    $singleSignOn = false;
+    foreach ( $handlers as $handler ) {
+        if (isset($handler['single_sign_on']) && $handler['single_sign_on'] === TRUE) {
+            $singleSignOn = true;
+            break;
+        }
+    }
+
+    return $singleSignOn;
+}

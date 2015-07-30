@@ -1,0 +1,151 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+/**
+ * Implements hook_menu()
+ * @return array
+ */
+function gd_js_test_menu() {
+    $items = array();
+
+    $items['diagnostics/gd/unit'] = array(
+        'page callback' => 'gd_js_unit_test',
+        'access callback' => 'gd_js_test_access',
+        'type' => MENU_CALLBACK
+    );
+
+    $items['diagnostics/gd/perf'] = array(
+        'page callback' => 'gd_js_performance_test',
+        'access callback' => 'gd_js_test_access',
+        'type' => MENU_CALLBACK
+    );
+
+    return $items;
+}
+
+function gd_js_test_access() {
+    return gd_account_user_is_admin();
+}
+
+/**
+ * Implements hook_library()
+ * @return array
+ */
+function gd_js_test_library () {
+    $libraries = array();
+
+    $libraries['qunit'] = array(
+        'title' => 'QUnit',
+        'website' => 'http://qunitjs.com/',
+        'version' => '1.12.0',
+        'js' => array(
+            'sites/all/libraries/qunit/js/qunit.js' => array()
+        ),
+        'css' => array (
+            'sites/all/libraries/qunit/css/qunit.css' => array()
+        )
+    );
+
+    $libraries['jslitmus'] = array(
+        'title' => 'JSLitmus',
+        'website' => 'https://github.com/broofa/jslitmus',
+        'version' => '',
+        'js' => array(
+            'sites/all/libraries/jslitmus/js/jslitmus.js' => array()
+        )
+    );
+
+    $libraries['gd_js_unit_tests'] = array(
+        'title' => 'GD JS Tests',
+        'version' => '0.1',
+        'js' => array(
+            'sites/all/modules/custom/gd/js/tests/unit/apps/AppUnitTests.js' => array('weight' => 1),
+            'sites/all/modules/custom/gd/js/tests/unit/apps/ExtUnitTests.js' => array('weight' => 1)
+        )
+    );
+
+    $libraries['gd_js_performance_tests'] = array(
+        'title' => 'GD JS Tests',
+        'version' => '0.1',
+        'js' => array(
+            'sites/all/modules/custom/gd/js/tests/perf/apps/AppPerfTests.js' => array('weight' => 1),
+            'sites/all/modules/custom/gd/js/tests/perf/apps/ExtPerfTests.js' => array('weight' => 1)
+        )
+    );
+
+    return $libraries;
+}
+
+function gd_js_unit_test() {
+    drupal_add_js(GOVDASH_HOST.'/gd/ext/js','external');
+    drupal_add_library('gd_js_test', 'qunit');
+    drupal_add_library('gd_js_test', 'gd_js_unit_tests');
+
+    $page = array(
+        '#show_messages' => FALSE,
+        '#theme' => 'page-framed',
+        '#type' => 'page',
+        'content' => array(
+            'system_main' => array(
+                '#markup' => gd_js_test_get_qunit_markup()
+            )
+        ),
+        'post_header' => array(
+            '#markup' => ''
+        ),
+        'pre_content' => array(
+            '#markup' => ''
+        )
+    );
+
+    return $page;
+}
+
+function gd_js_performance_test() {
+    drupal_add_js(GOVDASH_HOST.'/gd/ext/js','external');
+    drupal_add_library('gd_js_test', 'jslitmus');
+    drupal_add_library('gd_js_test', 'gd_js_performance_tests');
+
+    $page = array(
+        '#show_messages' => FALSE,
+        '#theme' => 'page-framed',
+        '#type' => 'page',
+        'content' => array(
+            'system_main' => array(
+                '#markup' => gd_js_test_get_qunit_markup()
+            )
+        ),
+        'post_header' => array(
+            '#markup' => ''
+        ),
+        'pre_content' => array(
+            '#markup' => ''
+        )
+    );
+
+    return $page;
+}
+
+function gd_js_test_get_qunit_markup() {
+    $markup = '<div id="qunit"></div><div id="qunit-fixture"></div>';
+    module_invoke_all('qunit_markup_alter', $markup);
+    return $markup;
+}

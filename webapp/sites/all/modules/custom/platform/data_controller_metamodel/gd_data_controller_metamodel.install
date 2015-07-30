@@ -1,0 +1,2893 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+function gd_data_controller_metamodel_update_dependencies() {
+    $dependencies['gd_data_controller_metamodel'][7108] = array(
+        'gd_report' => 7105,
+        'gd_dashboard' => 7103,
+        'gd_dataset' => 7106);
+
+    $dependencies['gd_data_controller_metamodel'][7123] = array(
+        'gd_report' => 7114,
+        'gd_dashboard' => 7107);
+
+    return $dependencies;
+}
+
+/**
+ * Populates dataset and column system names based on corresponding node ids
+ */
+function gd_data_controller_metamodel_update_7101() {
+    // checking that new fields exist
+    if (field_info_field('field_ref_point_dataset_sysname') == NULL) {
+        throw new DrupalUpdateException(t("'field_ref_point_dataset_sysname' field has not been defined"));
+    }
+    if (field_info_field('field_ref_point_column_sysname') == NULL) {
+        throw new DrupalUpdateException(t("'field_ref_point_column_sysname' field has not been defined"));
+    }
+
+    // loading all reference point nodes (including unpublished)
+    $referencePointNodes = gd_reference_get_reference_points(LOAD_ENTITY, INCLUDE_UNPUBLISHED);
+
+    // collecting all dataset & attribute nids which are used
+    $nids = NULL;
+    if (isset($referencePointNodes)) {
+        foreach ($referencePointNodes as $referencePointNode) {
+            $dataset_nids = get_node_field_node_ref($referencePointNode, 'field_ref_point_dataset');
+            ArrayHelper::addUniqueValue($nids, $dataset_nids);
+
+            $referencePointColumnIndex = 0;
+            while (TRUE) {
+                $attribute_nid = get_node_field_int_value($referencePointNode, 'field_ref_point_attr', $referencePointColumnIndex, 'nid');
+                if (!isset($attribute_nid)) {
+                    break;
+                }
+
+                ArrayHelper::addUniqueValue($nids, $attribute_nid);
+
+                $referencePointColumnIndex++;
+            }
+        }
+    }
+
+    // loading required dataset & attribute nodes
+    $nodes = isset($nids) ? node_load_multiple($nids) : NULL;
+
+    if (isset($nodes)) {
+        // populating dataset system name & column system name fields. Clearing fields which contains dataset nid and attribute nid
+        foreach ($referencePointNodes as $referencePointNode) {
+            if (get_node_field_value($referencePointNode, 'field_ref_point_dataset_sysname') == NULL) {
+                $dataset_nids = get_node_field_node_ref($referencePointNode, 'field_ref_point_dataset');
+                $datasetNode = (isset($dataset_nids) && isset($nodes[$dataset_nids])) ? $nodes[$dataset_nids] : NULL;
+                if (isset($datasetNode)) {
+                    $datasetName = get_node_field_value($datasetNode, 'field_dataset_sysname');
+                    if (isset($datasetName)) {
+                        $referencePointNode->field_ref_point_dataset_sysname[$referencePointNode->language][0]['value'] = $datasetName;
+                    }
+                }
+
+                // Do not delete the original value. We can use it in case something goes wrong
+                // $referencePointNode->field_ref_point_dataset = NULL;
+            }
+
+            if (get_node_field_value($referencePointNode, 'field_ref_point_column_sysname') == NULL) {
+                $referencePointColumnIndex = $referencePointColumnSequence = 0;
+                while (TRUE) {
+                    $attribute_nid = get_node_field_int_value($referencePointNode, 'field_ref_point_attr', $referencePointColumnIndex, 'nid');
+                    if (!isset($attribute_nid)) {
+                        break;
+                    }
+
+                    $attributeNode = isset($nodes[$attribute_nid]) ? $nodes[$attribute_nid] : NULL;
+                    if (isset($attributeNode)) {
+                        $attributeName = get_node_field_value($attributeNode, 'field_attr_sysname');
+                        if (isset($attributeName)) {
+                            $referencePointNode->field_ref_point_column_sysname[$referencePointNode->language][$referencePointColumnSequence]['value'] = $attributeName;
+                            $referencePointColumnSequence++;
+                        }
+                    }
+
+                    $referencePointColumnIndex++;
+                }
+
+                // Do not delete the original value. We can use it in case something goes wrong
+                // $referencePointNode->field_ref_point_attr =  NULL;
+            }
+
+            node_save($referencePointNode);
+        }
+    }
+}
+
+/**
+ * Updates server configuration for data marts
+ */
+function gd_data_controller_metamodel_update_7102() {
+    // checking that new fields exist
+    if (field_info_field('field_datamart_parent_sysname') == NULL) {
+        throw new DrupalUpdateException(t("'field_datamart_parent_sysname' field has not been defined"));
+    }
+
+    $datamartNodes = gd_datamart_get_datamarts(LOAD_ENTITY, INCLUDE_UNPUBLISHED);
+    if (isset($datamartNodes)) {
+        EnvironmentMetaModelFactory::getInstance()->startGlobalModification();
+        try {
+            foreach ($datamartNodes as $datamartNode) {
+                $parentDataSourceName = get_node_field_value($datamartNode, 'field_datamart_parent_sysname');
+                if (isset($parentDataSourceName)) {
+                    continue;
+                }
+
+                $datasourceType = get_node_field_value($datamartNode, 'field_datamart_type');
+                // cannot use constant because corresponding interface was deleted
+                if ($datasourceType != 'Drupal') {
+                    continue;
+                }
+
+                $datamartNode->field_datamart_type = NULL;
+                // cannot use constant because corresponding module could be still not enabled
+                $datamartNode->field_datamart_parent_sysname[$datamartNode->language][0]['value'] = 'default:default';
+
+                node_save($datamartNode);
+            }
+        }
+        catch (Exception $e) {
+            EnvironmentMetaModelFactory::getInstance()
+                ->finishGlobalModification(FALSE);
+            throw $e;
+        }
+        EnvironmentMetaModelFactory::getInstance()
+            ->finishGlobalModification(TRUE);
+    }
+}
+
+/**
+ * Setup 'Source Type' field for 'Dataset' content type
+ */
+function gd_data_controller_metamodel_update_7103(&$sandbox) {
+    // checking that new fields exist
+    if (field_info_field('field_dataset_source_type') == NULL) {
+        throw new DrupalUpdateException(t("'field_dataset_source_type' field has not been defined"));
+    }
+
+    if (!isset($sandbox['total'])) {
+        $sandbox['total'] = db_select('node', 'n')
+            ->condition('type', NODE_TYPE_DATASET)->countQuery()->execute()
+            ->fetchField();
+        $sandbox['progress'] = 0;
+        $sandbox['current_nid'] = 0;
+    }
+
+    $dataset_nids = db_select('node', 'n')
+        ->fields('n', array('nid'))
+        ->condition('type', NODE_TYPE_DATASET)
+        ->condition('nid', $sandbox['current_nid'], '>')
+        ->orderBy('nid', 'ASC')
+        ->range(0, 10)
+        ->execute();
+
+    $nids = array();
+    foreach ($dataset_nids as $dataset_nid) {
+        $nids[] = $dataset_nid->nid;
+    }
+
+    if (count($nids) > 0) {
+        $nodes = node_load_multiple($nids);
+        foreach ($nodes as $node) {
+            if (!isset($node->field_dataset_source_type[$node->language][0]['value'])) {
+                $node->field_dataset_source_type[$node->language][0]['value'] = TableDatasetSourceTypeHandler::SOURCE_TYPE;
+            }
+
+            node_save($node);
+
+            $sandbox['current_nid'] = $node->nid;
+            $sandbox['progress']++;
+        }
+    }
+
+    $sandbox['#finished'] = ($sandbox['progress'] == $sandbox['total'])
+        ? 1
+        : ($sandbox['progress'] / $sandbox['total']);
+}
+
+/**
+ * Update 'Source Type' field for 'Dataset' content type to 'Star Schema'
+ */
+function gd_data_controller_metamodel_update_7104(&$sandbox) {
+    // checking that new fields exist
+    if (field_info_field('field_dataset_source_type') == NULL) {
+        throw new DrupalUpdateException(t("'field_dataset_source_type' field has not been defined"));
+    }
+
+    if (!isset($sandbox['total'])) {
+        $sandbox['total'] = db_select('node', 'n')
+            ->condition('type', NODE_TYPE_DATASET)->countQuery()->execute()
+            ->fetchField();
+        $sandbox['progress'] = 0;
+        $sandbox['current_nid'] = 0;
+    }
+
+    $dataset_nids = db_select('node', 'n')
+        ->fields('n', array('nid'))
+        ->condition('type', NODE_TYPE_DATASET)
+        ->condition('nid', $sandbox['current_nid'], '>')
+        ->orderBy('nid', 'ASC')
+        ->range(0, 10)
+        ->execute();
+
+    $nids = array();
+    foreach ($dataset_nids as $dataset_nid) {
+        $nids[] = $dataset_nid->nid;
+    }
+
+    if (count($nids) > 0) {
+        $nodes = node_load_multiple($nids);
+        foreach ($nodes as $node) {
+            if ($node->field_dataset_source_type[$node->language][0]['value'] != StarSchemaDatasetSourceTypeHandler::SOURCE_TYPE) {
+                $node->field_dataset_source_type[$node->language][0]['value'] = StarSchemaDatasetSourceTypeHandler::SOURCE_TYPE;
+                node_save($node);
+            }
+
+            $sandbox['current_nid'] = $node->nid;
+            $sandbox['progress']++;
+        }
+    }
+
+    $sandbox['#finished'] = ($sandbox['progress'] == $sandbox['total'])
+        ? 1
+        : ($sandbox['progress'] / $sandbox['total']);
+}
+
+/**
+ * Combines datamart individual database connection properties into new 'options' property
+ */
+function gd_data_controller_metamodel_update_7105(&$sandbox) {
+    // checking that new fields exist
+    if (field_info_field('field_datamart_options') == NULL) {
+        throw new DrupalUpdateException(t("'field_datamart_options' field has not been defined"));
+    }
+
+    if (!isset($sandbox['total'])) {
+        $sandbox['total'] = db_select('node', 'n')
+            ->condition('type', NODE_TYPE_DATAMART)->countQuery()->execute()
+            ->fetchField();
+        $sandbox['progress'] = 0;
+        $sandbox['current_nid'] = 0;
+    }
+
+    $datamart_nids = db_select('node', 'n')
+        ->fields('n', array('nid'))
+        ->condition('type', NODE_TYPE_DATAMART)
+        ->condition('nid', $sandbox['current_nid'], '>')
+        ->orderBy('nid', 'ASC')
+        ->range(0, 10)
+        ->execute();
+
+    $nids = array();
+    foreach ($datamart_nids as $datamart_nid) {
+        $nids[] = $datamart_nid->nid;
+    }
+
+    if (count($nids) > 0) {
+        $nodes = node_load_multiple($nids);
+        foreach ($nodes as $node) {
+            if (!isset($node->field_datamart_options[$node->language][0]['value'])) {
+                $options = array();
+
+                $host = get_node_field_value($node, 'field_datamart_host');
+                if (isset($host)) {
+                    $options['host'] = $host;
+                }
+                $port = get_node_field_int_value($node, 'field_datamart_port');
+                if (isset($port)) {
+                    $options['port'] = $port;
+                }
+                $database = get_node_field_value($node, 'field_datamart_database');
+                if (isset($database)) {
+                    $options['database'] = $database;
+                }
+                $username = get_node_field_value($node, 'field_datamart_username');
+                if (isset($username)) {
+                    $options['username'] = $username;
+                }
+                $password = get_node_field_value($node, 'field_datamart_password');
+                if (isset($password)) {
+                    $options['password'] = $password;
+                }
+
+                if (count($options) > 0) {
+                    $node->field_datamart_options[$node->language][0]['value'] = json_encode($options);
+                    node_save($node);
+                }
+            }
+
+            $sandbox['current_nid'] = $node->nid;
+            $sandbox['progress']++;
+        }
+    }
+
+    $sandbox['#finished'] = ($sandbox['progress'] == $sandbox['total'])
+        ? 1
+        : ($sandbox['progress'] / $sandbox['total']);
+}
+
+/**
+ * Converts data type 'date:year' to 'date:year2' and 'date' to 'date2'
+ */
+function gd_data_controller_metamodel_update_7108(&$sandbox) {
+    if (!isset($sandbox['total'])) {
+        $sandbox['total'] = db_select('node', 'n')
+            ->condition('type', NODE_TYPE_COLUMN)->countQuery()->execute()
+            ->fetchField();
+        $sandbox['progress'] = 0;
+        $sandbox['converted'] = 0;
+        $sandbox['current_nid'] = 0;
+        log_info(t("Converting data type 'date:year' to 'date:year2' and 'date' to 'date2'"));
+    }
+
+    global $databases;
+    if (!isset($databases['default']['default'])) {
+        throw new IllegalStateException('Could not find default Drupal database configuration');
+    }
+    $drupalDatabaseConfig = $databases['default']['default'];
+    if (!isset($drupalDatabaseConfig['database'])) {
+        throw new IllegalStateException('Could not find database name in Drupal default database configuration');
+    }
+    $drupalSchemaName = $drupalDatabaseConfig['database'];
+
+    $columns = db_select('node', 'n')
+        ->fields('n', array('nid'))
+        ->condition('type', NODE_TYPE_COLUMN)
+        ->condition('nid', $sandbox['current_nid'], '>')
+        ->orderBy('nid', 'ASC')
+        ->range(0, 10)
+        ->execute();
+
+    $nids = array();
+    foreach ($columns as $column) {
+        $nids[] = $column->nid;
+    }
+
+    if (count($nids) > 0) {
+        $isNodeProcessed = FALSE;
+
+        $nodes = node_load_multiple($nids);
+        foreach ($nodes as $node) {
+            if (isset($node->field_column_datatype[$node->language][0]['value'])) {
+                $datatype = $node->field_column_datatype[$node->language][0]['value'];
+
+                $destinationDataType = NULL;
+                switch ($datatype) {
+                    case 'date:year':
+                        $destinationDataType = 'date:year2';
+                        break;
+                    case 'date':
+                        $destinationDataType = 'date2';
+                        break;
+                }
+
+                if (isset($destinationDataType)) {
+                    // processing only one node at a time
+                    if ($isNodeProcessed) {
+                        break;
+                    }
+
+                    log_info(t("Converting '$datatype' data type to '$destinationDataType' for the column node: @nodeId", array('@nodeId' => $node->nid)));
+
+                    // preparing column system name
+                    if (!isset($node->field_column_sysname[$node->language][0]['value'])) {
+                        throw new IllegalStateException(t('System Name is not set for the node'));
+                    }
+                    $columnName = $node->field_column_sysname[$node->language][0]['value'];
+
+                    // preparing dataset node
+                    if (!isset($node->field_column_dataset[$node->language][0]['nid'])) {
+                        throw new IllegalStateException(t('Dataset reference is not set for the node'));
+                    }
+                    $dataset_nid = $node->field_column_dataset[$node->language][0]['nid'];
+                    log_debug(t('Column dataset node: @nodeId', array('@nodeId' => $dataset_nid)));
+
+                    // loading dataset node
+                    $datasetNode = node_load($dataset_nid);
+                    if (!isset($datasetNode->field_dataset_source[$datasetNode->language][0]['value'])) {
+                        throw new IllegalStateException(t('Source Name is not set for the node'));
+                    }
+                    // preparing the dataset table name
+                    $tableName = $datasetNode->field_dataset_source[$datasetNode->language][0]['value'] . '_facts';
+
+                    // preparing data source name
+                    $datasourceName = NULL;
+                    if (isset($datasetNode->field_dataset_datasource[$datasetNode->language][0]['value'])) {
+                        $datasourceName = $datasetNode->field_dataset_datasource[$datasetNode->language][0]['value'];
+                    }
+
+                    // loading data source node
+                    $datasourceNode = NULL;
+                    if (isset($datasourceName)) {
+                        $datasourceQuery = new EntityFieldQuery();
+                        $datasourceQuery->entityCondition('entity_type', 'node');
+                        $datasourceQuery->propertyCondition('type', NODE_TYPE_DATAMART);
+                        $datasourceQuery->addTag('DANGEROUS_ACCESS_CHECK_OPT_OUT');
+                        $datasourceQuery->fieldCondition('field_datamart_sysname', 'value', $datasourceName);
+                        $datasourceEntities = $datasourceQuery->execute();
+                        $datasource_nids = isset($datasourceEntities['node']) ? array_keys($datasourceEntities['node']) : NULL;
+                        if (count($datasource_nids) != 1) {
+                            throw new IllegalStateException(t(
+                                'Found @count data sources instead of 1 for the node',
+                                array('@count' => count($datasource_nids))));
+                        }
+                        $datasourceNode = node_load($datasource_nids[0]);
+                    }
+
+                    // preparing database name
+                    $datasetSchemaName = $message = NULL;
+                    if (isset($datasourceNode)) {
+                        if (isset($datasourceNode->field_datamart_options[$datasourceNode->language][0]['value'])) {
+                            $datasourceOptions = json_decode($datasourceNode->field_datamart_options[$datasourceNode->language][0]['value'], TRUE);
+                            if (isset($datasourceOptions)) {
+                                if (isset($datasourceOptions['database'])) {
+                                    $datasetSchemaName = StringHelper::trim($datasourceOptions['database']);
+                                }
+                                if (!isset($datasetSchemaName)) {
+                                    $message = t("'database' option is not set for the node: @nodeId", array('@nodeId' => $datasourceNode->nid));
+                                }
+                            }
+                            else {
+                                $message = t('Could not decode options for the node: @nodeId', array('@nodeId' => $datasourceNode->nid));
+                            }
+                        }
+                        else {
+                            $message = t('Options are not set for the node: @nodeId', array('@nodeId' => $datasourceNode->nid));
+                        }
+                    }
+                    else {
+                        $message = t('Data Source Name is not set for the node');
+                    }
+
+                    // trying to resolve an issue with inaccessible database name
+                    $ignoreNode = FALSE;
+                    if (isset($datasetSchemaName)) {
+                        // checking type of the data source. For now we only support MySQL database for this update operation
+                        $type = NULL;
+                        if (isset($datasourceNode->field_datamart_type[$datasourceNode->language][0]['value'])) {
+                            $type = $datasourceNode->field_datamart_type[$datasourceNode->language][0]['value'];
+                        }
+                        else {
+                            // using parent data source to find out type
+                            if (isset($datasourceNode->field_datamart_parent_sysname[$datasourceNode->language][0]['value'])) {
+                                $parentDataSourceName = StringHelper::trim($datasourceNode->field_datamart_parent_sysname[$datasourceNode->language][0]['value']);
+                                if (isset($parentDataSourceName)) {
+                                    list($namespace, $datasourceNameOnly) = NameSpaceHelper::splitAlias($parentDataSourceName);
+                                    if (isset($namespace) && isset($datasourceNameOnly)) {
+                                        if (isset($databases[$namespace][$datasourceNameOnly])) {
+                                            $databaseConfig = $databases[$namespace][$datasourceNameOnly];
+                                            if (isset($databaseConfig['driver'])) {
+                                                $type = $databaseConfig['driver'];
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            if (!isset($type)) {
+                                throw new IllegalStateException(t(
+                                    "Undefined 'type' property for '@datasourceName' data source",
+                                    array('@datasourceName' => $datasourceName)));
+                            }
+                        }
+                        switch ($type) {
+                            case 'mysql':
+                                break;
+                            case 'oracle':
+                                $datasetSchemaName = NULL;
+                                $message = t('[Oracle data source] Ignoring conversion for the node');
+                                $ignoreNode = TRUE;
+                                break;
+                            default:
+                                throw new IllegalStateException(t(
+                                    "Unsupported '@datasourceType' type of '@datasourceName' data source",
+                                    array(
+                                        '@datasourceType' => $type,
+                                        '@datasourceName' => $datasourceName
+                                    )));
+                        }
+                    }
+                    elseif (isset($datasourceNode)) {
+                        // using parent data source
+                        if (isset($datasourceNode->field_datamart_parent_sysname[$datasourceNode->language][0]['value'])) {
+                            $parentDataSourceName = StringHelper::trim($datasourceNode->field_datamart_parent_sysname[$datasourceNode->language][0]['value']);
+                            if (isset($parentDataSourceName)) {
+                                list($namespace, $datasourceNameOnly) = NameSpaceHelper::splitAlias($parentDataSourceName);
+                                if (isset($namespace) && isset($datasourceNameOnly)) {
+                                    if (isset($databases[$namespace][$datasourceNameOnly])) {
+                                        $databaseConfig = $databases[$namespace][$datasourceNameOnly];
+                                        if (isset($databaseConfig['driver'])) {
+                                            switch ($databaseConfig['driver']) {
+                                                case 'mysql':
+                                                    if (isset($databaseConfig['database'])) {
+                                                        $datasetSchemaName = $databaseConfig['database'];
+                                                    }
+                                                    else {
+                                                        throw new IllegalStateException(t(
+                                                            "Undefined 'database' property for '@parentDatasourceName' data source",
+                                                            array('@parentDatasourceName' => $parentDataSourceName)));
+                                                    }
+                                                    break;
+                                                case 'oracle':
+                                                    log_warn(t('[Oracle data source] Ignoring conversion for the node'));
+                                                    $ignoreNode = TRUE;
+                                                    break;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    else {
+                        $ignoreNode = TRUE;
+                    }
+
+                    if (isset($datasetSchemaName)) {
+                        // checking if the column exists in the table
+                        $columnExists = FALSE;
+                        $query = db_select('information_schema.columns', 'c');
+                        $query->fields('c', array('column_name', 'data_type'));
+                        $query->condition('c.table_schema', $datasetSchemaName);
+                        $query->condition('c.table_name', $tableName);
+                        $query->condition('c.column_name', $columnName);
+                        $statement = $query->execute();
+                        foreach ($statement as $record) {
+                            if ($record->column_name == $columnName) {
+                                $columnExists = TRUE;
+                            }
+                        }
+
+                        switch ($datatype) {
+                            case 'date:year':
+                                // converting data in corresponding table
+                                if ($columnExists) {
+                                    $sql = "UPDATE $datasetSchemaName.$tableName f" .
+                                        "   SET f.$columnName = (SELECT y.entry_year FROM $drupalSchemaName.dp_years y WHERE y.year_id = f.$columnName)" .
+                                        " WHERE f.$columnName IS NOT NULL";
+                                    log_info($sql);
+                                    db_query($sql);
+                                }
+
+                                // changing data type
+                                $node->field_column_datatype[$node->language][0]['value'] = 'date:year2';
+                                node_save($node);
+                                break;
+                            case 'date':
+                                // loading list of unique constraints
+                                $uniqueConstraintNames = NULL;
+                                $query = db_select('information_schema.table_constraints', 'c');
+                                $query->fields('c', array('constraint_name'));
+                                $query->condition('c.constraint_schema', $datasetSchemaName);
+                                $query->condition('c.table_schema', $datasetSchemaName);
+                                $query->condition('c.table_name', $tableName);
+                                $query->condition('c.constraint_type', 'UNIQUE');
+                                $statement = $query->execute();
+                                foreach ($statement as $record) {
+                                    $uniqueConstraintNames[] = $record->constraint_name;
+                                }
+
+                                // checking if any unique constraints are for the column
+                                $selectedUniqueConstraintName = NULL;
+                                if (isset($uniqueConstraintNames)) {
+                                    foreach ($uniqueConstraintNames as $uniqueConstraintName) {
+                                        $query = db_select('information_schema.key_column_usage', 'c');
+                                        $query->fields('c', array(
+                                            'column_name',
+                                            'ordinal_position'
+                                        ));
+                                        $query->condition('c.constraint_schema', $datasetSchemaName);
+                                        $query->condition('c.table_schema', $datasetSchemaName);
+                                        $query->condition('c.table_name', $tableName);
+                                        $query->condition('c.constraint_name', $uniqueConstraintName);
+                                        $query->orderBy('c.ordinal_position');
+                                        $statement = $query->execute();
+                                        foreach ($statement as $record) {
+                                            if ($record->column_name == $columnName) {
+                                                if ($record->ordinal_position != 1) {
+                                                    throw new IllegalStateException(t(
+                                                        'Unsupported composite unique key constraint: @constraintName',
+                                                        array('@constraintName' => $uniqueConstraintName)));
+                                                }
+
+                                                if (isset($selectedUniqueConstraintName)) {
+                                                    throw new IllegalStateException(t(
+                                                        'Found several unique key constraints for a column: [@constraintNameA, @constraintNameB]',
+                                                        array(
+                                                            '@constraintNameA' => $selectedUniqueConstraintName,
+                                                            '@constraintNameB' => $uniqueConstraintName
+                                                        )));
+                                                }
+
+                                                $selectedUniqueConstraintName = $uniqueConstraintName;
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // loading primary key constraint name
+                                $primaryKeyConstraintName = NULL;
+                                $query = db_select('information_schema.table_constraints', 'c');
+                                $query->fields('c', array('constraint_name'));
+                                $query->condition('c.constraint_schema', $datasetSchemaName);
+                                $query->condition('c.table_schema', $datasetSchemaName);
+                                $query->condition('c.table_name', $tableName);
+                                $query->condition('c.constraint_type', 'PRIMARY KEY');
+                                $statement = $query->execute();
+                                foreach ($statement as $record) {
+                                    $primaryKeyConstraintName = $record->constraint_name;
+                                }
+
+                                // loading primary key constraint columns
+                                $primaryKeyColumnNames = NULL;
+                                if (isset($primaryKeyConstraintName)) {
+                                    $query = db_select('information_schema.key_column_usage', 'c');
+                                    $query->fields('c', array('column_name'));
+                                    $query->condition('c.constraint_schema', $datasetSchemaName);
+                                    $query->condition('c.table_schema', $datasetSchemaName);
+                                    $query->condition('c.table_name', $tableName);
+                                    $query->condition('c.constraint_name', $primaryKeyConstraintName);
+                                    $query->orderBy('c.ordinal_position');
+                                    $statement = $query->execute();
+                                    foreach ($statement as $record) {
+                                        $primaryKeyColumnNames[] = $record->column_name;
+                                    }
+                                }
+
+                                // checking if the column is part of the primary key constraint
+                                $primaryKeyColumnIndex = isset($primaryKeyColumnNames)
+                                    ? array_search($columnName, $primaryKeyColumnNames)
+                                    : FALSE;
+
+                                // if the column is part of the primary key and it is first in the key, we need to do additional checks for possible foreign keys for the column
+                                $references = NULL;
+                                if ($primaryKeyColumnIndex !== FALSE) {
+                                    $query = db_select('INFORMATION_SCHEMA.key_column_usage', 'c');
+                                    $query->fields('c', array('constraint_name', 'column_name', 'referenced_table_name', 'referenced_column_name'));
+                                    $query->condition('c.constraint_schema', $datasetSchemaName);
+                                    $query->condition('c.table_schema', $datasetSchemaName);
+                                    $query->condition('c.table_name', $tableName);
+                                    $query->condition('c.column_name', $primaryKeyColumnNames);
+                                    $query->isNotNull('c.referenced_table_name');
+                                    $query->isNotNull('c.referenced_column_name');
+                                    $statement = $query->execute();
+                                    foreach ($statement as $record) {
+                                        $references[] = array(
+                                            'constraintName' => $record->constraint_name,
+                                            'columnName' => $record->column_name,
+                                            'refTableName' => $record->referenced_table_name,
+                                            'refColumnName' => $record->referenced_column_name);
+                                    }
+                                }
+
+                                $sqls = array();
+
+                                // removing default value for all columns which are part of primary key to prevent '1067 Invalid default value for <column name>'
+                                if (isset($primaryKeyColumnNames)) {
+                                    foreach ($primaryKeyColumnNames as $primaryKeyColumnName) {
+                                        $sqls[] = "ALTER TABLE $datasetSchemaName.$tableName ALTER COLUMN $primaryKeyColumnName DROP DEFAULT";
+                                    }
+                                }
+
+                                // creating temporary column
+                                $temporaryColumnName = $columnName . '__x';
+                                $sqls[] = "ALTER TABLE $datasetSchemaName.$tableName ADD $temporaryColumnName DATE";
+
+                                // populating data in the temporary column
+                                $sqls[] = "UPDATE $datasetSchemaName.$tableName f" .
+                                    "   SET f.$temporaryColumnName = (SELECT d.entry_date FROM $drupalSchemaName.dp_dates d WHERE d.date_id = f.$columnName)" .
+                                    " WHERE f.$columnName IS NOT NULL";
+
+                                // removing foreign key constraint to allow removing of the primary key
+                                if (isset($references)) {
+                                    foreach ($references as $reference) {
+                                        $c = $reference['constraintName'];
+                                        $sqls[] = "ALTER TABLE $datasetSchemaName.$tableName DROP FOREIGN KEY $c";
+                                    }
+                                }
+
+                                // dropping primary key, if necessary
+                                if ($primaryKeyColumnIndex !== FALSE) {
+                                    $sqls[] = "ALTER TABLE $datasetSchemaName.$tableName DROP PRIMARY KEY";
+                                }
+
+                                // checking if all values can be converted (required for primary key creation)
+                                if ($primaryKeyColumnIndex !== FALSE) {
+                                    $sqls[] = "ALTER TABLE $datasetSchemaName.$tableName CHANGE COLUMN $temporaryColumnName $temporaryColumnName DATE NOT NULL";
+                                }
+
+                                // dropping original column
+                                $sqls[] = "ALTER TABLE $datasetSchemaName.$tableName DROP COLUMN $columnName";
+
+                                // renaming the temporary column to the original name
+                                $sql = "ALTER TABLE $datasetSchemaName.$tableName CHANGE COLUMN $temporaryColumnName $columnName DATE";
+                                if ($primaryKeyColumnIndex !== FALSE) {
+                                    $sql .= ' NOT NULL';
+                                }
+                                $sqls[] = $sql;
+
+                                // creating primary key, if necessary
+                                if ($primaryKeyColumnIndex !== FALSE) {
+                                    $columnNames = implode(', ', $primaryKeyColumnNames);
+                                    $sqls[] = "ALTER TABLE $datasetSchemaName.$tableName ADD PRIMARY KEY ($columnNames)";
+                                }
+
+                                // creating unique key, if necessary
+                                if (isset($selectedUniqueConstraintName)) {
+                                    $sqls[] = "ALTER TABLE $datasetSchemaName.$tableName ADD CONSTRAINT $selectedUniqueConstraintName UNIQUE($columnName)";
+                                }
+
+                                // restoring foreign key constraint
+                                if (isset($references)) {
+                                    foreach ($references as $reference) {
+                                        $c = $reference['constraintName'];
+                                        $cn = $reference['columnName'];
+                                        $refTableName = $reference['refTableName'];
+                                        $refColumnName = $reference['refColumnName'];
+                                        $sqls[] = "ALTER TABLE $datasetSchemaName.$tableName ADD CONSTRAINT $c FOREIGN KEY($cn) REFERENCES $refTableName($refColumnName)";
+                                    }
+                                }
+
+                                // logging all statements first
+                                foreach ($sqls as $sql) {
+                                    log_info($sql);
+                                }
+
+                                if ($columnExists) {
+                                    // executing the statements
+                                    foreach ($sqls as $sql) {
+                                        db_query($sql);
+                                    }
+                                }
+                                else {
+                                    log_warn(t('Skipping statement execution for nonpersistent column'));
+                                }
+
+                                // changing data type
+                                $node->field_column_datatype[$node->language][0]['value'] = 'date2';
+                                node_save($node);
+                                break;
+                        }
+
+                        $sandbox['converted']++;
+                        $isNodeProcessed = TRUE;
+                    }
+                    else {
+                        if ($ignoreNode) {
+                            log_warn($message);
+                        }
+                        else {
+                            throw new IllegalStateException($message);
+                        }
+                    }
+                }
+            }
+
+            $sandbox['current_nid'] = $node->nid;
+            $sandbox['progress']++;
+        }
+    }
+
+    if ($sandbox['progress'] == $sandbox['total']) {
+        log_info(t(
+            'Converted @convertedNodeCount out of @totalNodeCount nodes',
+            array(
+                '@convertedNodeCount' => $sandbox['converted'],
+                '@totalNodeCount' => $sandbox['total']
+            )));
+        $sandbox['#finished'] = 1;
+    }
+    else {
+        $sandbox['#finished'] = $sandbox['progress'] / $sandbox['total'];
+    }
+}
+
+function report_column_update_7112($datasourceName, $datasetColumnMaps) {
+    gd_datasource_set_active($datasourceName);
+
+    $reportNodes = gd_report_findall_by_datasource(LOAD_ENTITY, $datasourceName, FALSE);
+    foreach ($reportNodes as $reportNode) {
+        log_info(t('Converting report config: @nodeId', array('@nodeId' => $reportNode->nid)));
+
+        $reportDatasetName = get_node_field_value($reportNode, 'field_report_dataset_sysnames');
+        // checking if the dataset requires any conversions
+        if (!isset($datasetColumnMaps[$reportDatasetName])) {
+            continue; // go to next report
+        }
+
+        $updates = 0;
+
+        $reportConfigText = get_node_field_value($reportNode, 'field_report_conf');
+        $reportConfig = (isset($reportConfigText)) ? json_decode($reportConfigText) : NULL;
+        if (!isset($reportConfig)) {
+            continue;
+        }
+
+        // update columns
+        if (!empty($reportConfig->model->columns)) {
+            foreach ($reportConfig->model->columns as $key => $old) {
+                if (isset($datasetColumnMaps[$reportDatasetName][$old])) {
+                    $new = $datasetColumnMaps[$reportDatasetName][$old];
+                    log_debug(t('Mapping report model column @old to @new', array(
+                        '@old' => $old,
+                        '@new' => $new
+                    )));
+                    $reportConfig->model->columns[$key] = $new;
+                    $updates++;
+                }
+            }
+        }
+
+        // update column configs
+        if (!empty($reportConfig->columnConfigs)) {
+            foreach ($reportConfig->columnConfigs as $key => $value) {
+                $old = $value->columnId;
+                if (isset($datasetColumnMaps[$reportDatasetName][$old])) {
+                    $new = $datasetColumnMaps[$reportDatasetName][$old];
+                    log_debug(t('Mapping report column config @old to @new', array(
+                        '@old' => $old,
+                        '@new' => $new
+                    )));
+                    $reportConfig->columnConfigs[$key]->columnId = $new;
+                    $updates++;
+                }
+            }
+        }
+
+        // update column orders
+        if (!empty($reportConfig->model->columnOrder)) {
+            foreach ($reportConfig->model->columnOrder as $key => $old) {
+                if (isset($datasetColumnMaps[$reportDatasetName][$old])) {
+                    $new = $datasetColumnMaps[$reportDatasetName][$old];
+                    log_debug(t('Mapping report column sequence @old to @new', array(
+                        '@old' => $old,
+                        '@new' => $new
+                    )));
+                    $reportConfig->model->columnOrder[$key] = $new;
+                    $updates++;
+                }
+            }
+        }
+
+        // update column sorts
+        if (!empty($reportConfig->model->orderBy)) {
+            foreach ($reportConfig->model->orderBy as $key => $value) {
+                $old = $value->column;
+                if (isset($datasetColumnMaps[$reportDatasetName][$old])) {
+                    $new = $datasetColumnMaps[$reportDatasetName][$old];
+                    log_debug(t('Mapping report data sorting column @old to @new', array(
+                        '@old' => $old,
+                        '@new' => $new
+                    )));
+                    $reportConfig->model->orderBy[$key]->column = $new;
+                    $updates++;
+                }
+            }
+        }
+
+        // update visual series
+        if (!empty($reportConfig->visual->series)) {
+            $newSeries = array();
+            foreach ($reportConfig->visual->series as $old => $value) {
+                if (isset($datasetColumnMaps[$reportDatasetName][$old])) {
+                    $new = $datasetColumnMaps[$reportDatasetName][$old];
+                    log_debug(t('Mapping report visual series column @old to @new', array(
+                        '@old' => $old,
+                        '@new' => $new
+                    )));
+                    $newSeries[$new] = $value;
+                    $updates++;
+                }
+                else {
+                    $newSeries[$old] = $value;
+                }
+            }
+            $reportConfig->visual->series = $newSeries;
+        }
+
+        // update traffic column
+        if (!empty($reportConfig->visual->trafficColumn)) {
+            $old = $reportConfig->visual->trafficColumn;
+            if (isset($datasetColumnMaps[$reportDatasetName][$old])) {
+                $new = $datasetColumnMaps[$reportDatasetName][$old];
+                log_debug(t('Mapping report visual traffic column @old to @new', array(
+                    '@old' => $old,
+                    '@new' => $new
+                )));
+                $reportConfig->visual->trafficColumn = $new;
+                $updates++;
+            }
+        }
+
+        // update traffic columns
+        if (!empty($reportConfig->visual->traffic)) {
+            foreach ($reportConfig->visual->traffic as $key => $value) {
+                $old = $reportConfig->visual->traffic[$key]->trafficColumn;
+                if (isset($datasetColumnMaps[$reportDatasetName][$old])) {
+                    $new = $datasetColumnMaps[$reportDatasetName][$old];
+                    log_debug(t('Mapping report visual traffic (v2) column @old to @new', array(
+                        '@old' => $old,
+                        '@new' => $new
+                    )));
+                    $reportConfig->visual->traffic[$key]->trafficColumn = $new;
+                    $updates++;
+                }
+            }
+        }
+
+        // update filters
+        if (!empty($reportConfig->model->filters)) {
+            foreach ($reportConfig->model->filters as $key => $value) {
+                $old = $value->column;
+                if (isset($datasetColumnMaps[$reportDatasetName][$old])) {
+                    $new = $datasetColumnMaps[$reportDatasetName][$old];
+                    log_debug(t('Mapping report model filter column @old to @new', array(
+                        '@old' => $old,
+                        '@new' => $new
+                    )));
+                    $reportConfig->model->filters[$key]->column = $new;
+                    $updates++;
+                }
+            }
+        }
+
+        if ($updates > 0) {
+            $reportNode->field_report_conf[$reportNode->language][0]['value'] = json_encode($reportConfig);
+            node_save($reportNode);
+        }
+    }
+}
+
+function dashboard_column_update_7112($datasourceName, $datasetColumnMaps) {
+    gd_datasource_set_active($datasourceName);
+
+    $dashboardNodes = gd_dashboard_findall_by_datasource(LOAD_ENTITY, $datasourceName, FALSE);
+    foreach ($dashboardNodes as $dashboardNode) {
+        log_info(t('Converting dashboard config: @nodeId', array('@nodeId' => $dashboardNode->nid)));
+
+        $dashboardConfig = json_decode(get_node_field_value($dashboardNode, 'field_dashboard_config', 0, 'value', TRUE));
+
+        // array cast to deal with json decoder creating objects for arrays with missing keys
+        $dashboardConfig->drilldowns = (array) $dashboardConfig->drilldowns;
+        if (empty($dashboardConfig->drilldowns)) {
+            continue; // keep looking
+        }
+
+        // Update column names used in drilldowns
+        $drilldownModifiedCount = 0;
+        foreach ($dashboardConfig->drilldowns as $drilldown) {
+            $reportNode = gd_report_get_by_nid($drilldown->report);
+            if (!$reportNode) {
+                log_warn(t('Missing report in drilldown for dashboard'));
+                continue; // go to next drilldown
+            }
+
+            $reportDatasetName = get_node_field_value($reportNode, 'field_report_dataset_sysnames');
+            if (!isset($datasetColumnMaps[$reportDatasetName])) {
+                $message = t('Missing report dataset in drilldown for dashboard');
+                log_warn($message);
+                continue; // go to next drilldown
+            }
+
+            $old = $drilldown->column;
+            if (isset($datasetColumnMaps[$reportDatasetName][$old])) {
+                $new = $datasetColumnMaps[$reportDatasetName][$drilldown->column];
+                log_debug(t('Mapping dashboard drill down column @old to @new', array(
+                    '@old' => $old,
+                    '@new' => $new
+                )));
+                $drilldown->column = $new;
+                $drilldownModifiedCount++;
+            }
+        }
+
+        if ($drilldownModifiedCount > 0) {
+            $dashboardNode->field_dashboard_config[$dashboardNode->language][0]['value'] = json_encode($dashboardConfig);
+            node_save($dashboardNode);
+        }
+    }
+}
+
+/**
+ * Converts reports and dashboards to use new Date & Time dimension
+ */
+function gd_data_controller_metamodel_update_7112(&$sandbox) {
+    $mappings = array(
+        'date2' => array(
+            // Confirmed Date Dimension v1.1
+            'date' => '',
+            'month.month_first_date' => 'month',
+            'month.month_name' => 'month_name',
+            'month.series@common:month_def/month_name@common:level_months' => 'month_series',
+            'month.code@common:month_def/month_name@common:level_months' => 'month_name_short',
+            'month.name@common:month_def/month_name@common:level_months' => 'month_name',
+            'quarter.quarter_first_date' => 'quarter_fiscal',
+            'quarter.quarter_code' => 'quarter_name_fiscal',
+            'quarter.series@common:quarter_def/quarter_code@common:level_quarters' => 'quarter_series_fiscal',
+            'quarter.code@common:quarter_def/quarter_code@common:level_quarters' => 'quarter_name_fiscal',
+            'quarter.name@common:quarter_def/quarter_code@common:level_quarters' => 'quarter_name_fiscal',
+            'year.entry_year' => 'year_fiscal',
+            // Confirmed Date Dimension v1.0
+            'date.entry_date' => '',
+            'month' => 'month',
+            'quarter' => 'quarter_fiscal'),
+        'date:year2' => array(
+            // Confirmed Date Dimension v1.0
+            'year.entry_year' => ''));
+    // 2014-10-22 some reports were created using old date dimension and then date column was converted to datetime
+    $mappings['datetime'] = $mappings['date2'];
+
+    log_info(t("Converting reports and dashboards to use new Date & Time dimension"));
+
+    $columnQuery = new EntityFieldQuery();
+    $columnQuery->addTag('DANGEROUS_ACCESS_CHECK_OPT_OUT');
+    $columnQuery->entityCondition('entity_type', 'node');
+    $columnQuery->propertyCondition('type', NODE_TYPE_COLUMN);
+    $columnQuery->fieldCondition('field_column_datatype', 'value', array('date2', 'date:year2', 'datetime'));
+    $columnEntities = $columnQuery->execute();
+
+    $column_nids = isset($columnEntities['node']) ? array_keys($columnEntities['node']) : NULL;
+
+    $columnNodes = isset($column_nids) ? node_load_multiple($column_nids) : NULL;
+    if (isset($columnNodes)) {
+        // preparing dataset nodes
+        $datasetColumnNames = NULL;
+        foreach ($columnNodes as $columnNode) {
+            if (!isset($columnNode->field_column_dataset[$columnNode->language][0]['nid'])) {
+                log_warn(t(
+                    'Column node is not associated with any datasets: @nodeId',
+                    array('@nodeId' => $columnNode->nid)));
+                continue;
+            }
+            $dataset_nid = $columnNode->field_column_dataset[$columnNode->language][0]['nid'];
+
+            if (!isset($columnNode->field_column_sysname[$columnNode->language][0]['value'])) {
+                log_warn(t(
+                    'System name is not set for the column node: @nodeId',
+                    array('@nodeId' => $columnNode->nid)));
+                continue;
+            }
+            $columnName = $columnNode->field_column_sysname[$columnNode->language][0]['value'];
+
+            $columnType = $columnNode->field_column_datatype[$columnNode->language][0]['value'];
+
+            $datasetColumnNames[$dataset_nid][$columnName] = $columnType;
+        }
+        $datasetNodes = isset($datasetColumnNames) ? node_load_multiple(array_keys($datasetColumnNames)) : NULL;
+
+        // preparing list of data sources
+        $datasourceNames = NULL;
+        if (isset($datasetNodes)) {
+            foreach ($datasetNodes as $dataset_nid => $datasetNode) {
+                if (!isset($datasetNode->field_dataset_datasource[$datasetNode->language][0]['value'])) {
+                    log_warn(t(
+                        'Dataset node is not associated with any data sources: @nodeId',
+                        array('@nodeId' => $datasetNode->nid)));
+                    continue;
+                }
+                $datasourceName = $datasetNode->field_dataset_datasource[$datasetNode->language][0]['value'];
+
+                if (!isset($datasetNode->field_dataset_sysname[$datasetNode->language][0]['value'])) {
+                    log_warn(t(
+                        'System name is not set for the dataset node: @nodeId',
+                        array('@nodeId' => $datasetNode->nid)));
+                    continue;
+                }
+
+                $datasourceNames[$datasourceName][] = $dataset_nid;
+            }
+        }
+
+        // preparing structure for report and dashboard conversion
+        if (isset($datasourceNames)) {
+            foreach ($datasourceNames as $datasourceName => $dataset_nids) {
+                $columnMapping = NULL;
+                foreach ($dataset_nids as $dataset_nid) {
+                    $datasetNode = $datasetNodes[$dataset_nid];
+                    $datasetName = $datasetNode->field_dataset_sysname[$datasetNode->language][0]['value'];
+
+                    foreach ($datasetColumnNames[$dataset_nid] as $columnName => $columnType) {
+                        foreach ($mappings[$columnType] as $oldSuffix => $newSuffix) {
+                            // adjusting new suffix based on other configuration parameters
+                            if (($oldSuffix == 'year.entry_year') && ($newSuffix == 'year_fiscal') && (FiscalYearConfiguration::$FIRST_MONTH == 1)) {
+                                $newSuffix = 'year_calendar';
+                            }
+
+                            $oldColumnName = 'attr:' . $columnName . '.' . $oldSuffix;
+
+                            $newColumnName = 'attr:' . $columnName . '.' . $columnName;
+                            if ($newSuffix != '') {
+                                $newColumnName .= '.' . $columnName . '__' . $newSuffix;
+                            }
+
+                            $columnMapping[$datasetName][$oldColumnName] = $newColumnName;
+                        }
+                    }
+                }
+                if (!isset($columnMapping)) {
+                    continue;
+                }
+
+                log_info(t('Converting reports to use new date dimension: @datasourceName', array('@datasourceName' => $datasourceName)));
+                report_column_update_7112($datasourceName, $columnMapping);
+
+                log_info(t('Converting dashboards to use new date dimension: @datasourceName', array('@datasourceName' => $datasourceName)));
+                dashboard_column_update_7112($datasourceName, $columnMapping);
+
+                log_info(t('Conversion completed: @datasourceName', array('@datasourceName' => $datasourceName)));
+            }
+        }
+    }
+
+    log_info(t('Reports and Dashboard converted to use new Date Dimension'));
+}
+
+/**
+ * [1.22.S3] Removing 'useless' column descriptions
+ */
+function gd_data_controller_metamodel_update_7113(&$sandbox) {
+    if (!isset($sandbox['total'])) {
+        $sandbox['total'] = db_select('node', 'n')
+            ->condition('type', NODE_TYPE_COLUMN)->countQuery()->execute()
+            ->fetchField();
+        $sandbox['progress'] = 0;
+        $sandbox['converted'] = 0;
+        $sandbox['current_nid'] = 0;
+        log_info(t("Removing 'useless' column descriptions"));
+    }
+
+    $columns = db_select('node', 'n')
+        ->fields('n', array('nid'))
+        ->condition('type', NODE_TYPE_COLUMN)
+        ->condition('nid', $sandbox['current_nid'], '>')
+        ->orderBy('nid', 'ASC')
+        ->range(0, 50)
+        ->execute();
+
+    $nids = array();
+    foreach ($columns as $column) {
+        $nids[] = $column->nid;
+    }
+
+    if (count($nids) > 0) {
+        $nodes = node_load_multiple($nids);
+        foreach ($nodes as $node) {
+            if (isset($node->title) && isset($node->field_column_desc[$node->language][0]['value'])) {
+                if (strtolower($node->title) == strtolower($node->field_column_desc[$node->language][0]['value'])) {
+                    // removing the column description
+                    $node->field_column_desc[$node->language][0]['value'] = NULL;
+                    node_save($node);
+
+                    $sandbox['converted']++;
+                }
+            }
+
+            $sandbox['current_nid'] = $node->nid;
+            $sandbox['progress']++;
+        }
+    }
+
+    if ($sandbox['progress'] == $sandbox['total']) {
+        log_info(t(
+            'Converted @convertedNodeCount out of @totalNodeCount nodes',
+            array(
+                '@convertedNodeCount' => $sandbox['converted'],
+                '@totalNodeCount' => $sandbox['total']
+            )));
+        $sandbox['#finished'] = 1;
+    }
+    else {
+        $sandbox['#finished'] = $sandbox['progress'] / $sandbox['total'];
+    }
+}
+
+/**
+ * [1.23.S1] Removing support for unique key
+ */
+function gd_data_controller_metamodel_update_7114(&$sandbox) {
+    if (!isset($sandbox['total'])) {
+        $sandbox['total'] = db_select('node', 'n')
+            ->condition('type', NODE_TYPE_COLUMN)->countQuery()->execute()
+            ->fetchField();
+        $sandbox['progress'] = 0;
+        $sandbox['converted'] = 0;
+        $sandbox['current_nid'] = 0;
+        log_info(t("Removing support for unique key"));
+    }
+
+    global $databases;
+
+    $columns = db_select('node', 'n')
+        ->fields('n', array('nid'))
+        ->condition('type', NODE_TYPE_COLUMN)
+        ->condition('nid', $sandbox['current_nid'], '>')
+        ->orderBy('nid', 'ASC')
+        ->range(0, 20)
+        ->execute();
+
+    $nids = array();
+    foreach ($columns as $column) {
+        $nids[] = $column->nid;
+    }
+
+    if (count($nids) > 0) {
+        $isNodeProcessed = FALSE;
+
+        $nodes = node_load_multiple($nids);
+        foreach ($nodes as $node) {
+            if (isset($node->field_column_unique[$node->language][0]['value']) && ($node->field_column_unique[$node->language][0]['value'] == 1)) {
+                // processing only one node at a time
+                if ($isNodeProcessed) {
+                    break;
+                }
+
+                log_info(t('Processing the column node: @nodeId', array('@nodeId' => $node->nid)));
+
+                // preparing column system name
+                if (!isset($node->field_column_sysname[$node->language][0]['value'])) {
+                    throw new IllegalStateException(t('System Name is not set for the node: @nodeId', array('@nodeId' => $node->nid)));
+                }
+                $columnName = $node->field_column_sysname[$node->language][0]['value'];
+
+                // preparing dataset node
+                if (!isset($node->field_column_dataset[$node->language][0]['nid'])) {
+                    throw new IllegalStateException(t('Dataset reference is not set for the node: @nodeId', array('@nodeId' => $node->nid)));
+                }
+                $dataset_nid = $node->field_column_dataset[$node->language][0]['nid'];
+                log_debug(t('Column dataset node: @nodeId', array('@nodeId' => $dataset_nid)));
+
+                // loading dataset node
+                $datasetNode = node_load($dataset_nid);
+                if (!isset($datasetNode->field_dataset_source[$datasetNode->language][0]['value'])) {
+                    throw new IllegalStateException(t('Source Name is not set for the node: @nodeId', array('@nodeId' => $datasetNode->nid)));
+                }
+                // preparing the dataset table name
+                $tableName = $datasetNode->field_dataset_source[$datasetNode->language][0]['value'] . '_facts';
+
+                // preparing data source name
+                if (isset($datasetNode->field_dataset_datasource[$datasetNode->language][0]['value'])) {
+                    $datasourceName = $datasetNode->field_dataset_datasource[$datasetNode->language][0]['value'];
+
+                    // loading data source node
+                    $datasourceQuery = new EntityFieldQuery();
+                    $datasourceQuery->entityCondition('entity_type', 'node');
+                    $datasourceQuery->propertyCondition('type', NODE_TYPE_DATAMART);
+                    $datasourceQuery->addTag('DANGEROUS_ACCESS_CHECK_OPT_OUT');
+                    $datasourceQuery->fieldCondition('field_datamart_sysname', 'value', $datasourceName);
+                    $datasourceEntities = $datasourceQuery->execute();
+                    $datasource_nids = isset($datasourceEntities['node']) ? array_keys($datasourceEntities['node']) : NULL;
+                    if (count($datasource_nids) != 1) {
+                        throw new IllegalStateException(t(
+                            'Found @count data sources instead of 1 for the node',
+                            array('@count' => count($datasource_nids))));
+                    }
+                    $datasource_nid = $datasource_nids[0];
+                    $datasourceNode = node_load($datasource_nid);
+                    log_debug(t('Data source node: @nodeId', array('@nodeId' => $datasource_nid)));
+
+                    // preparing database name
+                    $datasetSchemaName = $message = NULL;
+                    if (isset($datasourceNode->field_datamart_options[$datasourceNode->language][0]['value'])) {
+                        $datasourceOptions = json_decode($datasourceNode->field_datamart_options[$datasourceNode->language][0]['value'], TRUE);
+                        if (isset($datasourceOptions)) {
+                            if (isset($datasourceOptions['database'])) {
+                                $datasetSchemaName = StringHelper::trim($datasourceOptions['database']);
+                            }
+                            if (!isset($datasetSchemaName)) {
+                                $message = t("'database' option is not set for the node: @nodeId", array('@nodeId' => $datasourceNode->nid));
+                            }
+                        }
+                        else {
+                            $message = t('Could not decode options for the node: @nodeId', array('@nodeId' => $datasourceNode->nid));
+                        }
+                    }
+                    else {
+                        $message = t('Options are not set for the node: @nodeId', array('@nodeId' => $datasourceNode->nid));
+                    }
+
+                    // trying to resolve an issue with inaccessible database name
+                    $ignoreNode = FALSE;
+                    if (isset($datasetSchemaName)) {
+                        // checking type of the data source. For now we only support MySQL database for this update operation
+                        $type = NULL;
+                        if (isset($datasourceNode->field_datamart_type[$datasourceNode->language][0]['value'])) {
+                            $type = $datasourceNode->field_datamart_type[$datasourceNode->language][0]['value'];
+                        }
+                        else {
+                            // using parent data source to find out type
+                            if (isset($datasourceNode->field_datamart_parent_sysname[$datasourceNode->language][0]['value'])) {
+                                $parentDataSourceName = StringHelper::trim($datasourceNode->field_datamart_parent_sysname[$datasourceNode->language][0]['value']);
+                                if (isset($parentDataSourceName)) {
+                                    list($namespace, $datasourceNameOnly) = NameSpaceHelper::splitAlias($parentDataSourceName);
+                                    if (isset($namespace) && isset($datasourceNameOnly)) {
+                                        if (isset($databases[$namespace][$datasourceNameOnly])) {
+                                            $databaseConfig = $databases[$namespace][$datasourceNameOnly];
+                                            if (isset($databaseConfig['driver'])) {
+                                                $type = $databaseConfig['driver'];
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            if (!isset($type)) {
+                                throw new IllegalStateException(t(
+                                    "Undefined 'type' property for '@datasourceName' data source",
+                                    array('@datasourceName' => $datasourceName)));
+                            }
+                        }
+                        switch ($type) {
+                            case 'mysql':
+                                break;
+                            case 'oracle':
+                                $datasetSchemaName = NULL;
+                                $message = t('[Oracle data source] Ignoring conversion for the node');
+                                $ignoreNode = TRUE;
+                                break;
+                            default:
+                                throw new IllegalStateException(t(
+                                    "Unsupported '@datasourceType' type of '@datasourceName' data source",
+                                    array(
+                                        '@datasourceType' => $type,
+                                        '@datasourceName' => $datasourceName
+                                    )));
+                        }
+                    }
+                    else {
+                        // using parent data source
+                        if (isset($datasourceNode->field_datamart_parent_sysname[$datasourceNode->language][0]['value'])) {
+                            $parentDataSourceName = StringHelper::trim($datasourceNode->field_datamart_parent_sysname[$datasourceNode->language][0]['value']);
+                            if (isset($parentDataSourceName)) {
+                                list($namespace, $datasourceNameOnly) = NameSpaceHelper::splitAlias($parentDataSourceName);
+                                if (isset($namespace) && isset($datasourceNameOnly)) {
+                                    if (isset($databases[$namespace][$datasourceNameOnly])) {
+                                        $databaseConfig = $databases[$namespace][$datasourceNameOnly];
+                                        if (isset($databaseConfig['driver'])) {
+                                            switch ($databaseConfig['driver']) {
+                                                case 'mysql':
+                                                    if (isset($databaseConfig['database'])) {
+                                                        $datasetSchemaName = $databaseConfig['database'];
+                                                    }
+                                                    else {
+                                                        throw new IllegalStateException(t(
+                                                            "Undefined 'database' property for '@parentDatasourceName' data source",
+                                                            array('@parentDatasourceName' => $parentDataSourceName)));
+                                                    }
+                                                    break;
+                                                case 'oracle':
+                                                    log_warn(t('[Oracle data source] Ignoring conversion for the node'));
+                                                    $ignoreNode = TRUE;
+                                                    break;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (isset($datasetSchemaName)) {
+                        // loading list of unique constraints for the table
+                        $uniqueConstraintNames = NULL;
+                        $query = db_select('information_schema.table_constraints', 'c');
+                        $query->fields('c', array('constraint_name'));
+                        $query->condition('c.constraint_schema', $datasetSchemaName);
+                        $query->condition('c.table_schema', $datasetSchemaName);
+                        $query->condition('c.table_name', $tableName);
+                        $query->condition('c.constraint_type', 'UNIQUE');
+                        $statement = $query->execute();
+                        foreach ($statement as $record) {
+                            $uniqueConstraintNames[] = $record->constraint_name;
+                        }
+
+                        // checking if any unique constraints are for the column
+                        $selectedUniqueConstraintName = NULL;
+                        if (isset($uniqueConstraintNames)) {
+                            foreach ($uniqueConstraintNames as $uniqueConstraintName) {
+                                $query = db_select('information_schema.key_column_usage', 'c');
+                                $query->fields('c', array(
+                                    'column_name',
+                                    'ordinal_position'
+                                ));
+                                $query->condition('c.constraint_schema', $datasetSchemaName);
+                                $query->condition('c.table_schema', $datasetSchemaName);
+                                $query->condition('c.table_name', $tableName);
+                                $query->condition('c.constraint_name', $uniqueConstraintName);
+                                $query->orderBy('c.ordinal_position');
+                                $statement = $query->execute();
+                                foreach ($statement as $record) {
+                                    if ($record->column_name == $columnName) {
+                                        if ($record->ordinal_position != 1) {
+                                            throw new IllegalStateException(t(
+                                                'Unsupported composite unique key constraint: @constraintName',
+                                                array('@constraintName' => $uniqueConstraintName)));
+                                        }
+
+                                        if (isset($selectedUniqueConstraintName)) {
+                                            throw new IllegalStateException(t(
+                                                'Found several unique key constraints for a column: [@constraintNameA, @constraintNameB]',
+                                                array(
+                                                    '@constraintNameA' => $selectedUniqueConstraintName,
+                                                    '@constraintNameB' => $uniqueConstraintName
+                                                )));
+                                        }
+
+                                        $selectedUniqueConstraintName = $uniqueConstraintName;
+                                    }
+                                }
+                            }
+                        }
+
+
+                        if (isset($selectedUniqueConstraintName)) {
+                            // we need to do additional checks for possible foreign keys for the column
+                            $referenceConstraintName = $referenceTableName = $referenceColumnName = NULL;
+                            $query = db_select('INFORMATION_SCHEMA.key_column_usage', 'c');
+                            $query->fields('c', array('constraint_name', 'referenced_table_name', 'referenced_column_name'));
+                            $query->condition('c.constraint_schema', $datasetSchemaName);
+                            $query->condition('c.table_schema', $datasetSchemaName);
+                            $query->condition('c.table_name', $tableName);
+                            $query->condition('c.column_name', $columnName);
+                            $query->isNotNull('c.referenced_table_name');
+                            $query->isNotNull('c.referenced_column_name');
+                            $statement = $query->execute();
+                            foreach ($statement as $record) {
+                                $referenceConstraintName = $record->constraint_name;
+                                $referenceTableName = $record->referenced_table_name;
+                                $referenceColumnName = $record->referenced_column_name;
+                            }
+
+                            // checking if the columns is referenced by other tables
+                            $referencedBy = NULL;
+                            $query = db_select('INFORMATION_SCHEMA.key_column_usage', 'c');
+                            $query->fields('c', array('constraint_name', 'table_name', 'column_name'));
+                            $query->condition('c.constraint_schema', $datasetSchemaName);
+                            $query->condition('c.table_schema', $datasetSchemaName);
+                            $query->condition('c.referenced_table_name', $tableName);
+                            $query->condition('c.referenced_column_name', $columnName);
+                            $statement = $query->execute();
+                            foreach ($statement as $record) {
+                                $referencedBy[] = array(
+                                    'constraintName' => $record->constraint_name,
+                                    'tableName' => $record->table_name,
+                                    'columnName' => $record->column_name);
+                            }
+
+                            // loading primary key constraint name
+                            $primaryKeyConstraintName = NULL;
+                            $query = db_select('information_schema.table_constraints', 'c');
+                            $query->fields('c', array('constraint_name'));
+                            $query->condition('c.constraint_schema', $datasetSchemaName);
+                            $query->condition('c.table_schema', $datasetSchemaName);
+                            $query->condition('c.table_name', $tableName);
+                            $query->condition('c.constraint_type', 'PRIMARY KEY');
+                            $statement = $query->execute();
+                            foreach ($statement as $record) {
+                                $primaryKeyConstraintName = $record->constraint_name;
+                            }
+
+                            // loading primary key constraint columns
+                            $primaryKeyColumnNames = NULL;
+                            if (isset($primaryKeyConstraintName)) {
+                                $query = db_select('information_schema.key_column_usage', 'c');
+                                $query->fields('c', array('column_name'));
+                                $query->condition('c.constraint_schema', $datasetSchemaName);
+                                $query->condition('c.table_schema', $datasetSchemaName);
+                                $query->condition('c.table_name', $tableName);
+                                $query->condition('c.constraint_name', $primaryKeyConstraintName);
+                                $query->orderBy('c.ordinal_position');
+                                $statement = $query->execute();
+                                foreach ($statement as $record) {
+                                    $primaryKeyColumnNames[] = $record->column_name;
+                                }
+                            }
+
+                            // checking if the column is part of the primary key constraint
+                            $primaryKeyColumnIndex = isset($primaryKeyColumnNames)
+                                ? array_search($columnName, $primaryKeyColumnNames)
+                                : FALSE;
+
+                            $sqls = array();
+
+                            // removing foreign key constraint to allow removing of the unique key
+                            if (isset($referenceConstraintName)) {
+                                $sqls[] = "ALTER TABLE $datasetSchemaName.$tableName DROP FOREIGN KEY $referenceConstraintName";
+                            }
+
+                            // removing foreign key constraints which refer to the column
+                            if (isset($referencedBy)) {
+                                foreach ($referencedBy as $r) {
+                                    $referencedByConstraintName = $r['constraintName'];
+                                    $referencedByTableName = $r['tableName'];
+                                    $sqls[] = "ALTER TABLE $datasetSchemaName.$referencedByTableName DROP FOREIGN KEY $referencedByConstraintName";
+                                }
+                            }
+
+                            if ($primaryKeyColumnIndex !== FALSE) {
+                                $sqls[] = "ALTER TABLE $datasetSchemaName.$tableName DROP PRIMARY KEY";
+                            }
+
+                            $sqls[] = "ALTER TABLE $datasetSchemaName.$tableName DROP KEY $selectedUniqueConstraintName";
+
+                            // creating primary key, if necessary
+                            if ($primaryKeyColumnIndex !== FALSE) {
+                                $s = implode(', ', $primaryKeyColumnNames);
+                                $sqls[] = "ALTER TABLE $datasetSchemaName.$tableName ADD PRIMARY KEY ($s)";
+                            }
+                            elseif (!isset($primaryKeyColumnNames) && isset($referencedBy)) {
+                                // the unique key is used as primary key to refer to this table. we need to replace the unique key with primary key
+                                $sqls[] = "ALTER TABLE $datasetSchemaName.$tableName ADD PRIMARY KEY ($columnName)";
+
+                                // we need to mark that the column now is part of the primary key
+                                $node->field_column_key[$node->language][0]['value'] = 1;
+                            }
+
+                            // restoring foreign key constraints which refer to the column
+                            if (isset($referencedBy)) {
+                                foreach ($referencedBy as $r) {
+                                    $referencedByConstraintName = $r['constraintName'];
+                                    $referencedByTableName = $r['tableName'];
+                                    $referencedByColumnName = $r['columnName'];
+                                    $sqls[] = "ALTER TABLE $datasetSchemaName.$referencedByTableName ADD CONSTRAINT $referencedByConstraintName FOREIGN KEY ($referencedByColumnName) REFERENCES $tableName($columnName)";
+                                }
+                            }
+
+                            // restoring foreign key constraint
+                            if (isset($referenceConstraintName)) {
+                                $sqls[] = "ALTER TABLE $datasetSchemaName.$tableName ADD CONSTRAINT $referenceConstraintName FOREIGN KEY($columnName) REFERENCES $referenceTableName($referenceColumnName)";
+                            }
+
+                            // logging all statements first
+                            foreach ($sqls as $sql) {
+                                log_info($sql);
+                            }
+
+                            // executing the statements
+                            foreach ($sqls as $sql) {
+                                db_query($sql);
+                            }
+
+                            $sandbox['converted']++;
+
+                            $isNodeProcessed = TRUE;
+                        }
+
+                        // un-registering the column uniqueness
+                        $node->field_column_unique[$node->language][0]['value'] = NULL;
+                        node_save($node);
+                    }
+                    else {
+                        if ($ignoreNode) {
+                            log_warn($message);
+                        }
+                        else {
+                            throw new IllegalStateException($message);
+                        }
+                    }
+                }
+                else {
+                    if ($datasetNode->status == NODE_PUBLISHED) {
+                        log_warn(t('Data Source Name is not set for the node: @nodeId', array('@nodeId' => $datasetNode->nid)));
+                    }
+                }
+            }
+
+            $sandbox['current_nid'] = $node->nid;
+            $sandbox['progress']++;
+        }
+    }
+
+    if ($sandbox['progress'] == $sandbox['total']) {
+        log_info(t(
+            'Removed UNIQUE constraint for @convertedNodeCount out of @totalNodeCount columns',
+            array(
+                '@convertedNodeCount' => $sandbox['converted'],
+                '@totalNodeCount' => $sandbox['total']
+            )));
+        $sandbox['#finished'] = 1;
+    }
+    else {
+        $sandbox['#finished'] = $sandbox['progress'] / $sandbox['total'];
+    }
+}
+
+function __remove_level_update_7116($uiColumnName) {
+    list($namespace, $columnName) = AbstractDatasetUIMetaDataGenerator::splitElementUIMetaDataName($uiColumnName);
+    if (!isset($namespace)) {
+        throw new IllegalArgumentException(t(
+            'Name space has not been defined for the column name: @columnName',
+            array('@columnName' => $uiColumnName)));
+    }
+
+    $adjustedUIColumnName = $uiColumnName;
+    if ($namespace == AbstractAttributeUIMetaData::NAME_SPACE) {
+        $elements = explode(ParameterNameHelper::DELIMITER__DEFAULT, $columnName);
+
+        list($dimensionReference, $dimensionName) = ReferencePathHelper::splitReference($elements[0]);
+        $levelName = isset($elements[1]) ? $elements[1] : NULL;
+        $leafName = isset($elements[2]) ? $elements[2] : NULL;
+
+        if (isset($levelName)) {
+            if (isset($leafName) && ($dimensionName != $levelName)) {
+                throw new IllegalArgumentException(t(
+                    'Unsupported level definition in the column name for attribute conversion operation: @columnName',
+                    array('@columnName' => $uiColumnName)));
+            }
+
+            if ($dimensionName == $levelName) {
+                $adjustedUIColumnName = AbstractDatasetUIMetaDataGenerator::prepareElementUIMetaDataName(
+                    $namespace,
+                    ParameterNameHelper::assemble(ReferencePathHelper::assembleReference($dimensionReference, $dimensionName), $leafName));
+            }
+        }
+    }
+    elseif ($namespace == AbstractMeasureUIMetaData::NAME_SPACE) {
+        // changing name for distinct count measure
+        list($measureReference, $measureName) = ReferencePathHelper::splitReference($columnName);
+        $parts = explode(StarSchemaNamingConvention::MEASURE_NAME_DELIMITER, $measureName);
+        if (isset($parts[2]) && ($parts[2] == StarSchemaNamingConvention::$MEASURE_NAME_SUFFIX__DISTINCT_COUNT)) {
+            if ($parts[0] != $parts[1]) {
+                if ($parts[1] == 'date') {
+                    // it is distinct count measure for date dimension
+                }
+                else {
+                    throw new IllegalArgumentException(t(
+                        "Unsupported level definition in the column name for attribute's distinct count measure conversion operation: @columnName",
+                        array('@columnName' => $uiColumnName)));
+                }
+            }
+
+            $adjustedUIColumnName = AbstractDatasetUIMetaDataGenerator::prepareElementUIMetaDataName(
+                $namespace,
+                ReferencePathHelper::assembleReference(
+                    $measureReference,
+                    StarSchemaNamingConvention::getAttributeRelatedMeasureName($parts[0], StarSchemaNamingConvention::$MEASURE_NAME_SUFFIX__DISTINCT_COUNT)));
+        }
+    }
+
+    return $adjustedUIColumnName;
+}
+
+function __report_column_update_7116() {
+    $REPORT_CONFIG_FORMAT = 1;
+
+    $environment_metamodel = data_controller_get_environment_metamodel();
+
+    $columns = db_select('node', 'n')
+        ->fields('n', array('nid'))
+        ->condition('type', NODE_TYPE_REPORT)
+        ->orderBy('nid', 'ASC')
+        ->execute();
+
+    $nids = array();
+    foreach ($columns as $column) {
+        $nids[] = $column->nid;
+    }
+
+    if (count($nids) > 0) {
+        $nodes = node_load_multiple($nids);
+        foreach ($nodes as $node) {
+            log_info(t('Converting report config: @nodeId', array('@nodeId' => $node->nid)));
+
+            $ignoreNode = FALSE;
+            if ($node->status == NODE_NOT_PUBLISHED) {
+                log_info(t('Node is not published'));
+                $ignoreNode = TRUE;
+            }
+
+            $reportConfigText = get_node_field_value($node, 'field_report_conf');
+            $reportConfig = isset($reportConfigText) ? json_decode($reportConfigText) : NULL;
+            if (!isset($reportConfig)) {
+                log_info(t('Report configuration is EMPTY'));
+                continue;
+            }
+
+            if (isset($reportConfig->format) && ($reportConfig->format >= $REPORT_CONFIG_FORMAT)) {
+                log_info(t('The report node has been processed already'));
+                continue;
+            }
+
+            // checking if the data source is published
+            $datasourceName = isset($node->field_report_datasource[$node->language][0]['value'])
+                ? $node->field_report_datasource[$node->language][0]['value']
+                : NULL;
+            $datasource = isset($datasourceName) ? $environment_metamodel->findDataSource($datasourceName) : NULL;
+            if (!isset($datasource)) {
+                log_info(t('Data Source is not accessible for the node'));
+                $ignoreNode = TRUE;
+            }
+
+            try {
+                $updated = FALSE;
+                $changes = NULL;
+
+                // update columns
+                if (!empty($reportConfig->model->columns)) {
+                    $newColumns = array();
+                    foreach ($reportConfig->model->columns as $old) {
+                        if (!isset($old)) {
+                            continue;
+                        }
+                        log_debug(t('Inspecting report model column @old', array('@old' => $old)));
+                        $new = __remove_level_update_7116($old);
+                        if ($old != $new) {
+                            log_debug(t('Mapping report model column @old to @new', array('@old' => $old, '@new' => $new)));
+                            $changes[$old] = $new;
+                        }
+                        $newColumns[] = $new;
+                    }
+                    $reportConfig->model->columns = $newColumns;
+                    $updated = TRUE;
+                }
+
+                // update column configs
+                if (!empty($reportConfig->columnConfigs)) {
+                    foreach ($reportConfig->columnConfigs as $key => $value) {
+                        $old = $value->columnId;
+                        log_debug(t('Inspecting report column config @old', array('@old' => $old)));
+                        $new = __remove_level_update_7116($old);
+                        if ($old != $new) {
+                            log_debug(t('Mapping report column config @old to @new', array('@old' => $old, '@new' => $new)));
+                            $reportConfig->columnConfigs[$key]->columnId = $new;
+                            $changes[$old] = $new;
+                        }
+                    }
+                }
+
+                // update column orders
+                if (!empty($reportConfig->model->columnOrder)) {
+                    $newColumnOrder = array();
+                    foreach ($reportConfig->model->columnOrder as $old) {
+                        if (isset($old)) {
+                            log_debug(t('Inspecting report column sequence config @old', array('@old' => $old)));
+                            $new = __remove_level_update_7116($old);
+                            if ($old != $new) {
+                                log_debug(t('Mapping report column sequence @old to @new', array('@old' => $old, '@new' => $new)));
+                                $changes[$old] = $new;
+                            }
+                            $newColumnOrder[] = $new;
+                        }
+                    }
+                    $reportConfig->model->columnOrder = $newColumnOrder;
+
+                    $updated = TRUE;
+                }
+
+                // update column sorts
+                if (!empty($reportConfig->model->orderBy)) {
+                    foreach ($reportConfig->model->orderBy as $key => $value) {
+                        $old = $value->column;
+                        log_debug(t('Inspecting report data sorting column @old', array('@old' => $old)));
+                        $new = __remove_level_update_7116($old);
+                        if ($old != $new) {
+                            log_debug(t('Mapping report data sorting column @old to @new', array('@old' => $old, '@new' => $new)));
+                            $reportConfig->model->orderBy[$key]->column = $new;
+                            $changes[$old] = $new;
+                        }
+                    }
+                }
+
+                // update visual series
+                if (!empty($reportConfig->visual->series)) {
+                    $newSeries = array();
+                    foreach ($reportConfig->visual->series as $old => $value) {
+                        log_debug(t('Inspecting report visual series column @old', array('@old' => $old)));
+                        $new = __remove_level_update_7116($old);
+                        if ($old != $new) {
+                            log_debug(t('Mapping report visual series column @old to @new', array('@old' => $old, '@new' => $new)));
+                            $newSeries[$new] = $value;
+                            $changes[$old] = $new;
+                        }
+                        else {
+                            $newSeries[$old] = $value;
+                        }
+                    }
+                    $reportConfig->visual->series = $newSeries;
+                }
+
+                // update traffic column
+                if (!empty($reportConfig->visual->trafficColumn)) {
+                    $old = $reportConfig->visual->trafficColumn;
+                    log_debug(t('Inspecting report visual traffic column @old', array('@old' => $old)));
+                    $new = __remove_level_update_7116($old);
+                    if ($old != $new) {
+                        log_debug(t('Mapping report visual traffic column @old to @new', array('@old' => $old, '@new' => $new)));
+                        $reportConfig->visual->trafficColumn = $new;
+                        $changes[$old] = $new;
+                    }
+                }
+
+                // update traffic columns (v2)
+                if (!empty($reportConfig->visual->traffic)) {
+                    $newTraffic = array();
+                    foreach ($reportConfig->visual->traffic as $key => $value) {
+                        $old = $value->trafficColumn;
+                        log_debug(t('Inspecting report visual traffic (v2) @old', array('@old' => $old)));
+                        $new = __remove_level_update_7116($old);
+                        if ($old != $new) {
+                            log_debug(t('Mapping report visual traffic (v2) column @old to @new', array('@old' => $old, '@new' => $new)));
+                            $value->trafficColumn = $new;
+                            $changes[$old] = $new;
+                        }
+
+                        // ignoring key and using column name instead
+                        $newTraffic[$new] = $value;
+                        $updated = TRUE;
+                    }
+                    $reportConfig->visual->traffic = $newTraffic;
+                }
+
+                // update filters
+                if (!empty($reportConfig->model->filters)) {
+                    foreach ($reportConfig->model->filters as $key => $value) {
+                        $old = $value->column;
+                        log_debug(t('Inspecting report model filter column @old', array('@old' => $old)));
+                        $new = __remove_level_update_7116($old);
+                        if ($old != $new) {
+                            log_debug(t('Mapping report model filter column @old to @new', array('@old' => $old, '@new' => $new)));
+                            $reportConfig->model->filters[$key]->column = $new;
+                            $changes[$old] = $new;
+                        }
+                    }
+                }
+
+                // update color column
+                if (!empty($reportConfig->visual->useColumnDataForColor)) {
+                    $old = $reportConfig->visual->useColumnDataForColor;
+                    log_debug(t('Inspecting report visual color column @old', array('@old' => $old)));
+                    $new = __remove_level_update_7116($old);
+                    if ($old != $new) {
+                        log_debug(t('Mapping report visual color column @old to @new', array('@old' => $old, '@new' => $new)));
+                        $reportConfig->visual->useColumnDataForColor = $new;
+                        $changes[$old] = $new;
+                    }
+                }
+
+                if ($updated || isset($changes)) {
+                    // updating custom view code
+                    if (isset($changes) && isset($node->field_report_custom_view[$node->language][0]['value'])) {
+                        $customCode = $node->field_report_custom_view[$node->language][0]['value'];
+
+                        $search = $replace = array();
+                        foreach ($changes as $old => $new) {
+                            $search[] = $old;
+                            $replace[] = $new;
+                        }
+
+                        $node->field_report_custom_view[$node->language][0]['value'] = str_replace($search, $replace, $customCode);
+                    }
+
+                    $reportConfig->format = $REPORT_CONFIG_FORMAT;
+
+                    $node->field_report_conf[$node->language][0]['value'] = json_encode($reportConfig);
+                    node_save($node);
+                }
+            }
+            catch (Exception $e) {
+                if ($ignoreNode) {
+                    log_error($e->getMessage());
+                }
+                else {
+                    throw $e;
+                }
+            }
+        }
+    }
+}
+
+function __dashboard_column_update_7116() {
+    $DASHBOARD_CONFIG_FORMAT = 1;
+
+    $environment_metamodel = data_controller_get_environment_metamodel();
+
+    $columns = db_select('node', 'n')
+        ->fields('n', array('nid'))
+        ->condition('type', NODE_TYPE_DASHBOARD)
+        ->orderBy('nid', 'ASC')
+        ->execute();
+
+    $nids = array();
+    foreach ($columns as $column) {
+        $nids[] = $column->nid;
+    }
+
+    if (count($nids) > 0) {
+        $nodes = node_load_multiple($nids);
+        foreach ($nodes as $node) {
+            log_info(t('Converting dashboard config: @nodeId', array('@nodeId' => $node->nid)));
+
+            $ignoreNode = FALSE;
+            if ($node->status == NODE_NOT_PUBLISHED) {
+                log_info(t('Node is not published'));
+                $ignoreNode = TRUE;
+            }
+
+            $dashboardConfigText = get_node_field_value($node, 'field_dashboard_config');
+            $dashboardConfig = isset($dashboardConfigText) ? json_decode($dashboardConfigText) : NULL;
+            if (!isset($dashboardConfig)) {
+                log_info(t('Dashboard configuration is EMPTY'));
+                continue;
+            }
+
+            if (isset($dashboardConfig->format) && ($dashboardConfig->format >= $DASHBOARD_CONFIG_FORMAT)) {
+                log_info(t('The dashboard node has been processed already'));
+                continue;
+            }
+
+            // checking if the data source is published
+            $datasourceName = isset($node->field_dashboard_datasource[$node->language][0]['value'])
+                ? $node->field_dashboard_datasource[$node->language][0]['value']
+                : NULL;
+            $datasource = isset($datasourceName) ? $environment_metamodel->findDataSource($datasourceName) : NULL;
+            if (!isset($datasource)) {
+                log_info(t('Data Source is not accessible for the node'));
+                $ignoreNode = TRUE;
+            }
+
+            try {
+                $updates = 0;
+
+                // array cast to deal with json decoder creating objects for arrays with missing keys
+                $dashboardConfig->drilldowns = (array) $dashboardConfig->drilldowns;
+                // updating column names used in drill-downs
+                if (!empty($dashboardConfig->drilldowns)) {
+                    foreach ($dashboardConfig->drilldowns as $drilldown) {
+                        if (isset($drilldown->column)) {
+                            if (isset($drilldown->column->id)) {
+                                // new format
+                                $old = $drilldown->column->id;
+                                $new = __remove_level_update_7116($old);
+                                if ($old != $new) {
+                                    log_debug(t('Mapping dashboard drill down column @old to @new', array('@old' => $old, '@new' => $new)));
+                                    $drilldown->column->id = $new;
+                                    $updates++;
+                                }
+                            }
+                            else {
+                                // old format
+                                $old = $drilldown->column;
+                                $new = __remove_level_update_7116($old);
+                                if ($old != $new) {
+                                    log_debug(t('Mapping dashboard drill down column @old to @new', array('@old' => $old, '@new' => $new)));
+                                    $drilldown->column = $new;
+                                    $updates++;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if ($updates > 0) {
+                    $dashboardConfig->format = $DASHBOARD_CONFIG_FORMAT;
+
+                    $node->field_dashboard_config[$node->language][0]['value'] = json_encode($dashboardConfig);
+                    node_save($node);
+                }
+            }
+            catch (Exception $e) {
+                if ($ignoreNode) {
+                    log_error($e->getMessage());
+                }
+                else {
+                    throw $e;
+                }
+            }
+        }
+    }
+}
+
+/**
+ * [1.23.S1] Converts reports and dashboards to remove level definition
+ */
+function gd_data_controller_metamodel_update_7116(&$sandbox) {
+    log_info(t("Converting reports and dashboards to remove level definition"));
+
+    log_info(t('Removing level definition in column names in reports'));
+    __report_column_update_7116();
+
+    log_info(t('Removing level definition in column names in dashboards'));
+    __dashboard_column_update_7116();
+
+    log_info(t('Level definition removed from column names in reports and dashboards'));
+}
+
+/**
+ * Converts reports to use associative array in traffic light configuration
+ */
+function gd_data_controller_metamodel_update_7117(&$sandbox) {
+    log_info(t('Converting reports to use associative array in traffic light configuration'));
+
+    $columns = db_select('node', 'n')
+        ->fields('n', array('nid'))
+        ->condition('type', NODE_TYPE_REPORT)
+        ->orderBy('nid', 'ASC')
+        ->execute();
+
+    $nids = array();
+    foreach ($columns as $column) {
+        $nids[] = $column->nid;
+    }
+
+    if (count($nids) > 0) {
+        $nodes = node_load_multiple($nids);
+        foreach ($nodes as $node) {
+            log_info(t('Converting report config: @nodeId', array('@nodeId' => $node->nid)));
+
+            $reportConfigText = get_node_field_value($node, 'field_report_conf');
+            $reportConfig = isset($reportConfigText) ? json_decode($reportConfigText) : NULL;
+            if (!isset($reportConfig)) {
+                log_info(t('Report configuration is EMPTY'));
+                continue;
+            }
+
+            $updated = FALSE;
+
+            // update traffic columns (v2)
+            if (!empty($reportConfig->visual->traffic)) {
+                $newTraffic = array();
+                foreach ($reportConfig->visual->traffic as $key => $value) {
+                    $newKey = $value->trafficColumn;
+
+                    $newTraffic[$newKey] = $value;
+                    $updated = TRUE;
+                }
+                $reportConfig->visual->traffic = $newTraffic;
+            }
+
+            if ($updated) {
+                $node->field_report_conf[$node->language][0]['value'] = json_encode($reportConfig);
+                node_save($node);
+            }
+        }
+    }
+
+    log_info(t('Reports converted to use associative array in traffic light configuration'));
+}
+
+
+/**
+ * Convert column data type 'date:year2' to 'date2:year'
+ */
+function gd_data_controller_metamodel_update_7123(&$sandbox) {
+    if (!isset($sandbox['total'])) {
+        $sandbox['total'] = db_select('node', 'n')
+            ->condition('type', NODE_TYPE_COLUMN)->countQuery()->execute()
+            ->fetchField();
+        $sandbox['progress'] = 0;
+        $sandbox['converted'] = 0;
+        $sandbox['current_nid'] = 0;
+        log_info(t("Converting column data type 'date:year2' to 'date2:year'"));
+    }
+
+    $columns = db_select('node', 'n')
+        ->fields('n', array('nid'))
+        ->condition('type', NODE_TYPE_COLUMN)
+        ->condition('nid', $sandbox['current_nid'], '>')
+        ->orderBy('nid', 'ASC')
+        ->range(0, 50)
+        ->execute();
+
+    $nids = array();
+    foreach ($columns as $column) {
+        $nids[] = $column->nid;
+    }
+
+    if (count($nids) > 0) {
+        $nodes = node_load_multiple($nids);
+        foreach ($nodes as $node) {
+            if (isset($node->field_column_datatype[$node->language][0]['value'])) {
+                $datatype = $node->field_column_datatype[$node->language][0]['value'];
+                if ($datatype == 'date:year2') {
+                    log_info(t("Converting '$datatype' data type to 'date2:year' for the column node: @nodeId", array('@nodeId' => $node->nid)));
+
+                    $node->field_column_datatype[$node->language][0]['value'] = 'date2:year';
+                    node_save($node);
+
+                    $sandbox['converted']++;
+                }
+            }
+
+            $sandbox['current_nid'] = $node->nid;
+            $sandbox['progress']++;
+        }
+    }
+
+    if ($sandbox['progress'] == $sandbox['total']) {
+        log_info(t(
+            'Converted @convertedNodeCount out of @totalNodeCount nodes',
+            array(
+                '@convertedNodeCount' => $sandbox['converted'],
+                '@totalNodeCount' => $sandbox['total']
+            )));
+        $sandbox['#finished'] = 1;
+    }
+    else {
+        $sandbox['#finished'] = $sandbox['progress'] / $sandbox['total'];
+    }
+}
+
+
+function __remove_fact_update_7124($columnName) {
+    $adjustedColumnName = $columnName;
+
+    list($elementNameSpace, $name) = AbstractDatasetUIMetaDataGenerator::splitElementUIMetaDataName($columnName);
+    if ($elementNameSpace == 'column') {
+        $adjustedColumnName = AbstractDatasetUIMetaDataGenerator::prepareElementUIMetaDataName(AbstractAttributeUIMetaData::NAME_SPACE, $name);
+    }
+
+    return $adjustedColumnName;
+}
+
+function __report_column_update_7124() {
+    $columns = db_select('node', 'n')
+        ->fields('n', array('nid'))
+        ->condition('type', NODE_TYPE_REPORT)
+        ->orderBy('nid', 'ASC')
+        ->execute();
+
+    $nids = array();
+    foreach ($columns as $column) {
+        $nids[] = $column->nid;
+    }
+    if (count($nids) == 0) {
+        return;
+    }
+
+    $nodes = node_load_multiple($nids);
+    foreach ($nodes as $node) {
+        log_info(t('Converting report config: @nodeId', array('@nodeId' => $node->nid)));
+
+        $updated = FALSE;
+
+        $reportConfigText = get_node_field_value($node, 'field_report_conf');
+        $reportConfig = isset($reportConfigText) ? json_decode($reportConfigText) : NULL;
+        if (!isset($reportConfig)) {
+            log_info(t('Report configuration is EMPTY'));
+            continue;
+        }
+
+        $changes = NULL;
+
+        // updating columns
+        if (!empty($reportConfig->model->columns)) {
+            $newColumns = array();
+            foreach ($reportConfig->model->columns as $old) {
+                if (!isset($old)) {
+                    continue;
+                }
+
+                $new = __remove_fact_update_7124($old);
+                if ($old != $new) {
+                    log_debug(t('Mapping report model column @old to @new', array('@old' => $old, '@new' => $new)));
+                    $changes[$old] = $new;
+                }
+                $newColumns[] = $new;
+            }
+            $reportConfig->model->columns = $newColumns;
+            $updated = TRUE;
+        }
+
+        // updating column configs
+        if (!empty($reportConfig->columnConfigs)) {
+            foreach ($reportConfig->columnConfigs as $key => $value) {
+                $old = $value->columnId;
+                $new = __remove_fact_update_7124($old);
+                if ($old != $new) {
+                    log_debug(t('Mapping report column config @old to @new', array('@old' => $old, '@new' => $new)));
+                    $reportConfig->columnConfigs[$key]->columnId = $new;
+                    $changes[$old] = $new;
+                }
+            }
+        }
+
+        // updating column orders
+        if (!empty($reportConfig->model->columnOrder)) {
+            $newColumnOrder = array();
+            foreach ($reportConfig->model->columnOrder as $old) {
+                if (isset($old)) {
+                    $new = __remove_fact_update_7124($old);
+                    if ($old != $new) {
+                        log_debug(t('Mapping report column sequence @old to @new', array('@old' => $old, '@new' => $new)));
+                        $changes[$old] = $new;
+                    }
+                    $newColumnOrder[] = $new;
+                }
+            }
+            $reportConfig->model->columnOrder = $newColumnOrder;
+
+            $updated = TRUE;
+        }
+
+        // updating column sorts
+        if (!empty($reportConfig->model->orderBy)) {
+            foreach ($reportConfig->model->orderBy as $key => $value) {
+                $old = $value->column;
+                $new = __remove_fact_update_7124($old);
+                if ($old != $new) {
+                    log_debug(t('Mapping report data sorting column @old to @new', array('@old' => $old, '@new' => $new)));
+                    $reportConfig->model->orderBy[$key]->column = $new;
+                    $changes[$old] = $new;
+                }
+            }
+        }
+
+        // updating visual series
+        if (!empty($reportConfig->visual->series)) {
+            $newSeries = array();
+            foreach ($reportConfig->visual->series as $old => $value) {
+                $new = __remove_fact_update_7124($old);
+                if ($old != $new) {
+                    log_debug(t('Mapping report visual series column @old to @new', array('@old' => $old, '@new' => $new)));
+                    $newSeries[$new] = $value;
+                    $changes[$old] = $new;
+                }
+                else {
+                    $newSeries[$old] = $value;
+                }
+            }
+            $reportConfig->visual->series = $newSeries;
+        }
+
+        // updating traffic column
+        if (!empty($reportConfig->visual->trafficColumn)) {
+            $old = $reportConfig->visual->trafficColumn;
+            $new = __remove_fact_update_7124($old);
+            if ($old != $new) {
+                log_debug(t('Mapping report visual traffic column @old to @new', array('@old' => $old, '@new' => $new)));
+                $reportConfig->visual->trafficColumn = $new;
+                $changes[$old] = $new;
+            }
+        }
+
+        // updating traffic columns (v2)
+        if (!empty($reportConfig->visual->traffic)) {
+            $newTraffic = array();
+            foreach ($reportConfig->visual->traffic as $key => $value) {
+                $old = $value->trafficColumn;
+                $new = __remove_fact_update_7124($old);
+                if ($old != $new) {
+                    log_debug(t('Mapping report visual traffic (v2) column @old to @new', array('@old' => $old, '@new' => $new)));
+                    $value->trafficColumn = $new;
+                    $changes[$old] = $new;
+                }
+
+                // ignoring key and using column name instead
+                $newTraffic[$new] = $value;
+                $updated = TRUE;
+            }
+            $reportConfig->visual->traffic = $newTraffic;
+        }
+
+        // updating filters
+        if (!empty($reportConfig->model->filters)) {
+            foreach ($reportConfig->model->filters as $key => $value) {
+                $old = $value->column;
+                $new = __remove_fact_update_7124($old);
+                if ($old != $new) {
+                    log_debug(t('Mapping report model filter column @old to @new', array('@old' => $old, '@new' => $new)));
+                    $reportConfig->model->filters[$key]->column = $new;
+                    $changes[$old] = $new;
+                }
+            }
+        }
+
+        // updating color column
+        if (!empty($reportConfig->visual->useColumnDataForColor)) {
+            $old = $reportConfig->visual->useColumnDataForColor;
+            $new = __remove_fact_update_7124($old);
+            if ($old != $new) {
+                log_debug(t('Mapping report visual color column @old to @new', array('@old' => $old, '@new' => $new)));
+                $reportConfig->visual->useColumnDataForColor = $new;
+                $changes[$old] = $new;
+            }
+        }
+
+        // updating formulas
+        if (!empty($reportConfig->model->formulas)) {
+            foreach ($reportConfig->model->formulas as $key => $formula) {
+                $old = $formula->expression;
+                $new = str_replace('$COLUMN{column:', '$COLUMN{attr:', $old);
+                if ($old != $new) {
+                    log_debug(t('Updating report model formula expression @old to @new', array('@old' => $old, '@new' => $new)));
+                    $reportConfig->model->formulas[$key]->expression = $new;
+                    $updated = TRUE;
+                }
+            }
+        }
+
+        if ($updated || isset($changes)) {
+            // updating custom view code
+            if (isset($changes) && isset($node->field_report_custom_view[$node->language][0]['value'])) {
+                $customCode = $node->field_report_custom_view[$node->language][0]['value'];
+
+                $search = $replace = array();
+                foreach ($changes as $old => $new) {
+                    $search[] = $old;
+                    $replace[] = $new;
+                }
+
+                $node->field_report_custom_view[$node->language][0]['value'] = str_replace($search, $replace, $customCode);
+            }
+
+            $node->field_report_conf[$node->language][0]['value'] = json_encode($reportConfig);
+            node_save($node);
+        }
+    }
+}
+
+function __dashboard_column_update_7124() {
+    $columns = db_select('node', 'n')
+        ->fields('n', array('nid'))
+        ->condition('type', NODE_TYPE_DASHBOARD)
+        ->orderBy('nid', 'ASC')
+        ->execute();
+
+    $nids = array();
+    foreach ($columns as $column) {
+        $nids[] = $column->nid;
+    }
+    if (count($nids) == 0) {
+        return;
+    }
+
+    $nodes = node_load_multiple($nids);
+    foreach ($nodes as $node) {
+        log_info(t('Converting dashboard config: @nodeId', array('@nodeId' => $node->nid)));
+
+        $dashboardConfigText = get_node_field_value($node, 'field_dashboard_config');
+        $dashboardConfig = isset($dashboardConfigText) ? json_decode($dashboardConfigText) : NULL;
+        if (!isset($dashboardConfig)) {
+            log_info(t('Dashboard configuration is EMPTY'));
+            continue;
+        }
+
+        $updates = 0;
+
+        // array cast to deal with json decoder creating objects for arrays with missing keys
+        $dashboardConfig->drilldowns = (array) $dashboardConfig->drilldowns;
+        // updating column names used in drill-downs
+        if (!empty($dashboardConfig->drilldowns)) {
+            foreach ($dashboardConfig->drilldowns as $drilldown) {
+                if (isset($drilldown->column)) {
+                    if (isset($drilldown->column->id)) {
+                        // new format
+                        $old = $drilldown->column->id;
+                        $new = __remove_fact_update_7124($old);
+                        if ($old != $new) {
+                            log_debug(t('Mapping dashboard drill down column @old to @new', array('@old' => $old, '@new' => $new)));
+                            $drilldown->column->id = $new;
+                            $updates++;
+                        }
+                    }
+                    else {
+                        // old format
+                        $old = $drilldown->column;
+                        $new = __remove_fact_update_7124($old);
+                        if ($old != $new) {
+                            log_debug(t('Mapping dashboard drill down column @old to @new', array('@old' => $old, '@new' => $new)));
+                            $drilldown->column = $new;
+                            $updates++;
+                        }
+                    }
+                }
+            }
+        }
+
+        if ($updates > 0) {
+            $node->field_dashboard_config[$node->language][0]['value'] = json_encode($dashboardConfig);
+            node_save($node);
+        }
+    }
+}
+
+/**
+ * Remove support for facts in reports and dashboards
+ */
+function gd_data_controller_metamodel_update_7124(&$sandbox) {
+    log_info(t("Converting reports and dashboards to use attribute naming convention for facts"));
+
+    log_info(t('Converting facts to attributes in reports'));
+    __report_column_update_7124();
+
+    log_info(t('Converting facts to attributes in dashboards'));
+    __dashboard_column_update_7124();
+
+    log_info(t('Facts converted to attributes in reports and dashboards'));
+}
+
+function __remove_column_suffix_update_7125($columnName) {
+    $adjustedColumnName = $columnName;
+
+    list($elementNameSpace, $name) = AbstractDatasetUIMetaDataGenerator::splitElementUIMetaDataName($columnName);
+    if ($elementNameSpace == 'attr') {
+        list($dimensionName, $columnName) = ParameterNameHelper::split($name);
+        $prefix = $dimensionName . '__';
+        if (strpos($columnName, $prefix) !== FALSE) {
+            $dateColumnName = substr($columnName, strlen($prefix));
+
+            $dateFunctionName = NULL;
+            switch ($dateColumnName) {
+                case 'year_calendar':
+                    $dateFunctionName = 'year';
+                    break;
+                case 'quarter_calendar':
+                    $dateFunctionName = 'quarter';
+                    break;
+                case 'quarter_series_calendar':
+                    $dateFunctionName = 'quarter_series';
+                    break;
+                case 'quarter_name_calendar':
+                    $dateFunctionName = 'quarter_name';
+                    break;
+            }
+
+            if (isset($dateFunctionName)) {
+                $columnName = $dimensionName . '__' . $dateFunctionName;
+                $name = ParameterNameHelper::assemble($dimensionName, $columnName);
+                $adjustedColumnName = AbstractDatasetUIMetaDataGenerator::prepareElementUIMetaDataName(AbstractAttributeUIMetaData::NAME_SPACE, $name);
+            }
+        }
+    }
+
+    return $adjustedColumnName;
+}
+
+function __report_column_update_7125() {
+    $environment_metamodel = data_controller_get_environment_metamodel();
+
+    $columns = db_select('node', 'n')
+        ->fields('n', array('nid'))
+        ->condition('type', NODE_TYPE_REPORT)
+        ->orderBy('nid', 'ASC')
+        ->execute();
+
+    $nids = array();
+    foreach ($columns as $column) {
+        $nids[] = $column->nid;
+    }
+    if (count($nids) == 0) {
+        return;
+    }
+
+    $nodes = node_load_multiple($nids);
+    foreach ($nodes as $node) {
+        log_info(t('Converting report config: @nodeId', array('@nodeId' => $node->nid)));
+
+        $ignoreNode = FALSE;
+        if ($node->status == NODE_NOT_PUBLISHED) {
+            log_warn(t('Node is not published'));
+            $ignoreNode = TRUE;
+        }
+
+        $datasourceName = get_node_field_value($node, 'field_report_datasource');
+        if (isset($datasourceName)) {
+            $datasource = $environment_metamodel->findDataSource($datasourceName);
+            if (!isset($datasource)) {
+                log_warn(t('Data Source cannot be found: @datasourceName', array('@datasourceName' => $datasourceName)));
+                $ignoreNode = TRUE;
+            }
+        }
+        else {
+            log_warn(t('Report Node does not have a reference to a data source'));
+            $ignoreNode = TRUE;
+        }
+
+        try {
+            $updated = FALSE;
+
+            $reportConfigText = get_node_field_value($node, 'field_report_conf');
+            $reportConfig = isset($reportConfigText) ? json_decode($reportConfigText) : NULL;
+            if (!isset($reportConfig)) {
+                log_info(t('Report configuration is EMPTY'));
+                continue;
+            }
+
+            $changes = NULL;
+
+            // updating columns
+            if (!empty($reportConfig->model->columns)) {
+                $newColumns = array();
+                foreach ($reportConfig->model->columns as $old) {
+                    if (!isset($old)) {
+                        continue;
+                    }
+
+                    $new = __remove_column_suffix_update_7125($old);
+                    if ($old != $new) {
+                        log_debug(t('Mapping report model column @old to @new', array('@old' => $old, '@new' => $new)));
+                        $changes[$old] = $new;
+                    }
+                    $newColumns[] = $new;
+                }
+                $reportConfig->model->columns = $newColumns;
+                $updated = TRUE;
+            }
+
+            // updating column configs
+            if (!empty($reportConfig->columnConfigs)) {
+                foreach ($reportConfig->columnConfigs as $key => $value) {
+                    $old = $value->columnId;
+                    $new = __remove_column_suffix_update_7125($old);
+                    if ($old != $new) {
+                        log_debug(t('Mapping report column config @old to @new', array('@old' => $old, '@new' => $new)));
+                        $reportConfig->columnConfigs[$key]->columnId = $new;
+                        $changes[$old] = $new;
+                    }
+                }
+            }
+
+            // updating column orders
+            if (!empty($reportConfig->model->columnOrder)) {
+                $newColumnOrder = array();
+                foreach ($reportConfig->model->columnOrder as $old) {
+                    if (isset($old)) {
+                        $new = __remove_column_suffix_update_7125($old);
+                        if ($old != $new) {
+                            log_debug(t('Mapping report column sequence @old to @new', array('@old' => $old, '@new' => $new)));
+                            $changes[$old] = $new;
+                        }
+                        $newColumnOrder[] = $new;
+                    }
+                }
+                $reportConfig->model->columnOrder = $newColumnOrder;
+
+                $updated = TRUE;
+            }
+
+            // updating column sorts
+            if (!empty($reportConfig->model->orderBy)) {
+                foreach ($reportConfig->model->orderBy as $key => $value) {
+                    $old = $value->column;
+                    $new = __remove_column_suffix_update_7125($old);
+                    if ($old != $new) {
+                        log_debug(t('Mapping report data sorting column @old to @new', array('@old' => $old, '@new' => $new)));
+                        $reportConfig->model->orderBy[$key]->column = $new;
+                        $changes[$old] = $new;
+                    }
+                }
+            }
+
+            // updating visual series
+            if (!empty($reportConfig->visual->series)) {
+                $newSeries = array();
+                foreach ($reportConfig->visual->series as $old => $value) {
+                    $new = __remove_column_suffix_update_7125($old);
+                    if ($old != $new) {
+                        log_debug(t('Mapping report visual series column @old to @new', array('@old' => $old, '@new' => $new)));
+                        $newSeries[$new] = $value;
+                        $changes[$old] = $new;
+                    }
+                    else {
+                        $newSeries[$old] = $value;
+                    }
+                }
+                $reportConfig->visual->series = $newSeries;
+            }
+
+            // updating traffic column
+            if (!empty($reportConfig->visual->trafficColumn)) {
+                $old = $reportConfig->visual->trafficColumn;
+                $new = __remove_column_suffix_update_7125($old);
+                if ($old != $new) {
+                    log_debug(t('Mapping report visual traffic column @old to @new', array('@old' => $old, '@new' => $new)));
+                    $reportConfig->visual->trafficColumn = $new;
+                    $changes[$old] = $new;
+                }
+            }
+
+            // updating traffic columns (v2)
+            if (!empty($reportConfig->visual->traffic)) {
+                $newTraffic = array();
+                foreach ($reportConfig->visual->traffic as $key => $value) {
+                    $old = $value->trafficColumn;
+                    $new = __remove_column_suffix_update_7125($old);
+                    if ($old != $new) {
+                        log_debug(t('Mapping report visual traffic (v2) column @old to @new', array('@old' => $old, '@new' => $new)));
+                        $value->trafficColumn = $new;
+                        $changes[$old] = $new;
+                    }
+
+                    // ignoring key and using column name instead
+                    $newTraffic[$new] = $value;
+                    $updated = TRUE;
+                }
+                $reportConfig->visual->traffic = $newTraffic;
+            }
+
+            // updating filters
+            if (!empty($reportConfig->model->filters)) {
+                foreach ($reportConfig->model->filters as $key => $value) {
+                    $old = $value->column;
+                    $new = __remove_column_suffix_update_7125($old);
+                    if ($old != $new) {
+                        log_debug(t('Mapping report model filter column @old to @new', array('@old' => $old, '@new' => $new)));
+                        $reportConfig->model->filters[$key]->column = $new;
+                        $changes[$old] = $new;
+                    }
+                }
+            }
+
+            // update color column
+            if (!empty($reportConfig->visual->useColumnDataForColor)) {
+                $old = $reportConfig->visual->useColumnDataForColor;
+                $new = __remove_column_suffix_update_7125($old);
+                if ($old != $new) {
+                    log_debug(t('Mapping report visual color column @old to @new', array('@old' => $old, '@new' => $new)));
+                    $reportConfig->visual->useColumnDataForColor = $new;
+                    $changes[$old] = $new;
+                }
+            }
+
+            // updating formulas
+            if (!empty($reportConfig->model->formulas)) {
+                foreach ($reportConfig->model->formulas as $key => $formula) {
+                    $old = $formula->expression;
+                    $new = str_replace('$COLUMN{column:', '$COLUMN{attr:', $old);
+                    if ($old != $new) {
+                        log_debug(t('Updating report model formula expression @old to @new', array('@old' => $old, '@new' => $new)));
+                        $reportConfig->model->formulas[$key]->expression = $new;
+                        $updated = TRUE;
+                    }
+                }
+            }
+
+            if ($updated || isset($changes)) {
+                // updating custom view code
+                if (isset($changes) && isset($node->field_report_custom_view[$node->language][0]['value'])) {
+                    $customCode = $node->field_report_custom_view[$node->language][0]['value'];
+
+                    $search = $replace = array();
+                    foreach ($changes as $old => $new) {
+                        $search[] = $old;
+                        $replace[] = $new;
+                    }
+
+                    $node->field_report_custom_view[$node->language][0]['value'] = str_replace($search, $replace, $customCode);
+                }
+
+                $node->field_report_conf[$node->language][0]['value'] = json_encode($reportConfig);
+                node_save($node);
+            }
+        }
+        catch (Exception $e) {
+            if ($ignoreNode) {
+                log_error($e->getMessage());
+            }
+            else {
+                throw $e;
+            }
+        }
+    }
+}
+
+function __dashboard_column_update_7125() {
+    $environment_metamodel = data_controller_get_environment_metamodel();
+
+    $columns = db_select('node', 'n')
+        ->fields('n', array('nid'))
+        ->condition('type', NODE_TYPE_DASHBOARD)
+        ->orderBy('nid', 'ASC')
+        ->execute();
+
+    $nids = array();
+    foreach ($columns as $column) {
+        $nids[] = $column->nid;
+    }
+    if (count($nids) == 0) {
+        return;
+    }
+
+    $nodes = node_load_multiple($nids);
+    foreach ($nodes as $node) {
+        log_info(t('Converting dashboard config: @nodeId', array('@nodeId' => $node->nid)));
+
+        $ignoreNode = FALSE;
+        if ($node->status == NODE_NOT_PUBLISHED) {
+            log_warn(t('Node is not published'));
+            $ignoreNode = TRUE;
+        }
+
+        $datasourceName = get_node_field_value($node, 'field_dashboard_datasource');
+        if (isset($datasourceName)) {
+            $datasource = $environment_metamodel->findDataSource($datasourceName);
+            if (!isset($datasource)) {
+                log_warn(t('Data Source cannot be found: @datasourceName', array('@datasourceName' => $datasourceName)));
+                $ignoreNode = TRUE;
+            }
+        }
+        else {
+            log_warn(t('Report Node does not have a reference to a data source'));
+            $ignoreNode = TRUE;
+        }
+
+        try {
+            $dashboardConfigText = get_node_field_value($node, 'field_dashboard_config', 0, 'value', FALSE);
+            $dashboardConfig = isset($dashboardConfigText) ? json_decode($dashboardConfigText) : NULL;
+            if (!isset($dashboardConfig)) {
+                log_info(t('Dashboard configuration is EMPTY'));
+                continue;
+            }
+
+            $updates = 0;
+
+            // array cast to deal with json decoder creating objects for arrays with missing keys
+            $dashboardConfig->drilldowns = (array) $dashboardConfig->drilldowns;
+            // updating column names used in drill-downs
+            if (!empty($dashboardConfig->drilldowns)) {
+                foreach ($dashboardConfig->drilldowns as $drilldown) {
+                    if (isset($drilldown->column)) {
+                        if (isset($drilldown->column->id)) {
+                            // new format
+                            $old = $drilldown->column->id;
+                            $new = __remove_column_suffix_update_7125($old);
+                            if ($old != $new) {
+                                log_debug(t('Mapping dashboard drill down column @old to @new', array('@old' => $old, '@new' => $new)));
+                                $drilldown->column->id = $new;
+                                $updates++;
+                            }
+                        }
+                        else {
+                            // old format
+                            $old = $drilldown->column;
+                            $new = __remove_column_suffix_update_7125($old);
+                            if ($old != $new) {
+                                log_debug(t('Mapping dashboard drill down column @old to @new', array('@old' => $old, '@new' => $new)));
+                                $drilldown->column = $new;
+                                $updates++;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if ($updates > 0) {
+                $node->field_dashboard_config[$node->language][0]['value'] = json_encode($dashboardConfig);
+                node_save($node);
+            }
+        }
+        catch (Exception $e) {
+            if ($ignoreNode) {
+                log_error($e->getMessage());
+            }
+            else {
+                throw $e;
+            }
+        }
+    }
+}
+
+/**
+ * Remove '_calendar' suffix from Date Dimension column names
+ */
+function gd_data_controller_metamodel_update_7125(&$sandbox) {
+    log_info(t("Removing '_calendar' suffix from Date Dimension column names"));
+
+    log_info(t('Converting reports'));
+    __report_column_update_7125();
+
+    log_info(t('Converting dashboards'));
+    __dashboard_column_update_7125();
+
+    log_info(t("Removed '_calendar' suffix from Date Dimension column names in reports and dashboards"));
+}
+
+function __report_column_update_7126() {
+    $environment_metamodel = data_controller_get_environment_metamodel();
+
+    $columns = db_select('node', 'n')
+        ->fields('n', array('nid'))
+        ->condition('type', NODE_TYPE_REPORT)
+        ->orderBy('nid', 'ASC')
+        ->execute();
+
+    $nids = array();
+    foreach ($columns as $column) {
+        $nids[] = $column->nid;
+    }
+
+    if (count($nids) > 0) {
+        $nodes = node_load_multiple($nids);
+        foreach ($nodes as $node) {
+            log_info(t('Converting report config: @nodeId', array('@nodeId' => $node->nid)));
+
+            $ignoreNode = FALSE;
+            if ($node->status == NODE_NOT_PUBLISHED) {
+                log_info(t('Node is not published'));
+                $ignoreNode = TRUE;
+            }
+
+            $reportConfigText = get_node_field_value($node, 'field_report_conf');
+            $reportConfig = isset($reportConfigText) ? json_decode($reportConfigText) : NULL;
+            if (!isset($reportConfig)) {
+                log_info(t('Report configuration is EMPTY'));
+                continue;
+            }
+
+            // checking if the data source is published
+            $datasourceName = isset($node->field_report_datasource[$node->language][0]['value'])
+                ? $node->field_report_datasource[$node->language][0]['value']
+                : NULL;
+            $datasource = isset($datasourceName) ? $environment_metamodel->findDataSource($datasourceName) : NULL;
+            if (!isset($datasource)) {
+                log_info(t('Data Source is not accessible for the node'));
+                $ignoreNode = TRUE;
+            }
+
+            try {
+                $updated = FALSE;
+                $changes = NULL;
+
+                // update color column
+                if (!empty($reportConfig->visual->useColumnDataForColor)) {
+                    $old = $reportConfig->visual->useColumnDataForColor;
+                    // Note: That is correct to call a function from 7116 hook
+                    $new = __remove_level_update_7116($old);
+                    if ($old != $new) {
+                        log_debug(t('Mapping report visual color column @old to @new', array('@old' => $old, '@new' => $new)));
+                        $reportConfig->visual->useColumnDataForColor = $new;
+                        $changes[$old] = $new;
+                    }
+                }
+
+                if ($updated || isset($changes)) {
+                    // updating custom view code
+                    if (isset($changes) && isset($node->field_report_custom_view[$node->language][0]['value'])) {
+                        $customCode = $node->field_report_custom_view[$node->language][0]['value'];
+
+                        $search = $replace = array();
+                        foreach ($changes as $old => $new) {
+                            $search[] = $old;
+                            $replace[] = $new;
+                        }
+
+                        $node->field_report_custom_view[$node->language][0]['value'] = str_replace($search, $replace, $customCode);
+                    }
+
+                    $node->field_report_conf[$node->language][0]['value'] = json_encode($reportConfig);
+                    node_save($node);
+                }
+            }
+            catch (Exception $e) {
+                if ($ignoreNode) {
+                    log_error($e->getMessage());
+                }
+                else {
+                    throw $e;
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Resolves an issue with converting useColumnDataForColor property in report configurations
+ */
+function gd_data_controller_metamodel_update_7126(&$sandbox) {
+    log_info(t("Resolving an issue with converting 'useColumnDataForColor' property in report configurations"));
+
+    log_info(t('Converting reports'));
+    __report_column_update_7126();
+
+    log_info(t("Resolved an issue with converting 'useColumnDataForColor' property in report configurations"));
+}
+

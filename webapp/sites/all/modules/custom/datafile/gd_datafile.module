@@ -1,0 +1,443 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+define('NODE_TYPE_DATAFILE', 'datafile');
+define('BIGGER_PHP_TIME_OUT', 600);
+
+require_once 'resources/datafile.inc';
+
+/**
+ * Implements hook_services_resources()
+ *
+ * @return array
+ */
+function gd_datafile_services_resources () {
+    $resource = array();
+    require 'resources/datafile.resource.inc';
+    return $resource;
+}
+
+/**
+ * Implements hook_entity_delete
+ *
+ * @param $entity
+ * @param $type
+ * @return void
+ */
+function gd_datafile_entity_delete ( $entity, $type ) {
+    if ( $type == 'node' ) {
+        if ( $entity->type == 'dataset' ) {
+            // remove files
+            $files = gd_dataset_get_datafiles($entity->field_dataset_sysname[$entity->language][0]['value']);
+            node_delete_multiple($files);
+        }
+    }
+}
+
+/**
+ * Implements hook_menu()
+ *
+ * @return array
+ */
+function gd_datafile_menu () {
+    $items = array();
+
+    $items['datafile/upload.json'] = array(
+        'title' => 'Datafile Upload',
+        'page callback' => 'gd_datafile_api_upload',
+        'page arguments' => array(),
+        'access callback' => 'gd_datafile_upload_resource_access',
+        'type' => MENU_CALLBACK
+    );
+
+    return $items;
+}
+
+/**
+ * @return bool|mixed
+ */
+function gd_datafile_upload_resource_access () {
+    return user_is_logged_in();
+}
+
+/**
+ * @param null $nid
+ * @param null $vid
+ * @param bool $reset
+ * @return bool|mixed|null
+ */
+function gd_datafile_load ( $nid = null, $vid = null, $reset = false ) {
+    $node = node_load($nid, $vid, $reset);
+    if ( $node->type == NODE_TYPE_DATAFILE ) {
+        return $node;
+    } else {
+        return null;
+    }
+}
+
+/**
+ * Create messages object
+ *
+ * @param $message_object
+ * @return mixed
+ */
+function gd_datafile_prepare_message_from_session () {
+    $message_object = new StdClass();
+    $message_object->status = "validation";
+    $message_object->errors = array();
+    $message_object->warnings = array();
+
+    $message_object = gd_datafile_prepare_error_from_session($message_object);
+    $message_object = gd_datafile_prepare_warning_from_session($message_object);
+    return $message_object;
+}
+
+/**
+ * Create error object from session errors
+ *
+ * @param $error_object
+ * @return mixed
+ */
+function gd_datafile_prepare_error_from_session ( $error_object ) {
+    if ( !empty($_SESSION['messages']) && !empty($_SESSION['messages']['error']) ) {
+        foreach ( $_SESSION['messages']['error'] as $value ) {
+            array_push($error_object->errors, $value);
+        }
+        unset($_SESSION['messages']['error']);
+    }
+
+    return $error_object;
+}
+
+/**
+ * Create error object from session warnings
+ *
+ * @param $error_object
+ * @return mixed
+ */
+function gd_datafile_prepare_warning_from_session ( $error_object ) {
+    if ( !empty($_SESSION['messages']) && !empty($_SESSION['messages']['warning']) ) {
+        foreach ( $_SESSION['messages']['warning'] as $value ) {
+            array_push($error_object->warnings, $value);
+        }
+        unset($_SESSION['messages']['warning']);
+    }
+
+    return $error_object;
+}
+
+/**
+ * @param $datafile
+ * @return array
+ * @throws Exception
+ */
+function gd_datafile_api_upload_add_dataset ( $datafile ) {
+
+    $DatasetConfig = new GD_DatasetConfig();
+    $DatasetConfig->datafile = $datafile;
+
+    list($DatasetConfig->recordCount, $DatasetConfig->metadata, $DatasetConfig->datafile->field_datafile_encoding[$DatasetConfig->datafile->language][0]['value'], $DatasetConfig->preview) = gd_dataset_uploader_get_source_metadata(
+        $DatasetConfig->datafile->field_datafile_file[$DatasetConfig->datafile->language][0]['fid'],
+        $DatasetConfig->datafile->field_datafile_delimiter[$DatasetConfig->datafile->language][0]['value'],
+        $DatasetConfig->datafile->field_datafile_hasheader[$DatasetConfig->datafile->language][0]['value'],
+        isset($DatasetConfig->metadata) ? $DatasetConfig->metadata : null
+    );
+
+    if ( count($DatasetConfig->metadata->columns) > DEFAULT_MAX_COLUMN_COUNT ) {
+        throw new Exception('Please upload a file with ' . DEFAULT_MAX_COLUMN_COUNT . ' columns or less.');
+    }
+}
+
+/**
+ * @param $datafileNode
+ * @return array|null
+ * @throws Exception
+ * @throws IllegalArgumentException
+ */
+function gd_datafile_api_upload_append_replace_dataset ( $datafileNode ) {
+    $metamodel = data_controller_get_metamodel();
+    $dataset = $metamodel->getDataset($datafileNode->field_datafile_dataset_sysname[$datafileNode->language][0]['value']);
+
+    if ( isset($_POST['appendTypeRadio']) ) {
+        $operation = $_POST['appendTypeRadio'];
+    } else {
+        $operation = 'append';
+    }
+
+    $result = null;
+    try {
+        $result = gd_dataset_update_data($dataset, $datafileNode, $operation);
+    } catch ( Exception $e ) {
+        node_unpublish_action($datafileNode);
+        node_save($datafileNode);
+        throw $e;
+    }
+    return $result;
+}
+
+/**
+ * @param $file
+ * @param null $datasetName
+ * @param null $datafile
+ * @param null $parent_file
+ * @return bool|mixed|null|stdClass
+ */
+function gd_datafile_api_upload_get_datafile ( $file, $datasetName = null, $datafile = null, $parent_file = null ) {
+
+    if ( !$datafile ) {
+        $datafile = new stdClass();
+        $node = new stdClass();
+        $node->type = NODE_TYPE_DATAFILE;
+        $node->language = LANGUAGE_NONE;
+        node_object_prepare($node);
+    } else {
+        $node = gd_datafile_load($datafile->nid);
+    }
+
+    // default delimiter to comma
+    if ( !isset($datafile->delimiter) ) {
+        $datafile->delimiter = ',';
+    }
+
+    // Find out last uploaded datafile and get hasHeader property.
+    if ( !empty($datasetName) ) {
+        $last_datafile = gd_dataset_get_datafile_last($datasetName,true);
+    }
+
+    // default hasheader to TRUE
+    if ( !empty($last_datafile) && isset($last_datafile->field_datafile_hasheader[$node->language][0]['value']) ) {
+        $datafile->hasheader = (boolean) $last_datafile->field_datafile_hasheader[$node->language][0]['value'];
+    } else if ( !isset($datafile->hasheader) ) {
+        $datafile->hasheader = true;
+    }
+
+    // get previous encoding
+    if ( !empty($last_datafile) && isset($last_datafile->field_datafile_encoding[$node->language][0]['value']) ) {
+        $datafile->encoding = $last_datafile->field_datafile_encoding[$node->language][0]['value'];
+    } else if ( !isset($datafile->encoding) ) {
+        $datafile->encoding = '';
+    }
+
+    // default description
+    if ( !isset($datafile->description) ) {
+        $datafile->description = '';
+    }
+
+    // node title is the file's filename
+    $node->title = $file->filename;
+    $node->field_datafile_desc[$node->language][0]['value'] = $datafile->description;
+    $node->field_datafile_file[$node->language][0]['fid'] = $file->fid;
+    //this flag is required, controls whether the file should be displayed
+    $node->field_datafile_file[$node->language][0]['display'] = 1;
+
+    $node->field_datafile_delimiter[$node->language][0]['value'] = $datafile->delimiter;
+    $node->field_datafile_hasheader[$node->language][0]['value'] = (int) $datafile->hasheader;
+    $node->field_datafile_encoding[$node->language][0]['value'] = $datafile->encoding;
+
+    if ( isset($parent_file) ) {
+        $node->field_datafile_parent[$node->language][0]['nid'] = $parent_file->nid;
+    }
+
+    if ( !empty($datasetName) ) {
+        $node->field_datafile_dataset_sysname[$node->language][0]['value'] = $datasetName;
+    }
+
+    node_save($node);
+
+    return $node;
+}
+
+/**
+ * Returns CSV file obejct from uploaded zip file
+ * @param $file
+ * @return array
+ * @throws Exception
+ */
+function gd_datafile_get_csv_from_zip ( $zipFile ) {
+    $zip = new ArchiverZip(drupal_realpath($zipFile->uri));
+    $zip->extract(str_replace('.zip','',drupal_realpath($zipFile->uri)));
+    $files = $zip->listContents();
+    $csvFile = null;
+    foreach ( $files as $file ) {
+        $extension = substr(strrchr($file, '.'), 1);
+        if ( $extension == 'csv' ) {
+            $filename = end(explode('/', $file));
+            $uri = str_replace('.zip','',$zipFile->uri).'/'.$file;
+            $mimetype = file_get_mimetype($uri);
+            $csvFile = gd_datafile_create_file($uri,$mimetype,$filename,$zipFile->uid);
+            break;
+        }
+    }
+
+    return $csvFile;
+}
+
+/**
+ * Helper function to create file type in drupal
+ *
+ * @param $uri
+ * @param $mimetype
+ * @param $filename
+ * @param $uid
+ * @return stdClass
+ */
+function gd_datafile_create_file ( $uri, $mimetype, $filename, $uid ) {
+    $file_new = new stdClass();
+    $file_new->fid = null;
+    $file_new->uri = $uri;
+    $file_new->filename = $filename;
+    $file_new->filemime = $mimetype;
+    $file_new->uid = $uid;
+    $file_new->status = FILE_STATUS_PERMANENT;
+
+    return file_save($file_new);
+}
+
+/**
+ * @param null $datafile
+ */
+function gd_datafile_api_upload () {
+    $result = null;
+    $continue = true; // using this until logic can be refactored better
+
+    $message_object = new StdClass();
+    $message_object->status = "validation";
+    $message_object->errors = array();
+    $message_object->warnings = array();
+
+    try {
+        // permission check
+        if ( !empty($_POST['datasetName']) ) {
+            $datasetNode = gd_dataset_load_by_sysname($_POST['datasetName']);
+            $datasourceName = get_node_field_value($datasetNode,'field_dataset_datasource');
+            gd_datasource_set_active($datasourceName);
+        } else {
+            gd_datasource_set_active($_REQUEST['ds']);
+        }
+
+        if ( !gd_account_user_is_admin() && !gd_account_user_is_datasource_admin(null,gd_datasource_get_active()) ) {
+            throw new Exception('Forbidden', 403);
+        }
+    } catch ( Exception $e ) {
+        LogHelper::log_error($e);
+        array_push($message_object->errors, $e->getMessage());
+        $continue = false;
+    }
+
+    if ( $continue ) {
+        LogHelper::log_debug('Initiating Data Upload');
+        LogHelper::log_debug('Setting PHP time limit to '.BIGGER_PHP_TIME_OUT.' seconds');
+        drupal_set_time_limit(BIGGER_PHP_TIME_OUT);
+        // Use this logic to alert to php settings that are required for properly handling >20M uploads.
+        $upload_max_filesize = variable_get('upload_max_filesize', parse_size(ini_get('upload_max_filesize')));
+        $post_max_size = variable_get('post_max_size', parse_size(ini_get('post_max_size')));
+        LogHelper::log_debug('PHP setting upload_max_filesize = '.$upload_max_filesize);
+        LogHelper::log_debug('PHP setting post_max_size = '.$post_max_size);
+
+        if ( $post_max_size <= $upload_max_filesize ) {
+            $message = 'PHP: post_max_size (' . $post_max_size . ') must be greater than upload_max_filesize (' . $upload_max_filesize . ')';
+            drupal_set_message($message,'error');
+            LogHelper::log_error($message);
+            $continue = false;
+        }
+    }
+
+    // upload the file and create a file object
+    if ( $continue ) {
+        try {
+            $validators = array();
+            $validators['file_validate_size'] = array(parse_size(file_upload_max_size()));
+            $validators['file_validate_extensions'] = array('csv zip');
+            $file = file_save_upload('datafile', $validators, DATASET_FILE_STORAGE_DESTINATION, FILE_EXISTS_RENAME);
+            if ( $file ) {
+                $file->status = 1;
+                $file = file_save($file);
+            }
+            if ( !$file ) {
+                $continue = false;
+            }
+        } catch ( Exception $e ) {
+            LogHelper::log_error($e);
+            array_push($message_object->errors, $e->getMessage());
+            $continue = false;
+        }
+    }
+
+    // attach file object to datafile
+    if ( $continue ) {
+
+        try {
+            if ( $file->filemime == 'application/zip' ) {
+                // create file from zip contents
+                $file = gd_datafile_get_csv_from_zip($file);
+            }
+
+            if ( !empty($_POST['datasetName']) ) {
+                $datafileNode = gd_datafile_api_upload_get_datafile($file,$_POST['datasetName']);
+            } else {
+                $datafileNode = gd_datafile_api_upload_get_datafile($file,null);
+            }
+
+            $uploadResult = null;
+            if ( get_node_field_value($datafileNode,'field_datafile_dataset_sysname') ) {
+                LogHelper::log_debug('Data upload is append/replace operation');
+                $uploadResult = gd_datafile_api_upload_append_replace_dataset($datafileNode);
+            } else {
+                LogHelper::log_debug('Data upload is create operation');
+            }
+
+            $api_object = gd_datafile_resource_get_object_from_node($datafileNode);
+
+            if ( isset($api_object) ) {
+                if ( empty($message_object->errors) ) {
+                    $message_object = gd_datafile_prepare_warning_from_session($message_object);
+                    $api_object->messages = $message_object;
+                    $api_object->success = true;
+
+                    if ( !empty($uploadResult) ) {
+                        $uploadStats = new stdClass();
+                        $uploadStats->lineCount = $uploadResult[0];
+                        $uploadStats->insertedRecordCount = $uploadResult[1];
+                        $uploadStats->updatedRecordCount = $uploadResult[2];
+                        $uploadStats->deletedRecordCount = $uploadResult[3];
+                        $api_object->uploadStats = $uploadStats;
+                    }
+                }
+                $result = json_encode($api_object);
+            }
+
+        } catch ( Exception $e ) {
+            LogHelper::log_error($e);
+            array_push($message_object->errors, $e->getMessage());
+        }
+    }
+
+    // If error message in session or error object is populated prepare error object
+    if ( !empty($_SESSION['messages']['error']) || !empty($message_object->errors) ) {
+        $message_object = gd_datafile_prepare_error_from_session($message_object);
+        $result = json_encode($message_object);
+    }
+
+    echo $result;
+
+    unset($_SESSION['messages']);
+    drupal_exit();
+}

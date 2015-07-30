@@ -1,0 +1,15 @@
+screenshot  = screenshot.png
+name        = Govdashboard Core Theme
+description = This core theme will contain all the core styles needed for Govdashboard. All other agency or bureau specific themes will extend this theme.
+core        = 7.x
+base theme  = govdash_base
+
+stylesheets[all][] = css/layouts/fixed-width.css
+stylesheets[all][] = css/style.css
+stylesheets[print][] = css/print.css
+stylesheets[all][] = css/navigation.css
+stylesheets[all][] = css/viewer/table.css
+stylesheets[all][] = css/viewer/filter.css
+stylesheets[all][] = css/viewer/highcharts.css
+stylesheets[all][] = css/viewer/reportMenu.css
+stylesheets[all][] = css/viewer/report.css

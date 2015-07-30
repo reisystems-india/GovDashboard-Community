@@ -1,0 +1,36 @@
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+.share-button {
+    position: absolute;
+    top: 17px;
+    right: 100px;
+    width: 30px;
+    height: 30px;
+    background: #4A4D53 url(images/ic_action_share.png) 2.5px 2.5px no-repeat;
+    background-size: 25px 25px;
+}
+
+.share-list {
+    position: absolute;
+    top: 47px;
+    right: 100px;
+    width:30px;
+    height: auto;
+}

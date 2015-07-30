@@ -1,0 +1,361 @@
+<?php
+/*
+ * Copyright 2014 REI Systems, Inc.
+ * 
+ * This file is part of GovDashboard.
+ * 
+ * GovDashboard is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * GovDashboard is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with GovDashboard.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/**
+ * Implements hook_install().
+ *
+ * Perform actions to set up the site for this profile.
+ */
+function govdash_install() {
+
+    // Add text formats.
+    $filtered_html_format = array(
+        'format' => 'filtered_html',
+        'name' => 'Filtered HTML',
+        'weight' => 0,
+        'filters' => array(
+            // URL filter.
+            'filter_url' => array(
+                'weight' => 0,
+                'status' => 1,
+            ),
+            // HTML filter.
+            'filter_html' => array(
+                'weight' => 1,
+                'status' => 1,
+            ),
+            // Line break filter.
+            'filter_autop' => array(
+                'weight' => 2,
+                'status' => 1,
+            ),
+            // HTML corrector filter.
+            'filter_htmlcorrector' => array(
+                'weight' => 10,
+                'status' => 1,
+            ),
+        ),
+    );
+    $filtered_html_format = (object)$filtered_html_format;
+    filter_format_save($filtered_html_format);
+
+    $full_html_format = array(
+        'format' => 'full_html',
+        'name' => 'Full HTML',
+        'weight' => 1,
+        'filters' => array(
+            // URL filter.
+            'filter_url' => array(
+                'weight' => 0,
+                'status' => 1,
+            ),
+            // Line break filter.
+            'filter_autop' => array(
+                'weight' => 1,
+                'status' => 1,
+            ),
+            // HTML corrector filter.
+            'filter_htmlcorrector' => array(
+                'weight' => 10,
+                'status' => 1,
+            ),
+        ),
+    );
+    $full_html_format = (object)$full_html_format;
+    filter_format_save($full_html_format);
+
+    // Insert default pre-defined node types into the database. For a complete
+    // list of available node type attributes, refer to the node type API
+    // documentation at: http://api.drupal.org/api/HEAD/function/hook_node_info.
+    $types = array(
+        array(
+            'type' => 'page',
+            'name' => st('Basic page'),
+            'base' => 'node_content',
+            'description' => st("Use <em>basic pages</em> for your static content, such as an 'About us' page."),
+            'custom' => 1,
+            'modified' => 1,
+            'locked' => 0,
+        ),
+    );
+
+    foreach ($types as $type) {
+        $type = node_type_set_defaults($type);
+        node_type_save($type);
+        node_add_body_field($type);
+    }
+
+    // Default "Basic page" to not be promoted and have comments disabled.
+    variable_set('node_options_page', array('status'));
+    //variable_set('comment_page', COMMENT_NODE_HIDDEN);
+
+    // Don't display date and author information for "Basic page" nodes by default.
+    variable_set('node_submitted_page', FALSE);
+
+    // Enable user picture support and set the default to a square thumbnail option.
+    variable_set('user_pictures', '0');
+    variable_set('user_picture_dimensions', '1024x1024');
+    variable_set('user_picture_file_size', '800');
+    variable_set('user_picture_style', 'thumbnail');
+
+    // Allow visitor account creation with administrative approval.
+    variable_set('user_register', USER_REGISTER_VISITORS_ADMINISTRATIVE_APPROVAL);
+
+    //set default value for MAX_RECORDS
+    variable_set('account_settings_maxrecords', 1000);
+
+    //set default value for maximum datamarts
+    variable_set('account_settings_maxdms', 10);
+
+    //set default value for max users
+    variable_set('account_settings_maxusers', 25);
+
+    //set front page
+    variable_set('site_frontpage', 'dashboards');
+
+    //set timezone not configurable by user
+    variable_set('configurable_timezones', 0);
+
+    // Enable default permissions for system roles.
+    $filtered_html_permission = filter_permission_name($filtered_html_format);
+
+    user_role_grant_permissions(DRUPAL_ANONYMOUS_RID, array('access content', $filtered_html_permission));
+    user_role_grant_permissions(DRUPAL_AUTHENTICATED_RID, array('access content','access user profile', $filtered_html_permission));
+
+    // Create a default role for site administrators (REI), with all available permissions assigned.
+    $admin_role = new stdClass();
+    $admin_role->name = 'Instance Admin';
+    $admin_role->weight = 2;
+    user_role_save($admin_role);
+    user_role_grant_permissions($admin_role->rid, array_keys(module_invoke_all('permission')));
+    // Set this as the administrator role.
+    variable_set('user_admin_role', $admin_role->rid);
+
+    // Assign user 1 the "administrator" role.
+    db_insert('users_roles')
+        ->fields(array('uid' => 1, 'rid' => $admin_role->rid))
+        ->execute();
+
+    // Create a default role for site administrator (Customer), with appropriate permissions assigned.
+    $site_admin_role = new stdClass();
+    $site_admin_role->name = 'Govdash Site Admin';
+    $site_admin_role->weight = 3;
+    user_role_save($site_admin_role);
+    user_role_grant_permissions(
+        $site_admin_role->rid,
+        array(
+            'access content',
+            'create dashboard content',
+            'edit own dashboard content',
+            'edit any dashboard content',
+            'delete own dashboard content',
+            'delete any dashboard content',
+            'create datamart content',
+            'edit own datamart content',
+            'edit any datamart content',
+            'delete own datamart content',
+            'delete any datamart content',
+            $filtered_html_permission
+        )
+    );
+
+    // Assign user 1 the "site admin" role.
+    db_insert('users_roles')
+        ->fields(array('uid' => 1, 'rid' => $site_admin_role->rid))
+        ->execute();
+
+    // Enable the admin theme.
+    db_update('system')
+        ->fields(array('status' => 1))
+        ->condition('type', 'theme')
+        ->condition('name', 'bootstrap')
+        ->execute();
+    variable_set('admin_theme', 'bootstrap');
+    variable_set('node_admin_theme', '1');
+
+    // Enable the GovDashboard theme.
+    db_update('system')
+        ->fields(array('status' => 1))
+        ->condition('type', 'theme')
+        ->condition('name', 'govdash_core')
+        ->execute();
+
+    variable_set('theme_default', 'govdash_core');
+    $default_theme = variable_get('theme_default', 'govdash_core');
+    $values = array(
+        array(
+          'module' => 'system',
+          'delta' => 'main',
+          'theme' => $default_theme,
+          'status' => 1,
+          'weight' => 0,
+          'region' => 'content',
+          'pages' => '',
+          'cache' => -1,
+        ),
+        array(
+          'module' => 'user',
+          'delta' => 'login',
+          'theme' => $default_theme,
+          'status' => 0,
+          'weight' => 0,
+          'region' => 'sidebar_first',
+          'pages' => '',
+          'cache' => -1,
+        ),
+        array(
+          'module' => 'system',
+          'delta' => 'navigation',
+          'theme' => $default_theme,
+          'status' => 0,
+          'weight' => 0,
+          'region' => 'sidebar_first',
+          'pages' => '',
+          'cache' => -1,
+        ),
+        array(
+          'module' => 'system',
+          'delta' => 'management',
+          'theme' => $default_theme,
+          'status' => 0,
+          'weight' => 1,
+          'region' => 'sidebar_first',
+          'pages' => '',
+          'cache' => -1,
+        ),
+        array(
+          'module' => 'system',
+          'delta' => 'help',
+          'theme' => $default_theme,
+          'status' => 0,
+          'weight' => 0,
+          'region' => 'help',
+          'pages' => '',
+          'cache' => -1,
+        ),
+      );
+    $query = db_insert('block')->fields(array('module', 'delta', 'theme', 'status', 'weight', 'region', 'pages', 'cache'));
+    foreach ($values as $record) {
+        $query->values($record);
+    }
+    $query->execute();
+}
+
+function govdash_install_tasks(){
+    $task['create_private_file_path'] = array(
+        'display_name' => st('Create private file path'),
+        'display' => TRUE,
+        'type' => 'normal',
+        'run' => INSTALL_TASK_RUN_IF_REACHED,
+        'function' => 'govdash_create_private_file_path',
+    );
+
+    $task['govdash_set_content_access_settings'] = array(
+        'display_name' => st('Set content access settings'),
+        'display' => TRUE,
+        'type' => 'normal',
+        'run' => INSTALL_TASK_RUN_IF_REACHED,
+        'function' => 'govdash_set_content_access_settings',
+    );
+
+    $task['govdash_data_controller_setup'] = array(
+        'display_name' => st('Setup data-controller'),
+        'display' => TRUE,
+        'type' => 'normal',
+        'run' => INSTALL_TASK_RUN_IF_REACHED,
+        'function' => 'govdash_data_controller_setup',
+    );
+
+    $task['govdash_create_datamart'] = array(
+        'display_name' => st('Create Default Workspace'),
+        'display' => TRUE,
+        'type' => 'normal',
+        'run' => INSTALL_TASK_RUN_IF_REACHED,
+        'function' => 'govdash_create_datamart',
+    );
+    return $task;
+}
+
+
+function govdash_set_content_access_settings(){
+    //set permissions for datamart
+    $settings['view']['datamart'][0] = 3;
+    $settings['view_own']['datamart'][0] = 3;
+    $settings['per_node']['datamart'] = 1;
+    $settings['priority']['datamart'] = 0;
+
+    //set permissions for dashboards
+    $settings['view']['dashboard'][0] = 3;
+    $settings['view_own']['dashboard'][0] = 3;
+    $settings['per_node']['dashboard'] = 1;
+    $settings['priority']['dashboard'] = 0;
+
+    //save settings
+    content_access_set_settings($settings);
+    node_access_needs_rebuild(false);
+}
+
+
+function govdash_create_private_file_path(){
+    //set private file upload
+    $private_upload_path = variable_get('file_public_path', conf_path() . '/files/private/upload');
+    $private_path = variable_get('file_public_path', conf_path() . '/files/private');
+
+    //system_check_directory will create directory if it doesn't exists with .htaccess file.
+    //create upload folder first.
+    $form_element['#value'] = $private_upload_path;
+    $form_element['#name'] = "";
+    system_check_directory($form_element);
+
+    $form_element['#value'] = $private_path;
+    $form_element['#name'] = "";
+    system_check_directory($form_element);
+
+    variable_set('file_private_path',$private_path);
+
+    //enable clean urls
+    variable_set('clean_url', 1);
+}
+
+function govdash_data_controller_setup(){
+
+    include('database/mysql/data_controller_schema_mysql.inc');
+    include('database/mysql/data_controller_seq_procedure_mysql.inc');
+
+    //create schema for data controller seq
+    $schema = data_controller_schema_schema_mysql();
+    foreach($schema as $key=>$value){
+        db_create_table($key,$value);
+    }
+
+    //create MySQL stored procedure
+    data_controller_seq_procedure_create_mysql();
+}
+
+function govdash_create_datamart(){
+    //finally create default datamart
+    cache_clear_all();
+    $datasource = array();
+    $datasource['publicName'] = 'Default';
+    $datasource['description'] = 'Default Topic';
+
+    $datasourceName = gd_datasource_create($datasource);
+    gd_datasource_set_active($datasourceName);
+}
